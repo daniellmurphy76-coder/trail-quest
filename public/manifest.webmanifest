@@ -1,0 +1,12 @@
+{
+  "name": "Trail Quest",
+  "short_name": "Trail Quest",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#87CEEB",
+  "theme_color": "#2F6B3A",
+  "icons": [
+    { "src": "favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}
