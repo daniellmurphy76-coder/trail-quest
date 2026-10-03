@@ -166,6 +166,16 @@ describe('Den Chief lines', () => {
     }
   });
 
+  it('introduces a poster page in both wordings, in two short sentences, and words the empty Scout Book page', () => {
+    for (const level of ['grade2', 'grade5'] as const) {
+      expect(line('posterHint', level)).toBe('Here is the whole thing. Read it top to bottom.');
+      expect(sentences(line('posterHint', level)).map(wordCount)).toEqual([5, 5]);
+      expect(line('bookEmpty', level)).toBe('Nothing here yet.');
+      // The no-voice rule: the Den Chief tells a Scout to read, and never offers to read for them.
+      expect(line('posterHint', level)).not.toMatch(/aloud|listen|speak/i);
+    }
+  });
+
   it('offers to keep going once the trail is done, and says everything is done for now when it is', () => {
     for (const level of ['grade2', 'grade5'] as const) {
       expect(line('choiceKeepGoing', level)).toBe('Keep going!');

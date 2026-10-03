@@ -7,7 +7,8 @@
  *
  * Before a learn activity the Den Chief teaches (see screens/lesson.ts): a new step always shows
  * its lesson; a warm-up or bonus review offers "Remind me" or "I remember!" once per requirement
- * per day. After a finished trail the summary offers "Keep going!", which plans a fresh trail from
+ * per day. A lesson with a poster (the whole Scout Oath on one screen) shows it right after the
+ * intro line and before the lesson lines, and "Remind me" shows it again. After a finished trail the summary offers "Keep going!", which plans a fresh trail from
  * the updated profile (leaving out what today already used) and plays it the same way, as many
  * times as the Scout likes. Each trail is its own session log; the streak moves once per day.
  *
@@ -42,6 +43,13 @@ export interface DenChiefDialog {
   text: string;
   /** One button per choice; resolves with the index. Omit for a single "Next" button. */
   choices?: string[];
+}
+
+/** A poster page for the teaching flow: the full text, plus the Den Chief's line for under the title. */
+export interface PosterInfo {
+  title: string;
+  lines: string[];
+  hint: string;
 }
 
 export interface ApprovalInfo {
@@ -86,6 +94,8 @@ export interface SessionDeps {
 
   /** A Den Chief speech bubble. Resolves with the chosen index (0 for "Next"). */
   showDialog(dialog: DenChiefDialog): Promise<number>;
+  /** The poster page: every line of the title's text on one screen. Resolves when the Scout taps Next. */
+  showPoster(poster: PosterInfo): Promise<void>;
   /** Run one activity at Base Camp. Never rejects for player error. */
   runActivity(stop: TrailStop, stage: ActivityStage): Promise<ActivityResult>;
   /** Show the trail sign card. Returns a function that removes it. */
@@ -288,7 +298,11 @@ export function createSession(deps: SessionDeps): Session {
     }
     const requirement = getRequirement(deps.content, stop.requirementId)?.requirement;
     const plan = lessonPlan({ lesson: requirement?.lesson, kidText: requirement?.kidText ?? stop.title }, level, review);
-    await playLesson((page) => deps.showDialog(page), plan);
+    await playLesson(
+      (page) => deps.showDialog(page),
+      plan,
+      (poster) => deps.showPoster({ title: poster.title, lines: poster.lines, hint: say('posterHint') }),
+    );
   }
 
   /** Play one stop from intro to cheer, record it and save. */

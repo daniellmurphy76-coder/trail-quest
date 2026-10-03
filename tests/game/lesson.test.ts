@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { lessonPages, lessonPlan, playLesson, REMIND_ME, type LessonPage } from '../../src/game/screens/lesson';
+import { lessonPages, lessonPlan, playLesson, posterOf, REMIND_ME, type LessonPage } from '../../src/game/screens/lesson';
 
 const KID_TEXT = 'Test step one. This second sentence is extra.';
 
@@ -97,5 +97,109 @@ describe('playing a lesson', () => {
     const { show } = shower();
     await expect(playLesson(show, lessonPlan({ kidText: '' }, 'grade2', false))).resolves.toBe(false);
     expect(show).not.toHaveBeenCalled();
+  });
+});
+
+describe('lesson with a poster', () => {
+  const POSTER = { title: 'The Test Poster', lines: ['Poster line one.', 'Poster line two.', 'Poster line three.'] };
+  const source = { lesson: { lines: lines(2), poster: POSTER }, kidText: KID_TEXT };
+
+  it('cleans the poster: trims lines, drops blanks, and has none when nothing is on it', () => {
+    expect(posterOf({ lines: lines(1), poster: { title: '  Oath  ', lines: [' A ', '', '  ', 'B'] } })).toEqual({
+      title: 'Oath',
+      lines: ['A', 'B'],
+    });
+    expect(posterOf(undefined)).toBeUndefined();
+    expect(posterOf({ lines: lines(1) })).toBeUndefined();
+    expect(posterOf({ lines: lines(1), poster: { title: 'Empty', lines: [' '] } })).toBeUndefined();
+    expect(posterOf({ lines: lines(1), poster: { title: 'Odd' } as never })).toBeUndefined();
+  });
+
+  it('keeps the plan as it was for a lesson without a poster', () => {
+    const plan = lessonPlan({ lesson: { lines: lines(2) }, kidText: KID_TEXT }, 'grade2', false);
+    expect(plan.poster).toBeUndefined();
+    expect('poster' in plan).toBe(false);
+  });
+
+  it('puts the poster in the plan and keeps the intro and lesson lines as the pages', () => {
+    const plan = lessonPlan(source, 'grade2', false);
+    expect(plan.poster).toEqual(POSTER);
+    expect(plan.pages.map((p) => p.text)).toEqual(['Let me show you something first.', ...lines(2)]);
+  });
+
+  it('shows the poster right after the intro and before the lesson lines', async () => {
+    const events: string[] = [];
+    const show = vi.fn(async (page: LessonPage) => {
+      events.push(`page:${page.text}`);
+      return 0;
+    });
+    const showPoster = vi.fn(async (poster: { title: string }) => {
+      events.push(`poster:${poster.title}`);
+    });
+    const taught = await playLesson(show, lessonPlan(source, 'grade2', false), showPoster);
+    expect(taught).toBe(true);
+    expect(events).toEqual([
+      'page:Let me show you something first.',
+      'poster:The Test Poster',
+      'page:Test lesson line 1.',
+      'page:Test lesson line 2.',
+    ]);
+    expect(showPoster).toHaveBeenCalledWith(POSTER);
+  });
+
+  it('plays the lesson as before when there is no poster, or nothing to show it with', async () => {
+    const showPoster = vi.fn(async () => {});
+    const none = vi.fn(async () => 0);
+    await playLesson(none, lessonPlan({ lesson: { lines: lines(2) }, kidText: KID_TEXT }, 'grade2', false), showPoster);
+    expect(showPoster).not.toHaveBeenCalled();
+    expect(none).toHaveBeenCalledTimes(3);
+
+    const noPosterFn = vi.fn(async () => 0);
+    await expect(playLesson(noPosterFn, lessonPlan(source, 'grade2', false))).resolves.toBe(true);
+    expect(noPosterFn).toHaveBeenCalledTimes(3);
+  });
+
+  it('a review shows the poster and the lines after "Remind me", and neither after "I remember!"', async () => {
+    const plan = lessonPlan(source, 'grade2', true);
+    expect(plan.ask?.choices).toEqual(['Remind me', 'I remember!']);
+
+    const remind: string[] = [];
+    await playLesson(
+      async (page) => {
+        remind.push(page.text);
+        return 0;
+      },
+      plan,
+      async (poster) => {
+        remind.push(`poster:${poster.title}`);
+      },
+    );
+    expect(remind).toEqual([
+      'Do you remember this one?',
+      'Let me show you something first.',
+      'poster:The Test Poster',
+      ...lines(2),
+    ]);
+
+    const showPoster = vi.fn(async () => {});
+    await expect(playLesson(async () => 1, plan, showPoster)).resolves.toBe(false);
+    expect(showPoster).not.toHaveBeenCalled();
+  });
+
+  it('a lesson that is only a poster still gets the intro line, then the poster', async () => {
+    const plan = lessonPlan({ lesson: { lines: [], poster: POSTER }, kidText: KID_TEXT }, 'grade5', false);
+    expect(plan.pages).toEqual([{ text: 'Let me show you something first.' }]);
+    const events: string[] = [];
+    await playLesson(
+      async (page) => {
+        events.push(page.text);
+        return 0;
+      },
+      plan,
+      async (poster) => {
+        events.push(`poster:${poster.title}`);
+      },
+    );
+    expect(events).toEqual(['Let me show you something first.', 'poster:The Test Poster']);
   });
 });

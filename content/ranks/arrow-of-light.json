@@ -105,13 +105,22 @@
           "kidText": "The Scout Oath is a promise every Scout makes. Put the lines in the right order. Then say it out loud!",
           "lesson": {
             "lines": [
-              "The Scout Oath is a promise every Scout makes out loud.",
-              "It starts: On my honor I will do my best.",
-              "Next, do your duty to God and country. A duty is a job you promise to do.",
-              "Then obey the Scout Law and help other people at all times.",
-              "Last, keep yourself physically strong, mentally awake, and morally straight.",
-              "That means a strong body, a sharp mind, and doing what is right."
-            ]
+              "This is the Scout Oath. It is a promise every Scout makes out loud.",
+              "A duty is a job you promise to do. The Oath has duties to God and country, to others, and to yourself.",
+              "The last part means a strong body, a sharp mind, and doing what is right.",
+              "Now put the lines in order. Tap Show me if you forget."
+            ],
+            "poster": {
+              "title": "Scout Oath",
+              "lines": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "to help other people at all times;",
+                "to keep myself physically strong,",
+                "mentally awake, and morally straight."
+              ]
+            }
           },
           "digital": true,
           "activity": {
@@ -138,13 +147,30 @@
           "kidText": "The Scout Law has 12 points. Each point tells how a Scout acts. Show what you know about them!",
           "lesson": {
             "lines": [
-              "The Scout Law has 12 points. Each one is a way Scouts act.",
+              "This is the Scout Law. It has 12 points. Each one is a way Scouts act.",
               "The first point is trustworthy. The last point is reverent.",
               "Trustworthy means you tell the truth and keep your promises.",
               "Thrifty means you use time, food, and supplies wisely. You do not waste them.",
               "Brave does not mean you never feel scared. It means you do right anyway.",
               "Example: you feel nervous but still tell the truth. That is brave."
-            ]
+            ],
+            "poster": {
+              "title": "Scout Law: A Scout is",
+              "lines": [
+                "Trustworthy",
+                "Loyal",
+                "Helpful",
+                "Friendly",
+                "Courteous",
+                "Kind",
+                "Obedient",
+                "Cheerful",
+                "Thrifty",
+                "Brave",
+                "Clean",
+                "Reverent"
+              ]
+            }
           },
           "digital": true,
           "activity": {
@@ -292,13 +318,20 @@
           "kidText": "A slogan and a motto are short sayings. Scouts have one of each. Let us see if you know them!",
           "lesson": {
             "lines": [
-              "Scouts have a motto and a slogan. Each is a short saying.",
+              "These are the Scout motto and slogan. Each is a short saying.",
               "The motto is Be Prepared. That means be ready before trouble comes.",
               "The slogan is Do a Good Turn Daily. A slogan tells you what to do.",
               "A good turn is a kind thing you do without being asked.",
               "You do not wait to be paid or thanked.",
               "Example: carry a neighbor's groceries, just to be nice."
-            ]
+            ],
+            "poster": {
+              "title": "Scout Motto and Slogan",
+              "lines": [
+                "Motto: Be Prepared",
+                "Slogan: Do a Good Turn Daily"
+              ]
+            }
           },
           "digital": true,
           "activity": {
@@ -1712,13 +1745,23 @@
           "kidText": "Leave No Trace means leaving nature as you found it. After camp, talk with your team. Share what worked and what to change.",
           "lesson": {
             "lines": [
-              "Leave No Trace means leaving nature the way you found it.",
-              "Pack out all your trash. Never burn it in the fire.",
-              "Stay on the trail. Do not make a new shortcut.",
-              "Leave rocks and flowers where you find them. Never carve your name in a tree.",
-              "Keep a safe distance from wildlife. Never feed the squirrels.",
-              "Use the fire ring that is already there."
-            ]
+              "This is Leave No Trace for Kids. It means leaving nature the way you found it.",
+              "These seven rules keep camp, trails, and wildlife safe for everyone.",
+              "Think about your campout. Which rules did your team follow?",
+              "Then sort the choices that follow the rules."
+            ],
+            "poster": {
+              "title": "Leave No Trace for Kids",
+              "lines": [
+                "Know before you go. Learn about the place first.",
+                "Choose the right path. Stay on the trail.",
+                "Trash your trash. Take your trash home.",
+                "Leave what you find. Rocks and flowers stay.",
+                "Be careful with fire. Never leave it alone.",
+                "Respect wildlife. Watch animals from far away.",
+                "Be kind to other people. Share the trail."
+              ]
+            }
           },
           "digital": false,
           "activity": {

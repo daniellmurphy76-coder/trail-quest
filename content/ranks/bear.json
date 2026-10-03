@@ -76,11 +76,25 @@
           "lesson": {
             "lines": [
               "The Scout Oath is a promise. Scouts say it out loud.",
-              "First say: On my honor I will do my best. Next say: to do my duty to God and my country.",
-              "Then say: and to obey the Scout Law. Then say: to help other people at all times.",
-              "Last say: to keep myself physically strong. Then: mentally awake, and morally straight.",
-              "Then say the Scout Law. It lists 12 ways to act."
-            ]
+              "The Scout Law lists 12 ways to act.",
+              "Say them with your den. Hold up the Cub Scout sign.",
+              "Now put the Oath lines in order. Tap Show me if you forget."
+            ],
+            "poster": {
+              "title": "Scout Oath and Scout Law",
+              "lines": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "to help other people at all times;",
+                "to keep myself physically strong,",
+                "mentally awake, and morally straight.",
+                "A Scout is trustworthy, loyal, helpful,",
+                "friendly, courteous, kind,",
+                "obedient, cheerful, thrifty,",
+                "brave, clean, and reverent."
+              ]
+            }
           },
           "notes": "Practice is the Oath by line. The Law is taught here only as a first look; a Law quiz can reuse the Wolf style."
         },
@@ -129,12 +143,23 @@
           },
           "lesson": {
             "lines": [
-              "The Scout Oath is a promise with three big parts.",
+              "This is the Scout Oath. It is a promise with three big parts.",
               "Part one: do your duty to God and country. Duty means doing what you should.",
               "Part two: help other people at all times.",
               "Part three: be strong in body, awake in mind, and morally straight.",
               "Morally straight means you do what is right."
-            ]
+            ],
+            "poster": {
+              "title": "Scout Oath",
+              "lines": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "to help other people at all times;",
+                "to keep myself physically strong,",
+                "mentally awake, and morally straight."
+              ]
+            }
           }
         },
         {
@@ -395,11 +420,17 @@
           },
           "lesson": {
             "lines": [
-              "The Cub Scout motto is Do Your Best.",
+              "This is the Cub Scout motto.",
               "A motto is a short saying that shows what a group believes.",
               "Doing your best does not mean winning. It means you try hard.",
               "When you try your best, you learn and you grow."
-            ]
+            ],
+            "poster": {
+              "title": "Cub Scout Motto",
+              "lines": [
+                "Do Your Best"
+              ]
+            }
           }
         },
         {
@@ -1219,11 +1250,24 @@
           },
           "lesson": {
             "lines": [
+              "These are the seven Leave No Trace rules for kids.",
               "Hike day! First check the weather and your map.",
               "Pack your Six Essentials, your six hiking helpers. Meet your buddy and your den.",
-              "Walk your mile. Follow Leave No Trace: leave nature as you found it.",
+              "Walk your mile. Follow the seven rules and leave nature as you found it.",
               "At the end, take your trash home."
-            ]
+            ],
+            "poster": {
+              "title": "Leave No Trace for Kids",
+              "lines": [
+                "Know before you go. Learn about the place first.",
+                "Choose the right path. Stay on the trail.",
+                "Trash your trash. Take your trash home.",
+                "Leave what you find. Rocks and flowers stay.",
+                "Be careful with fire. Never leave it alone.",
+                "Respect wildlife. Watch animals from far away.",
+                "Be kind to other people. Share the trail."
+              ]
+            }
           }
         }
       ]

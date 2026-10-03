@@ -243,6 +243,32 @@
                 "minLength": 1,
                 "maxLength": 120
               }
+            },
+            "poster": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "title",
+                "lines"
+              ],
+              "description": "Full text shown on one screen before the lesson lines (the Scout Oath, the Scout Law). Every line visible at once, big type.",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "lines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 14,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                }
+              }
             }
           }
         }

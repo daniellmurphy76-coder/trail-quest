@@ -75,11 +75,26 @@
           },
           "lesson": {
             "lines": [
-              "The Oath is a promise. First, do your best.",
-              "Then comes duty, the Law, and helping other people.",
-              "Last are three big things. Physically strong: a strong body.",
-              "Mentally awake: a ready mind. Morally straight: doing right."
-            ]
+              "The Oath is a promise. The Law is 12 ways to act.",
+              "Strong body, ready mind, doing right. That ends the Oath.",
+              "Say them with your den. Hold up the Cub Scout sign.",
+              "Now put the Oath lines in order. Tap Show me if you forget."
+            ],
+            "poster": {
+              "title": "Scout Oath and Scout Law",
+              "lines": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "to help other people at all times;",
+                "to keep myself physically strong,",
+                "mentally awake, and morally straight.",
+                "A Scout is trustworthy, loyal, helpful,",
+                "friendly, courteous, kind,",
+                "obedient, cheerful, thrifty,",
+                "brave, clean, and reverent."
+              ]
+            }
           },
           "notes": "Practice is the Oath by line. The Law points are taught in requirement 3."
         },
@@ -138,11 +153,28 @@
           },
           "lesson": {
             "lines": [
-              "The Scout Law has 12 points.",
+              "This is the Scout Law. It has 12 points.",
               "Trustworthy means people can trust you.",
               "Brave means you do right when you are scared.",
               "Thrifty means you save things and do not waste."
-            ]
+            ],
+            "poster": {
+              "title": "Scout Law: A Scout is",
+              "lines": [
+                "Trustworthy",
+                "Loyal",
+                "Helpful",
+                "Friendly",
+                "Courteous",
+                "Kind",
+                "Obedient",
+                "Cheerful",
+                "Thrifty",
+                "Brave",
+                "Clean",
+                "Reverent"
+              ]
+            }
           },
           "notes": "Quiz teaches meanings; the 12 points are not asked in order. Any later Law question can reuse this style."
         },
@@ -350,11 +382,17 @@
           },
           "lesson": {
             "lines": [
-              "The Cub Scout motto is Do Your Best.",
+              "This is the Cub Scout motto.",
               "A motto is a short saying to follow.",
               "Doing your best means trying hard.",
               "You can lose and still do your best!"
-            ]
+            ],
+            "poster": {
+              "title": "Cub Scout Motto",
+              "lines": [
+                "Do Your Best"
+              ]
+            }
           }
         },
         {
@@ -644,11 +682,23 @@
           },
           "lesson": {
             "lines": [
+              "These are the seven Leave No Trace rules for kids.",
               "Leave No Trace means leave nature as you found it.",
-              "Stay on trails. Take trash home. Be kind to hikers.",
-              "Watch animals from far away. Do not feed them.",
-              "Leave rocks and flowers. Never leave a fire burning."
-            ]
+              "Each rule helps keep trails, plants, and animals safe.",
+              "Now sort the good and bad choices."
+            ],
+            "poster": {
+              "title": "Leave No Trace for Kids",
+              "lines": [
+                "Know before you go. Learn about the place first.",
+                "Choose the right path. Stay on the trail.",
+                "Trash your trash. Take your trash home.",
+                "Leave what you find. Rocks and flowers stay.",
+                "Be careful with fire. Never leave it alone.",
+                "Respect wildlife. Watch animals from far away.",
+                "Be kind to other people. Share the trail."
+              ]
+            }
           },
           "notes": "Items follow the Leave No Trace Principles for Kids (know before you go, choose the right path, trash your trash, leave what you find, be careful with fire, respect wildlife, be kind to other visitors)."
         },
@@ -1080,11 +1130,28 @@
           },
           "lesson": {
             "lines": [
-              "The Scout Law has points for good neighbors.",
+              "This is the Scout Law. Some points fit good neighbors.",
               "Helpful means you help out, like with heavy bags.",
               "Friendly means you say hi and welcome new people.",
               "Courteous means you are polite, like saying please."
-            ]
+            ],
+            "poster": {
+              "title": "Scout Law: A Scout is",
+              "lines": [
+                "Trustworthy",
+                "Loyal",
+                "Helpful",
+                "Friendly",
+                "Courteous",
+                "Kind",
+                "Obedient",
+                "Cheerful",
+                "Thrifty",
+                "Brave",
+                "Clean",
+                "Reverent"
+              ]
+            }
           },
           "notes": "Any three fitting Scout Law points satisfy the requirement; the quiz covers helpful, friendly, and courteous."
         },

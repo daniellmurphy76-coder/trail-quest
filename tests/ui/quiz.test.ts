@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { quizActivity } from '../../src/activities/quiz';
 import type { QuizParams } from '../../src/activities/types';
-import { buttonByText, makeCtx, makeHost, maybeButton, press } from './helpers';
+import { buttonByText, flush, makeCtx, makeHost, maybeButton, press } from './helpers';
 
 const PARAMS: QuizParams = {
   questions: [
@@ -131,5 +131,61 @@ describe('quizActivity', () => {
       completed: false,
       attempts: 0,
     });
+  });
+});
+
+describe('quizActivity: the Show me peek', () => {
+  const POSTER = { title: 'The Test Poster', lines: ['Test poster line one.', 'Test poster line two.'] };
+  const posterCard = (): HTMLElement | null => host.querySelector('.tq-poster');
+
+  it('has no Show me button unless the context has a poster', async () => {
+    const result = quizActivity.run(host, PARAMS, makeCtx());
+    expect(maybeButton(host, 'Show me')).toBeNull();
+    buttonByText(host, 'Back').click();
+    await result;
+  });
+
+  it('shows Show me beside the question on every question when the context has a poster', async () => {
+    const result = quizActivity.run(host, PARAMS, makeCtx({ poster: POSTER }));
+    expect(buttonByText(host, 'Show me').closest('.tq-prompt')!.textContent).toContain(PARAMS.questions[0]!.prompt);
+    choice('2').click();
+    buttonByText(host, 'Next').click();
+    expect(buttonByText(host, 'Show me').closest('.tq-prompt')!.textContent).toContain(PARAMS.questions[1]!.prompt);
+    buttonByText(host, 'Back').click();
+    await result;
+  });
+
+  it('opens the poster over the question and returns to the same question, keeping what was tried', async () => {
+    let settled = false;
+    const result = quizActivity.run(host, PARAMS, makeCtx({ poster: POSTER })).then((r) => {
+      settled = true;
+      return r;
+    });
+    choice('3').click(); // a wrong answer, now marked as tried
+    buttonByText(host, 'Show me').click();
+    expect(posterCard()!.textContent).toContain('Test poster line one.');
+    expect(posterCard()!.textContent).toContain('Test poster line two.');
+    // The number keys belong to the poster while it is up: they do not answer the question below.
+    press(document, '2');
+    expect(host.querySelector('.tq-btn--choice.is-right')).toBeNull();
+
+    buttonByText(posterCard()!, 'Back').click();
+    await flush();
+    expect(posterCard()).toBeNull();
+    expect(settled).toBe(false);
+    expect(host.textContent).toContain('Question 1 of 3');
+    expect(choice('3').textContent).toContain('not this one');
+
+    // Finish as usual: peeking added nothing to attempts and cost nothing in score.
+    choice('2').click();
+    buttonByText(host, 'Next').click();
+    choice('A kite').click();
+    buttonByText(host, 'Next').click();
+    choice('Blue').click();
+    buttonByText(host, 'Finish').click();
+    const outcome = await result;
+    expect(outcome.completed).toBe(true);
+    expect(outcome.attempts).toBe(4);
+    expect(outcome.score).toBeCloseTo(2 / 3);
   });
 });

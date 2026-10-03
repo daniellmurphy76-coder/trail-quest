@@ -7,10 +7,14 @@
  * `{ text, choices? }`. One line of teaching is one page with the single "Next" button.
  *
  *   new step     "Let me show you something first." then each lesson line, one page each.
- *   review       a two-choice page, "Remind me" or "I remember!". Only "Remind me" shows the pages.
+ *   poster       when the lesson has a poster (the whole Scout Oath, all twelve Scout Law points), it
+ *                is shown as one full page right after the intro line and before the lesson lines.
+ *   review       a two-choice page, "Remind me" or "I remember!". Only "Remind me" shows the pages
+ *                (and the poster).
  *   no lesson    one page made from the requirement's kidText, so content without lessons yet
  *                still plays (and nothing regresses).
  */
+import type { Poster } from '../../content/types';
 import { line, type LineLevel } from '../lines';
 
 /** One Den Chief dialogue page. `choices` is omitted for the single "Next" button. */
@@ -21,7 +25,7 @@ export interface LessonPage {
 
 /** What a requirement offers to teach from. Both fields come straight from the content. */
 export interface LessonSource {
-  lesson?: { lines: readonly string[] };
+  lesson?: { lines: readonly string[]; poster?: Poster };
   kidText: string;
 }
 
@@ -30,6 +34,11 @@ export interface LessonPlan {
   ask?: LessonPage;
   /** The teaching pages. Shown for a new step, or after "Remind me" on a review. */
   pages: LessonPage[];
+  /**
+   * The full-text poster, when the lesson has one. It is shown after the first page (the intro
+   * line) and before the rest, so `pages[0]` is always the intro whenever this is set.
+   */
+  poster?: Poster;
 }
 
 /** The index of "Remind me" on the ask page; "I remember!" is the other one. */
@@ -41,12 +50,25 @@ function lessonLines(source: LessonSource): string[] {
 }
 
 /**
- * The pages to show. With a lesson: the intro page, then one page per line. Without one: a single
- * page with the requirement's kidText. Never empty unless the kidText is empty too.
+ * The lesson's poster with its text trimmed and blank lines dropped, or undefined when there is no
+ * poster or nothing on it. The title may be empty (the poster then shows no heading).
+ */
+export function posterOf(lesson: LessonSource['lesson']): Poster | undefined {
+  const poster = lesson?.poster;
+  if (!poster || !Array.isArray(poster.lines)) return undefined;
+  const lines = poster.lines.map((text) => String(text).trim()).filter((text) => text !== '');
+  if (lines.length === 0) return undefined;
+  return { title: typeof poster.title === 'string' ? poster.title.trim() : '', lines };
+}
+
+/**
+ * The pages to show. With a lesson (or just a poster): the intro page, then one page per line.
+ * Without one: a single page with the requirement's kidText. Never empty unless the kidText is
+ * empty too. The poster itself is not a page: see `LessonPlan.poster`.
  */
 export function lessonPages(source: LessonSource, level: LineLevel): LessonPage[] {
   const lines = lessonLines(source);
-  if (lines.length > 0) {
+  if (lines.length > 0 || posterOf(source.lesson)) {
     return [{ text: line('lessonIntro', level) }, ...lines.map((text) => ({ text }))];
   }
   const text = source.kidText.trim();
@@ -60,19 +82,29 @@ export function lessonPages(source: LessonSource, level: LineLevel): LessonPage[
  */
 export function lessonPlan(source: LessonSource, level: LineLevel, review: boolean): LessonPlan {
   const pages = lessonPages(source, level);
-  if (!review) return { pages };
-  return {
-    ask: { text: line('remindAsk', level), choices: [line('remindMe', level), line('iRemember', level)] },
-    pages,
-  };
+  const plan: LessonPlan = { pages };
+  const poster = posterOf(source.lesson);
+  if (poster) plan.poster = poster;
+  if (review) {
+    plan.ask = { text: line('remindAsk', level), choices: [line('remindMe', level), line('iRemember', level)] };
+  }
+  return plan;
 }
 
 /**
- * Walk a plan through `show` (which resolves with the choice made, 0 for "Next"). Resolves true
- * when the teaching pages were shown, false when a review's "I remember!" skipped them.
+ * Walk a plan through `show` (which resolves with the choice made, 0 for "Next"). The poster, if
+ * the plan has one, goes through `showPoster` right after the intro page. Resolves true when the
+ * teaching pages were shown, false when a review's "I remember!" skipped them.
  */
-export async function playLesson(show: (page: LessonPage) => Promise<number>, plan: LessonPlan): Promise<boolean> {
+export async function playLesson(
+  show: (page: LessonPage) => Promise<number>,
+  plan: LessonPlan,
+  showPoster?: (poster: Poster) => Promise<void>,
+): Promise<boolean> {
   if (plan.ask && (await show(plan.ask)) !== REMIND_ME) return false;
-  for (const page of plan.pages) await show(page);
+  for (let i = 0; i < plan.pages.length; i += 1) {
+    await show(plan.pages[i]!);
+    if (i === 0 && plan.poster && showPoster) await showPoster(plan.poster);
+  }
   return plan.pages.length > 0;
 }

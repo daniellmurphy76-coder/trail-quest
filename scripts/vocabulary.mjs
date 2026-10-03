@@ -20,6 +20,8 @@ export const KID_FACING_FIELDS = {
     'adventures[].summary',
     'adventures[].requirements[].kidText',
     'adventures[].requirements[].lesson.lines[]',
+    'adventures[].requirements[].lesson.poster.title',
+    'adventures[].requirements[].lesson.poster.lines[]',
     'electives[].summary',
   ],
   /** Fields inside `activity.params` and `practice.params` of every requirement, by activity type. */
@@ -36,6 +38,14 @@ export const KID_FACING_FIELDS = {
   /** Adult-only fields. Listed so nobody adds them by accident. */
   never: ['adultText', 'parentNote', 'notes'],
 };
+
+/**
+ * Kid-facing fields that are quoted text a kid must learn whole (the Scout Oath, the Scout Law),
+ * not Den Chief sentences. The vocabulary rule checks them like any kid text; the sentence-length
+ * rule skips them, because "to do my duty to God and my country" is what it is. Paths are
+ * relative to a requirement.
+ */
+export const POSTER_FIELDS = ['lesson.poster.title', 'lesson.poster.lines[]'];
 
 /**
  * School-report words that kid text must not use. Matched on the word and on its plain
@@ -148,10 +158,12 @@ function* activityStrings(activity, path) {
 /**
  * Yield `{ path, text }` for every kid-facing string in a parsed rank file, in document
  * order. Paths look like `$.adventures[0].requirements[1].activity.params.questions[0].prompt`.
- * Tolerates malformed input (the schema check reports it) and never yields adult-only text.
+ * Strings from a lesson poster also carry `poster: true` (full text a kid learns whole; see
+ * POSTER_FIELDS). Tolerates malformed input (the schema check reports it) and never yields
+ * adult-only text.
  *
  * @param {any} rankFile parsed content/ranks/*.json
- * @returns {Generator<{ path: string, text: string }>}
+ * @returns {Generator<{ path: string, text: string, poster?: true }>}
  */
 export function* collectKidStrings(rankFile) {
   if (typeof rankFile !== 'object' || rankFile === null) return;
@@ -168,6 +180,9 @@ export function* collectKidStrings(rankFile) {
       if (typeof req !== 'object' || req === null) continue;
       yield* walk(req, ['kidText'], rp);
       yield* walk(req, ['lesson', 'lines[]'], rp);
+      for (const field of POSTER_FIELDS) {
+        for (const found of walk(req, field.split('.'), rp)) yield { ...found, poster: true };
+      }
       yield* activityStrings(req.activity, `${rp}.activity`);
       yield* activityStrings(req.practice, `${rp}.practice`);
     }
@@ -431,9 +446,10 @@ export function lintRankVocabulary(rankFile) {
   const flagged = [];
   const longSentences = [];
   let strings = 0;
-  for (const { path, text } of collectKidStrings(rankFile)) {
+  for (const { path, text, poster } of collectKidStrings(rankFile)) {
     strings++;
     for (const { word, reason } of checkVocabulary(text, grade)) flagged.push({ path, text, word, reason });
+    if (poster) continue; // quoted text, learned whole: the vocabulary rule applies, the sentence limit does not
     for (const long of checkSentences(text, grade)) longSentences.push({ path, text, ...long });
   }
   return { grade, strings, flagged, longSentences };

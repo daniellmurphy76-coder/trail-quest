@@ -47,10 +47,20 @@ export interface Requirement {
   optional?: boolean;
   activity: ActivitySpec;
   practice?: ActivitySpec;
-  /** Den Chief teaching shown as dialogue pages before the learn activity. */
-  lesson?: { lines: string[] };
+  /**
+   * Den Chief teaching shown before the learn activity: an optional `poster` (full text on one
+   * screen, such as the whole Scout Oath or all twelve Scout Law points) and then short dialogue
+   * `lines`. The poster is also offered as a peek during the activity.
+   */
+  lesson?: { lines: string[]; poster?: Poster };
   notes?: string;
   unverified?: boolean;
+}
+
+/** Full text a kid should see whole: a title and every line at once. */
+export interface Poster {
+  title: string;
+  lines: string[];
 }
 
 export interface ElectiveSummary {

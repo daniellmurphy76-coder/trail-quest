@@ -139,10 +139,27 @@
           },
           "lesson": {
             "lines": [
-              "The Scout Law says: be friendly.",
-              "A friendly Scout is kind to all.",
+              "This is the Scout Law. A grown-up reads it to you.",
+              "One point is friendly. A friendly Scout is kind to all.",
               "Say hi. Share. Ask a kid to play."
-            ]
+            ],
+            "poster": {
+              "title": "Scout Law: A Scout is",
+              "lines": [
+                "Trustworthy",
+                "Loyal",
+                "Helpful",
+                "Friendly",
+                "Courteous",
+                "Kind",
+                "Obedient",
+                "Cheerful",
+                "Thrifty",
+                "Brave",
+                "Clean",
+                "Reverent"
+              ]
+            }
           }
         },
         {
@@ -193,11 +210,17 @@
           },
           "lesson": {
             "lines": [
-              "Our motto is Do Your Best.",
+              "This is the Cub Scout motto. A motto is a short saying.",
               "Doing your best means you try hard.",
               "You do not have to win.",
               "Trying hard is what counts!"
-            ]
+            ],
+            "poster": {
+              "title": "Cub Scout Motto",
+              "lines": [
+                "Do Your Best"
+              ]
+            }
           }
         },
         {

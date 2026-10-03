@@ -62,12 +62,21 @@
           },
           "lesson": {
             "lines": [
-              "The Scout Oath is a promise every Scout makes.",
-              "It has three parts. First, do your duty to God and your country.",
-              "Second, help other people at all times.",
-              "Third, take care of yourself in body, mind, and character.",
-              "Put the lines in order. Then say the whole Oath out loud."
-            ]
+              "This is the Scout Oath. It is a promise every Scout makes.",
+              "Say it with your den, hand up in the Cub Scout sign.",
+              "Now put the lines in order. Tap Show me if you forget."
+            ],
+            "poster": {
+              "title": "Scout Oath",
+              "lines": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "to help other people at all times;",
+                "to keep myself physically strong,",
+                "mentally awake, and morally straight."
+              ]
+            }
           },
           "notes": "Part of official requirement 2 (recite the Oath and Law with the den and den leader, and talk about the three points of the Oath). Split into 2a Oath, 2b Law, 2c the three points. Steps are the Oath split at its natural pauses."
         },
@@ -91,13 +100,27 @@
           },
           "lesson": {
             "lines": [
-              "The Scout Law has 12 points. Learn them in four groups of three.",
-              "Group one: trustworthy, loyal, helpful.",
-              "Group two: friendly, courteous, kind.",
-              "Group three: obedient, cheerful, thrifty.",
-              "Group four: brave, clean, reverent.",
-              "Now put the four groups in order."
-            ]
+              "This is the Scout Law. It has 12 points.",
+              "Each point tells how a Scout acts. Learn them in four groups of three.",
+              "Now put the four groups in order. Tap Show me if you forget."
+            ],
+            "poster": {
+              "title": "Scout Law: A Scout is",
+              "lines": [
+                "Trustworthy",
+                "Loyal",
+                "Helpful",
+                "Friendly",
+                "Courteous",
+                "Kind",
+                "Obedient",
+                "Cheerful",
+                "Thrifty",
+                "Brave",
+                "Clean",
+                "Reverent"
+              ]
+            }
           },
           "notes": "Part of official requirement 2. The twelve points are grouped in threes so the order is easy to rehearse."
         },
@@ -159,13 +182,24 @@
           },
           "lesson": {
             "lines": [
-              "The Scout Oath has three parts. Each part is a duty, something you promise to do.",
+              "This is the Scout Oath. It has three parts. Each part is a duty, something you promise to do.",
               "Duty to God and country: live by your faith. Be a good citizen. Obey laws.",
               "Duty to other people: do a Good Turn every day. A Good Turn is a kind act.",
               "Duty to yourself: stay physically strong, mentally awake, and morally straight.",
               "Morally straight means you are honest and have strong character.",
               "Now sort each action under the right part."
-            ]
+            ],
+            "poster": {
+              "title": "Scout Oath",
+              "lines": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "to help other people at all times;",
+                "to keep myself physically strong,",
+                "mentally awake, and morally straight."
+              ]
+            }
           },
           "notes": "Part of official requirement 2. The three duties follow the official activity: duty to God and country, to other people, and to self."
         },
@@ -214,12 +248,29 @@
           },
           "lesson": {
             "lines": [
-              "Each point of the Scout Law is a way to act.",
+              "This is the Scout Law. Each point is a way to act.",
               "Trustworthy means you tell the truth and keep your promises.",
               "Helpful means you pitch in when someone needs a hand.",
               "Brave means doing what is right, even when you feel afraid.",
               "There are 12 points in all. Today you will use three of them."
-            ]
+            ],
+            "poster": {
+              "title": "Scout Law: A Scout is",
+              "lines": [
+                "Trustworthy",
+                "Loyal",
+                "Helpful",
+                "Friendly",
+                "Courteous",
+                "Kind",
+                "Obedient",
+                "Cheerful",
+                "Thrifty",
+                "Brave",
+                "Clean",
+                "Reverent"
+              ]
+            }
           },
           "notes": "Official requirement 3. The quiz samples three of the 12 points; implementers may add more questions later."
         },
@@ -1115,13 +1166,29 @@
           },
           "lesson": {
             "lines": [
+              "These are the Outdoor Code and Leave No Trace for Kids.",
               "Leave No Trace means leaving nature as you found it.",
-              "Pack out your trash. Stay on the trail. Leave rocks and plants alone.",
-              "Watch wild animals from far away. Never feed them.",
-              "Be kind to other people on the trail. Keep the noise down.",
-              "The Outdoor Code is a Scout promise about the outdoors. Be clean, careful with fire, kind to others, and protect nature.",
-              "Sort each habit: does it follow Leave No Trace?"
-            ]
+              "The Outdoor Code is a Scout promise about the outdoors.",
+              "Now sort each trail habit: does it follow Leave No Trace?"
+            ],
+            "poster": {
+              "title": "Outdoor Code and Leave No Trace",
+              "lines": [
+                "The Outdoor Code. I will do my best to:",
+                "be clean and take my trash home;",
+                "be careful with fire;",
+                "be kind to people outside;",
+                "take care of nature.",
+                "Leave No Trace for Kids:",
+                "Know before you go. Learn about the place first.",
+                "Choose the right path. Stay on the trail.",
+                "Trash your trash. Take your trash home.",
+                "Leave what you find. Rocks and flowers stay.",
+                "Be careful with fire. Never leave it alone.",
+                "Respect wildlife. Watch animals from far away.",
+                "Be kind to other people. Share the trail."
+              ]
+            }
           },
           "notes": "Learning half of official requirement 6; 6b is the walk itself. Official reference sheet: Outdoor Code and Leave No Trace Principles for Kids."
         },

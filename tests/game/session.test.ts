@@ -7,6 +7,7 @@ import {
   isFirstSession,
   TRAVEL_SIGN_MS,
   type ActivityStage,
+  type PosterInfo,
   type SessionDeps,
   type SummaryChoice,
   type SummaryInfo,
@@ -66,6 +67,17 @@ function withLesson(id: string, lines: string[]): RankContent {
   };
 }
 
+/** The fixture with a lesson and a poster on one requirement. */
+function withPoster(id: string, lines: string[], poster: { title: string; lines: string[] }): RankContent {
+  return {
+    ...fixtureRank,
+    adventures: fixtureRank.adventures.map((adventure) => ({
+      ...adventure,
+      requirements: adventure.requirements.map((r) => (r.id === id ? { ...r, lesson: { lines, poster } } : r)),
+    })),
+  };
+}
+
 const litToday = { current: 3, best: 3, lastTrailDate: TODAY, embers: 0 };
 
 interface Harness {
@@ -73,6 +85,8 @@ interface Harness {
   profile: () => Profile;
   stages: ActivityStage[];
   dialogs: { text: string; choices?: string[] }[];
+  /** Every poster page shown, in order. */
+  posters: PosterInfo[];
   summaries: SummaryInfo[];
   clock: { ms: number };
   /** A timeline: run:<kind>, persist, dialog:<text>, sign, approval-screen, badge, ... */
@@ -100,6 +114,7 @@ function harness(options: HarnessOptions = {}): Harness {
   let profile = makeProfile(options.profile);
   const stages: ActivityStage[] = [];
   const dialogs: { text: string; choices?: string[] }[] = [];
+  const posters: PosterInfo[] = [];
   const summaries: SummaryInfo[] = [];
   const order: string[] = [];
   const clock = { ms: 1_000_000 };
@@ -122,6 +137,10 @@ function harness(options: HarnessOptions = {}): Harness {
       // A long pause at a greeting proves the clock starts at the first stop, not before.
       if (dialog.choices && !dialog.choices.includes('Remind me')) clock.ms += 100_000;
       return options.choose ? options.choose(dialog.text, dialog.choices) : 0;
+    }),
+    showPoster: vi.fn(async (poster: PosterInfo) => {
+      posters.push(poster);
+      order.push(`poster:${poster.title}`);
     }),
     runActivity: vi.fn(async (stop, stage) => {
       stages.push(stage);
@@ -161,7 +180,7 @@ function harness(options: HarnessOptions = {}): Harness {
       return typeof pick === 'function' ? pick(info, index) : pick;
     }),
   };
-  return { deps, profile: () => profile, stages, dialogs, summaries, clock, order };
+  return { deps, profile: () => profile, stages, dialogs, posters, summaries, clock, order };
 }
 
 const kindsLogged = (profile: Profile) => profile.sessions.at(-1)!.stops.map((s) => `${s.kind}:${s.completed}`);
@@ -769,6 +788,86 @@ describe('session: teaching before the activity', () => {
     expect(page).toBeGreaterThan(-1);
     expect(h.order.indexOf('sign')).toBeGreaterThan(page);
     expect(h.order.indexOf('run:new-step')).toBeGreaterThan(h.order.indexOf('sign'));
+  });
+});
+
+describe('session: a lesson with a poster', () => {
+  const OATH = { title: 'The Test Oath', lines: ['Line one of the whole thing.', 'Line two of the whole thing.', 'Line three.'] };
+  const CHORE_LINES = ['Chore line one.', 'Chore line two.'];
+  const HINT = 'Here is the whole thing. Read it top to bottom.';
+
+  it('shows the intro line, then the poster page, then the lesson lines, then runs the activity', async () => {
+    const h = harness({ profile: threeStops(), content: withPoster(ID.campChore, CHORE_LINES, OATH) });
+    await createSession(h.deps).talk();
+
+    const run = h.order.indexOf('run:new-step');
+    expect(h.order.slice(run - 5, run)).toEqual([
+      expect.stringMatching(/^dialog:A new step! /),
+      `dialog:${LESSON_INTRO}`,
+      'poster:The Test Oath',
+      'dialog:Chore line one.',
+      'dialog:Chore line two.',
+    ]);
+    // Every line goes to the poster page in one piece, with the Den Chief's hint under the title.
+    expect(h.posters).toEqual([{ title: OATH.title, lines: OATH.lines, hint: HINT }]);
+    // The poster is not also cut into dialogue pages.
+    for (const text of OATH.lines) expect(said(h)).not.toContain(text);
+    expect(h.stages).toEqual(['review', 'new', 'handout']);
+  });
+
+  it('shows no poster page for a lesson without one', async () => {
+    const h = harness({ profile: threeStops(), content: withLesson(ID.campChore, CHORE_LINES) });
+    await createSession(h.deps).talk();
+    expect(h.deps.showPoster).not.toHaveBeenCalled();
+    const run = h.order.indexOf('run:new-step');
+    expect(h.order.slice(run - 4, run)).toEqual([
+      expect.stringMatching(/^dialog:A new step! /),
+      `dialog:${LESSON_INTRO}`,
+      'dialog:Chore line one.',
+      'dialog:Chore line two.',
+    ]);
+  });
+
+  it('shows the poster again when "Remind me" is picked on a review', async () => {
+    const h = harness({ profile: threeStops(), content: withPoster(ID.campQuiz, ['Quiz line one.', 'Quiz line two.'], OATH) });
+    await createSession(h.deps).talk();
+    const run = h.order.indexOf('run:warm-up');
+    expect(h.order.slice(run - 6, run)).toEqual([
+      expect.stringMatching(/^dialog:Warm-up time! /),
+      `dialog:${REMIND_ASK}`,
+      `dialog:${LESSON_INTRO}`,
+      'poster:The Test Oath',
+      'dialog:Quiz line one.',
+      'dialog:Quiz line two.',
+    ]);
+  });
+
+  it('skips the poster along with the lesson when the Scout says "I remember!"', async () => {
+    const h = harness({
+      profile: threeStops(),
+      content: withPoster(ID.campQuiz, ['Quiz line one.'], OATH),
+      choose: (text) => (text === REMIND_ASK ? 1 : 0),
+    });
+    await createSession(h.deps).talk();
+    expect(h.deps.showPoster).not.toHaveBeenCalled();
+    expect(h.stages[0]).toBe('review');
+  });
+
+  it('shows a new step\'s poster every time it is tried, even after backing out', async () => {
+    let backOut = true;
+    const h = harness({
+      profile: threeStops(),
+      content: withPoster(ID.campChore, CHORE_LINES, OATH),
+      result: (stop, stage) => {
+        if (stop.kind === 'new-step' && backOut) return { completed: false, attempts: 1 };
+        return stage === 'handout' ? { completed: false, attempts: 1 } : { completed: true, attempts: 1, score: 1 };
+      },
+    });
+    const session = createSession(h.deps);
+    await session.talk();
+    backOut = false;
+    await session.talk();
+    expect(h.posters).toHaveLength(2);
   });
 });
 

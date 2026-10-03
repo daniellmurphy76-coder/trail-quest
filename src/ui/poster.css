@@ -1,0 +1,151 @@
+/*
+ * Posters: text a kid must learn whole (the Scout Oath, the Scout Law) on one screen, in big type.
+ * Used by the lesson flow, the "Show me" peek inside activities, and the Scout Book. The colors and
+ * radius come from the tokens in ui.css. Minimum line size is 22px on every device.
+ */
+
+.tq-poster {
+  max-width: 760px;
+  gap: 18px;
+}
+
+.tq-poster__title {
+  margin: 0;
+  font-size: max(26px, 1.4em);
+  line-height: 1.25;
+}
+
+.tq-poster__hint {
+  margin: 0;
+  font-size: max(20px, 1em);
+  font-weight: 700;
+}
+
+.tq-poster__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-poster__line {
+  padding: 10px 16px;
+  font-size: max(22px, 1.2em);
+  font-weight: 700;
+  line-height: 1.35;
+  background: var(--tq-surface-2);
+  border-left: 8px solid var(--tq-accent);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+/* The button stays in reach on a very short screen: the card scrolls, the button waits at the bottom. */
+.tq-poster__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-top: 8px;
+  background: var(--tq-surface);
+}
+
+@media (max-height: 640px) {
+  .tq-poster {
+    gap: 12px;
+  }
+
+  .tq-poster__lines {
+    gap: 6px;
+  }
+
+  .tq-poster__line {
+    padding: 6px 14px;
+    line-height: 1.25;
+  }
+}
+
+/* ---------- Scout Book ---------- */
+
+.tq-book {
+  max-height: 100%;
+  min-height: 0;
+}
+
+.tq-book__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tq-tab {
+  flex: 1 1 6em;
+}
+
+/* The tab you are on is filled, bold and underlined: more than color alone. */
+.tq-tab.is-selected {
+  color: var(--tq-primary-ink);
+  background: var(--tq-primary);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
+.tq-book__panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tq-book__panel:focus-visible {
+  outline-offset: 0;
+}
+
+.tq-book__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tq-book__section-title {
+  margin: 0;
+  font-size: max(24px, 1.25em);
+  line-height: 1.25;
+}
+
+.tq-law {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-law__point {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  font-size: max(22px, 1.2em);
+  line-height: 1.35;
+  background: var(--tq-surface-2);
+  border-left: 8px solid var(--tq-accent);
+  border-radius: 8px;
+}
+
+.tq-law__word {
+  font-weight: 700;
+}
+
+.tq-law__meaning {
+  display: block;
+}
+
+.tq-book__empty {
+  font-size: max(22px, 1.1em);
+  font-weight: 700;
+}

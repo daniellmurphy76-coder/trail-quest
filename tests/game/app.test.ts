@@ -605,6 +605,26 @@ describe('app: zones', () => {
     expect(here.disabled).toBe(true);
   });
 
+  it('opens the Scout Book from the trail panel, next to Change my look, and Close comes back to the panel', async () => {
+    await play();
+    await openTrailPanel();
+    const panel = host.querySelector('.tq-trail-panel')!;
+    const labels = Array.from(panel.querySelectorAll('.tq-actions button')).map((b) => b.textContent ?? '');
+    expect(labels.findIndex((t) => t.includes('Scout Book'))).toBe(labels.findIndex((t) => t.includes('Change my look')) + 1);
+
+    buttonByText(panel, 'Scout Book').click();
+    await flush();
+    const book = host.querySelector<HTMLElement>('.tq-book')!;
+    expect(book).not.toBeNull();
+    expect(book.textContent).toContain('Scout Book');
+    expect(host.querySelectorAll('.tq-overlay')).toHaveLength(2); // the panel is still underneath
+
+    buttonByText(book, 'Close').click();
+    await flush();
+    expect(host.querySelector('.tq-book')).toBeNull();
+    expect(host.querySelector('.tq-trail-panel')).not.toBeNull();
+  });
+
   it('a Places button closes the panel and walks to that zone, which hides the Start button', async () => {
     await play();
     expect(shown(startButton())).toBe(true);

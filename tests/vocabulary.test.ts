@@ -8,6 +8,8 @@ import {
   checkSentences,
   checkVocabulary,
   collectKidStrings,
+  KID_FACING_FIELDS,
+  POSTER_FIELDS,
   syllables,
 } from '../scripts/vocabulary.mjs';
 import { validateRankFiles } from '../scripts/validate-content.mjs';
@@ -155,7 +157,10 @@ describe('collectKidStrings', () => {
             kidText: 'kid text',
             adultText: 'ADULT TEXT',
             notes: 'NOTES',
-            lesson: { lines: ['lesson one', 'lesson two'] },
+            lesson: {
+              lines: ['lesson one', 'lesson two'],
+              poster: { title: 'poster title', lines: ['poster line one', 'poster line two'] },
+            },
             activity: {
               type: 'fieldMission',
               params: { title: 'mission title', kidSteps: ['step one', 'step two'], parentNote: 'PARENT NOTE' },
@@ -181,6 +186,9 @@ describe('collectKidStrings', () => {
       'kid text',
       'lesson one',
       'lesson two',
+      'poster title',
+      'poster line one',
+      'poster line two',
       'mission title',
       'step one',
       'step two',
@@ -198,9 +206,34 @@ describe('collectKidStrings', () => {
     const paths = [...collectKidStrings(rank)].map((f) => f.path);
     expect(paths).toContain('$.adventures[0].requirements[0].kidText');
     expect(paths).toContain('$.adventures[0].requirements[0].lesson.lines[1]');
+    expect(paths).toContain('$.adventures[0].requirements[0].lesson.poster.title');
+    expect(paths).toContain('$.adventures[0].requirements[0].lesson.poster.lines[1]');
     expect(paths).toContain('$.adventures[0].requirements[0].activity.params.kidSteps[1]');
     expect(paths).toContain('$.adventures[0].requirements[0].practice.params.questions[0].choices[1]');
     expect(paths).toContain('$.electives[0].summary');
+  });
+
+  it('finds the poster title and every poster line, and marks them as poster text', () => {
+    const found = [...collectKidStrings(rank)];
+    const poster = found.filter((f) => f.poster);
+    expect(poster.map((f) => f.text)).toEqual(['poster title', 'poster line one', 'poster line two']);
+    // Nothing else is marked, and the marked ones are exactly the strings under lesson.poster.
+    expect(poster.every((f) => f.path.includes('.lesson.poster.'))).toBe(true);
+    expect(found.filter((f) => !f.poster).every((f) => !f.path.includes('.poster.'))).toBe(true);
+    expect(found.filter((f) => !f.poster && 'poster' in f)).toEqual([]);
+  });
+
+  it('lists the poster fields as kid-facing', () => {
+    expect(KID_FACING_FIELDS.rank).toContain('adventures[].requirements[].lesson.poster.title');
+    expect(KID_FACING_FIELDS.rank).toContain('adventures[].requirements[].lesson.poster.lines[]');
+    expect(POSTER_FIELDS).toEqual(['lesson.poster.title', 'lesson.poster.lines[]']);
+  });
+
+  it('survives a poster that is not the right shape', () => {
+    const odd = (poster: unknown) => ({ adventures: [{ requirements: [{ lesson: { lines: ['l'], poster } }] }] });
+    for (const poster of [null, 'x', 5, [], { title: 7, lines: 'x' }, { lines: [null, 3] }]) {
+      expect([...collectKidStrings(odd(poster))].map((f) => f.text)).toEqual(['l']);
+    }
   });
 
   it('covers the other activity types', () => {
@@ -233,7 +266,7 @@ describe('collectKidStrings', () => {
 });
 
 describe('validateRankFiles vocabulary rule', () => {
-  const rank = (grade: number, kidText: string, lines?: string[]) => ({
+  const rank = (grade: number, kidText: string, lines?: string[], poster?: { title: string; lines: string[] }) => ({
     rank: 'wolf',
     label: 'Wolf',
     grade,
@@ -256,7 +289,7 @@ describe('validateRankFiles vocabulary rule', () => {
             adultText: 'Adults may use the word benefit freely.',
             kidText,
             digital: false,
-            ...(lines ? { lesson: { lines } } : {}),
+            ...(lines ? { lesson: { lines, ...(poster ? { poster } : {}) } } : {}),
             activity: { type: 'fieldMission', params: { title: 'Go', kidSteps: ['Say hi.'] } },
           },
         ],
@@ -285,6 +318,38 @@ describe('validateRankFiles vocabulary rule', () => {
     const { errors } = validateRankFiles(dirWith(rank(2, 'Say hi.', ['Meet the elephant.'])));
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('$.adventures[0].requirements[0].lesson.lines[0]: "elephant"');
+  });
+
+  describe('poster text', () => {
+    const LONG = 'we go to the lake and we hike up the hill now'; // 12 words: over the grade 2 limit of 10
+
+    it('skips the sentence-length rule for poster lines, but not for lesson lines', () => {
+      const poster = validateRankFiles(dirWith(rank(2, 'Say hi.', ['Meet the Scouts.'], { title: 'The Test Poster', lines: [LONG] })));
+      expect(poster.errors).toEqual([]);
+
+      const lesson = validateRankFiles(dirWith(rank(2, 'Say hi.', [LONG])));
+      expect(lesson.errors).toHaveLength(1);
+      expect(lesson.errors[0]).toContain('sentence has 12 words, grade 2 limit is 10');
+    });
+
+    it('still applies the vocabulary rule to the poster title and lines', () => {
+      const { errors } = validateRankFiles(
+        dirWith(rank(2, 'Say hi.', ['Meet the Scouts.'], { title: 'The elephant poster', lines: ['We see an elephant.', LONG] })),
+      );
+      expect(errors).toHaveLength(2);
+      expect(errors[0]).toContain('$.adventures[0].requirements[0].lesson.poster.title: "elephant"');
+      expect(errors[1]).toContain('$.adventures[0].requirements[0].lesson.poster.lines[0]: "elephant"');
+    });
+
+    it('counts poster strings and allows the long words in the Scout Oath at grade 2', () => {
+      const oath = ['to keep myself physically strong, mentally awake, and morally straight.'];
+      const { errors, vocabulary } = validateRankFiles(
+        dirWith(rank(2, 'Say hi.', ['Meet the Scouts.'], { title: 'The Scout Oath', lines: oath })),
+      );
+      expect(errors).toEqual([]);
+      // summary, kidText, one lesson line, the poster title and one poster line, plus the mission strings
+      expect(vocabulary.reports[0]!.strings).toBeGreaterThanOrEqual(5);
+    });
   });
 
   it('uses the grade in the file and can be switched off', () => {

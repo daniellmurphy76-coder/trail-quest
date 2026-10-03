@@ -2,15 +2,16 @@ import { clear, h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
 import { button } from '../../ui/widgets';
-import { cardHeader, feedbackSlot } from '../shared';
-import type { ActivityController, ActivityResult, QuizParams } from '../types';
+import { cardHeader, feedbackSlot, peekButton } from '../shared';
+import type { ActivityContext, ActivityController, ActivityResult, QuizParams } from '../types';
 
 /**
  * One question at a time. A wrong tap shows "Not yet" and the same question stays, so the kid
  * can tap again; there are no lives and no fail. Completes when `passCount` (default all)
- * questions have been answered correctly.
+ * questions have been answered correctly. When the context carries a poster, a "Show me" button
+ * peeks at it without touching the score or the question.
  */
-function runQuiz(host: HTMLElement, params: QuizParams): Promise<ActivityResult> {
+function runQuiz(host: HTMLElement, params: QuizParams, ctx: ActivityContext): Promise<ActivityResult> {
   const questions = params.questions;
   if (questions.length === 0) return Promise.resolve({ completed: false, attempts: 0 });
   const needed = Math.min(Math.max(Math.floor(params.passCount ?? questions.length), 1), questions.length);
@@ -109,7 +110,7 @@ function runQuiz(host: HTMLElement, params: QuizParams): Promise<ActivityResult>
       overlay.setDefault(null);
       overlay.card.append(
         cardHeader(`Question ${index + 1} of ${needed}`, () => finish(false)),
-        h('div', { class: 'tq-prompt' }, h('h2', null, question.prompt)),
+        h('div', { class: 'tq-prompt' }, h('h2', null, question.prompt), peekButton(host, ctx.poster)),
         h('div', { class: 'tq-choices', role: 'group', attrs: { 'aria-label': 'Answers' } }, ...choiceButtons.map((c) => c.btn)),
         slot,
         actions,

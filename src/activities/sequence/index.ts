@@ -2,8 +2,8 @@ import { h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
 import { button, srOnly } from '../../ui/widgets';
-import { cardHeader, feedbackSlot } from '../shared';
-import type { ActivityController, ActivityResult, SequenceParams } from '../types';
+import { cardHeader, feedbackSlot, peekButton } from '../shared';
+import type { ActivityContext, ActivityController, ActivityResult, SequenceParams } from '../types';
 import { shuffleSteps } from './shuffle';
 
 interface Tile {
@@ -16,8 +16,9 @@ interface Tile {
  * Steps appear shuffled as big tap tiles. Tapping the right next step moves it into the numbered
  * "Your order" lane; a wrong one shakes and stays. No fail: tap again as often as you like.
  * Completes when every step is placed. score = 1 - wrongTaps / steps, clamped to 0..1.
+ * When the context carries a poster, a "Show me" button peeks at it without touching the score.
  */
-function runSequence(host: HTMLElement, params: SequenceParams): Promise<ActivityResult> {
+function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityContext): Promise<ActivityResult> {
   const steps = params.steps;
   if (steps.length === 0) return Promise.resolve({ completed: false, attempts: 0 });
 
@@ -97,7 +98,7 @@ function runSequence(host: HTMLElement, params: SequenceParams): Promise<Activit
 
     overlay.card.append(
       cardHeader('Put the steps in order', () => finish(false)),
-      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt), peekButton(host, ctx.poster)),
       h('p', { class: 'tq-hint' }, 'Tap the step that comes next.'),
       tileList,
       slot,

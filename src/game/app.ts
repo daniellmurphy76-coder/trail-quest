@@ -14,7 +14,7 @@ import type { Object3D } from 'three';
 import { getActivity, IMPLEMENTED_TYPES } from '../activities/registry';
 import { assets } from '../engine/assets';
 import type { ActivityContext, RankId, ZoneId } from '../activities/types';
-import { listRankContent, loadRankContent } from '../content/load';
+import { getRequirement, listRankContent, loadRankContent } from '../content/load';
 import type { RankContent } from '../content/types';
 import { todayLocal } from '../quests/dates';
 import {
@@ -30,6 +30,7 @@ import {
 import type { Profile, SaveFile } from '../save/types';
 import { showDialog } from '../ui/dialog';
 import { askNewPin, askPin } from '../ui/pinpad';
+import { showPoster } from '../ui/poster';
 import { showToast } from '../ui/toast';
 import { GREETING_DELAY_MS, shouldAutoGreet } from './guided-start';
 import { line, lineLevelOf, PARENT_TEXT, RANK_FALLBACK_LABELS, type LineLevel, type LineVars } from './lines';
@@ -42,9 +43,11 @@ import { showBadgeCard } from './screens/badge';
 import { ControlsHintGate, controlsMode, createControlsHint } from './screens/controls-hint';
 import { createDock } from './screens/dock';
 import { createHud, trailProgress } from './screens/hud';
+import { posterOf } from './screens/lesson';
 import { showParentMode } from './screens/parent';
 import { showProfilePicker } from './screens/profile-picker';
 import { showProfileSetup } from './screens/profile-setup';
+import { showScoutBook } from './screens/scout-book';
 import { createStartButton, startLabel, startMode, startVisible } from './screens/start-button';
 import { showSummary } from './screens/summary';
 import { showTrailPanel } from './screens/trail-panel';
@@ -326,6 +329,7 @@ export function startApp(options: AppOptions = {}): App {
       wait: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 
       showDialog: ({ text, choices }) => showDialog(ui, { speaker: need().guideName, text, choices }),
+      showPoster: ({ title, lines, hint }) => showPoster(ui, { title, lines, hint }),
       async runActivity(stop, stage) {
         const profile = need();
         const spec = stop.activity;
@@ -334,6 +338,8 @@ export function startApp(options: AppOptions = {}): App {
         const zone = spec.type === 'collect' || spec.type === 'navigate' ? spec.params.zone : stop.zone;
         await travel(zone);
         const host = getWorldHost();
+        // A lesson with a poster (the whole Scout Oath) lets the activity offer a "Show me" peek.
+        const poster = posterOf(getRequirement(content, stop.requirementId)?.requirement.lesson);
         const ctx: ActivityContext = {
           profileId: profile.id,
           rank: profile.rank,
@@ -341,6 +347,7 @@ export function startApp(options: AppOptions = {}): App {
           speak: noSpeak,
           world: host,
           stage,
+          ...(poster ? { poster } : {}),
         };
         try {
           return await getActivity(spec.type).run(ui, spec.params, ctx);
@@ -532,6 +539,7 @@ export function startApp(options: AppOptions = {}): App {
           writeSave();
           world.setPlayerAvatar(next, profile.rank);
         },
+        onScoutBook: () => showScoutBook(ui, { rank: profile.rank, level }),
       });
       if (typeof choice === 'object') {
         await travel(choice.travel); // a free-roam hop from the Places section

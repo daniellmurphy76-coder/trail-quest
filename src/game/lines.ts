@@ -165,6 +165,12 @@ export const LINES = {
   },
   remindMe: same('Remind me'),
   iRemember: same('I remember!'),
+  /** On the poster page (the whole Scout Oath, all of the Scout Law), under the title. */
+  posterHint: same('Here is the whole thing. Read it top to bottom.'),
+
+  // ---- the Scout Book (the reference screen opened from the trail panel) ----
+  /** Shown in the Scout Book when a page has nothing in it yet. */
+  bookEmpty: same('Nothing here yet.'),
 
   // ---- travel sign shown when a stop belongs to another zone ----
   travel: same('Walking to the {zone}…'),

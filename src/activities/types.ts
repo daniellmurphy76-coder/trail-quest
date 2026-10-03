@@ -176,6 +176,11 @@ export interface ActivityContext {
   /** Present only when a 3D world is running; collect and navigate need it. */
   world?: WorldActivityHost;
   /**
+   * Full text the kid may peek at during the activity (the Scout Oath, the Scout Law). Activities
+   * that teach memorized text show a "Show me" button when this is set. Peeking is never penalized.
+   */
+  poster?: { title: string; lines: string[] };
+  /**
    * Why this activity is running. 'new' is the default.
    * 'review' is a warm-up repeat of something already learned.
    * Field missions use 'handout' (show the card, resolve completed:false) and

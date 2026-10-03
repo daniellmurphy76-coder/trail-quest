@@ -25,9 +25,16 @@ export interface TrailPanelOptions {
    * double tap never opens two editors. Omit to leave the button out.
    */
   onEditAvatar?: () => void | Promise<void>;
+  /**
+   * Adds a "Scout Book" button next to "Change my look". The panel stays open underneath: open the
+   * Scout Book from here. Works like `onEditAvatar` (a promise keeps the button disabled until it
+   * settles). Omit to leave the button out.
+   */
+  onScoutBook?: () => void | Promise<void>;
 }
 
 export const CHANGE_LOOK_LABEL = 'Change my look';
+export const SCOUT_BOOK_LABEL = 'Scout Book';
 export const PLACES_TITLE = 'Places';
 export const PLACES_HERE = 'You are here';
 
@@ -57,15 +64,15 @@ function placesSection(current: ZoneId, onPick: (zone: ZoneId) => void): HTMLEle
 
 const TITLE = "Today's Trail";
 
-/** The "Change my look" button: runs `onEdit`, and stays disabled while it is still working. */
-function lookButton(onEdit: () => void | Promise<void>): HTMLButtonElement {
-  const btn = button(CHANGE_LOOK_LABEL, {
-    icon: '\u{1F3A8}',
+/** A button that opens a screen over the panel: runs `onPress`, and stays disabled while it is still working. */
+function screenButton(label: string, icon: string, onPress: () => void | Promise<void>): HTMLButtonElement {
+  const btn = button(label, {
+    icon,
     onClick: () => {
       if (btn.disabled) return;
       let result: void | Promise<void>;
       try {
-        result = onEdit();
+        result = onPress();
       } catch (err) {
         console.error(err);
         return;
@@ -145,7 +152,8 @@ export function showTrailPanel(host: HTMLElement, options: TrailPanelOptions): P
         })
       : null;
     const close = button('Close', { variant: startButton ? 'secondary' : 'primary', onClick: () => finish('close') });
-    const editLook = options.onEditAvatar ? lookButton(options.onEditAvatar) : null;
+    const editLook = options.onEditAvatar ? screenButton(CHANGE_LOOK_LABEL, '\u{1F3A8}', options.onEditAvatar) : null;
+    const scoutBook = options.onScoutBook ? screenButton(SCOUT_BOOK_LABEL, '\u{1F4D6}', options.onScoutBook) : null;
     overlay.card.append(
       h('div', { class: 'tq-prompt' }, h('h2', null, TITLE)),
       ...(startButton ? [startButton] : []),
@@ -155,6 +163,7 @@ export function showTrailPanel(host: HTMLElement, options: TrailPanelOptions): P
         'div',
         { class: 'tq-actions' },
         editLook,
+        scoutBook,
         button('Switch Scout', { icon: '⇄', onClick: () => finish('switch') }),
         button('Parent', { onClick: () => finish('parent') }),
         close,

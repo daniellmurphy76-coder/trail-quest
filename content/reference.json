@@ -1,0 +1,64 @@
+{
+  "oath": {
+    "title": "Scout Oath",
+    "lines": [
+      "On my honor I will do my best",
+      "to do my duty to God and my country",
+      "and to obey the Scout Law;",
+      "to help other people at all times;",
+      "to keep myself physically strong,",
+      "mentally awake, and morally straight."
+    ]
+  },
+  "law": {
+    "title": "Scout Law",
+    "points": [
+      { "word": "Trustworthy", "meaning": "People can count on you." },
+      { "word": "Loyal", "meaning": "You stick with your family and your friends." },
+      { "word": "Helpful", "meaning": "You help other people without being asked." },
+      { "word": "Friendly", "meaning": "You are nice to everyone, even new kids." },
+      { "word": "Courteous", "meaning": "You are polite and use good manners." },
+      { "word": "Kind", "meaning": "You are gentle and care about others." },
+      { "word": "Obedient", "meaning": "You follow the rules at home and at school." },
+      { "word": "Cheerful", "meaning": "You stay happy, even when a job is hard." },
+      { "word": "Thrifty", "meaning": "You use things well and do not waste them." },
+      { "word": "Brave", "meaning": "You do what is right, even when you are scared." },
+      { "word": "Clean", "meaning": "You keep yourself and the world around you clean." },
+      { "word": "Reverent", "meaning": "You respect your faith and what others believe." }
+    ]
+  },
+  "cubMotto": {
+    "title": "Cub Scout Motto",
+    "lines": ["Do Your Best"]
+  },
+  "bsaMotto": {
+    "title": "Scout Motto",
+    "lines": ["Be Prepared"]
+  },
+  "bsaSlogan": {
+    "title": "Scout Slogan",
+    "lines": ["Do a Good Turn Daily"]
+  },
+  "outdoorCode": {
+    "title": "Outdoor Code",
+    "lines": [
+      "I will do my best to:",
+      "be clean and take my trash home;",
+      "be careful with fire;",
+      "be kind to people outside;",
+      "take care of nature."
+    ]
+  },
+  "leaveNoTrace": {
+    "title": "Leave No Trace for Kids",
+    "lines": [
+      "Know before you go. Learn about the place first.",
+      "Choose the right path. Stay on the trail.",
+      "Trash your trash. Take your trash home.",
+      "Leave what you find. Rocks and flowers stay.",
+      "Be careful with fire. Never leave it alone.",
+      "Respect wildlife. Watch animals from far away.",
+      "Be kind to other people. Share the trail."
+    ]
+  }
+}
