@@ -1,0 +1,1650 @@
+{
+  "rank": "arrow-of-light",
+  "label": "Arrow of Light",
+  "grade": 5,
+  "ageRange": "10-11",
+  "readingLevel": "grade5",
+  "program": {
+    "name": "Scouting America Cub Scouts",
+    "year": 2024,
+    "indexUrl": "https://www.scouting.org/programs/cub-scouts/adventures/arrow-of-light/",
+    "fetchedOn": "2026-10-03"
+  },
+  "adventures": [
+    {
+      "id": "arrow-of-light.bobcat",
+      "name": "Bobcat Arrow of Light",
+      "category": "bobcat",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bobcat-aol/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Start your trail! Team up with your patrol, learn the Oath and Law, and visit a troop.",
+      "requirements": [
+        {
+          "id": "arrow-of-light.bobcat.1",
+          "number": "1",
+          "adultText": "Show how a patrol works by picking a team name and voting in a patrol leader. Then talk together about why small Scout teams get things done.",
+          "kidText": "A patrol is a small team of Scouts. Pick a team name and vote for a leader. Then talk about why teams work well.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Form Your Patrol",
+              "kidSteps": [
+                "Meet with your patrol, which is your den or Scout team.",
+                "Brainstorm patrol names and pick one.",
+                "Vote for a patrol leader.",
+                "Talk about why small teams work well."
+              ],
+              "parentNote": "Check that your Scout joined in picking the name and holding the vote, and can give one reason the patrol method works, such as sharing jobs and taking turns leading.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What is a patrol?",
+                  "choices": [
+                    "A small team of Scouts working together",
+                    "A kind of badge",
+                    "A type of tent"
+                  ],
+                  "answer": 0,
+                  "explain": "A patrol is a small team that plans and does things together."
+                },
+                {
+                  "prompt": "Which is a benefit of the patrol method?",
+                  "choices": [
+                    "Adults make every choice",
+                    "Every Scout gets a job and a voice",
+                    "Scouts work alone"
+                  ],
+                  "answer": 1,
+                  "explain": "Patrols let Scouts lead, share jobs, and learn from each other."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.bobcat.2",
+          "number": "2",
+          "adultText": "Spend time getting to know the other Scouts in your patrol. A question toss, a compliment circle, or making a patrol flag are all good ways to do it.",
+          "kidText": "Time to know your patrol better! Try a beach ball question toss, a compliment circle, or make a patrol flag.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Meet Your Patrol",
+              "kidSteps": [
+                "Pick one: a beach ball question toss, a compliment circle, or a patrol flag.",
+                "Do it with your patrol.",
+                "Learn one new thing about each Scout."
+              ],
+              "parentNote": "Look for your Scout joining in and being able to share something new they learned about another Scout.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.bobcat.3a",
+          "number": "3a",
+          "adultText": "Know the Scout Oath by heart. Reciting it aloud with the patrol still happens in person.",
+          "kidText": "The Scout Oath is a promise every Scout makes. Put the lines in the right order. Then say it out loud!",
+          "digital": true,
+          "activity": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the Scout Oath in order.",
+              "steps": [
+                "On my honor I will do my best",
+                "To do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "To help other people at all times;",
+                "To keep myself physically strong,",
+                "mentally awake,",
+                "and morally straight."
+              ]
+            }
+          },
+          "notes": "Sub-item of official requirement 3 (recite the Oath and Law with your patrol). In-game this is rehearsal; steps are the Oath split at its natural pauses."
+        },
+        {
+          "id": "arrow-of-light.bobcat.3b",
+          "number": "3b",
+          "adultText": "Know the twelve points of the Scout Law and what each one means. Reciting with the patrol still happens in person.",
+          "kidText": "The Scout Law has 12 points. Each point describes how a Scout acts. Show what you know about them!",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "How many points are in the Scout Law?",
+                  "choices": [
+                    "10",
+                    "12",
+                    "14"
+                  ],
+                  "answer": 1,
+                  "explain": "There are 12 points, from trustworthy to reverent."
+                },
+                {
+                  "prompt": "Which point means you tell the truth and keep your promises?",
+                  "choices": [
+                    "Trustworthy",
+                    "Thrifty",
+                    "Cheerful"
+                  ],
+                  "answer": 0,
+                  "explain": "Trustworthy means people can count on you."
+                },
+                {
+                  "prompt": "A Scout is thrifty. What does that mean?",
+                  "choices": [
+                    "Never spend any money",
+                    "Take the best things first",
+                    "Use time, food, and supplies wisely"
+                  ],
+                  "answer": 2,
+                  "explain": "Thrifty means you do not waste things, and you work to pay your own way."
+                },
+                {
+                  "prompt": "A Scout is brave. Which is an example?",
+                  "choices": [
+                    "Never feeling scared",
+                    "Doing the right thing even when you feel afraid",
+                    "Taking a dare to look tough"
+                  ],
+                  "answer": 1,
+                  "explain": "Brave does not mean no fear. It means doing what is right anyway."
+                }
+              ]
+            }
+          },
+          "notes": "Sub-item of official requirement 3. Quiz covers a sample of the 12 points; implementers may add more questions later."
+        },
+        {
+          "id": "arrow-of-light.bobcat.4",
+          "number": "4",
+          "adultText": "With your patrol, write a Code of Conduct: a short list of rules the group agrees on for how everyone will treat each other and act at meetings and outings.",
+          "kidText": "A Code of Conduct is a list of rules your patrol agrees on. Write one together. Make it fair for everyone.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Write Your Code of Conduct",
+              "kidSteps": [
+                "Gather your patrol.",
+                "Talk about how Scouts should act at meetings and on trips.",
+                "Write a short list of rules everyone agrees on.",
+                "Everyone signs or says yes to the code."
+              ],
+              "parentNote": "Look for rules the Scouts came up with themselves and for every Scout agreeing. Keep a copy somewhere the patrol will see it, such as a poster.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.bobcat.5",
+          "number": "5",
+          "adultText": "Show how to give the Scouts BSA sign and salute and how to shake hands the Scout way, and explain when each is used. These replace the Cub Scout versions.",
+          "kidText": "Scouts have a sign, a salute, and a handshake. Learn them in the game first. Then show each one to your leader.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Show Your Scout Signs",
+              "kidSteps": [
+                "Make the Scout sign: right hand up, three fingers raised, thumb over little finger.",
+                "Do the salute: bring the sign hand to your eyebrow or hat brim.",
+                "Shake hands with your left hand.",
+                "Explain when you use each one."
+              ],
+              "parentNote": "Sign: right arm to shoulder height, elbow bent, thumb over the little fingernail, three fingers up. Salute: touch the forefinger to the hat brim or right eyebrow. Handshake: left hand.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which hand do Scouts use to shake hands?",
+                  "choices": [
+                    "Right",
+                    "Left",
+                    "Either one"
+                  ],
+                  "answer": 1,
+                  "explain": "The Scout handshake is done with the left hand."
+                },
+                {
+                  "prompt": "What do the three fingers of the Scout sign stand for?",
+                  "choices": [
+                    "The three parts of the Scout Oath",
+                    "Three Scout ranks",
+                    "Three Scout Law points"
+                  ],
+                  "answer": 0,
+                  "explain": "They stand for duty to God and country, duty to others, and duty to self."
+                },
+                {
+                  "prompt": "Where does your hand go for the Scout salute?",
+                  "choices": [
+                    "Your chin",
+                    "Your shoulder",
+                    "Hat brim or right eyebrow"
+                  ],
+                  "answer": 2,
+                  "explain": "The forefinger touches the hat brim or the tip of the right eyebrow."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.bobcat.6",
+          "number": "6",
+          "adultText": "Know the slogan and motto that Scouts BSA uses and how each one guides a Scout.",
+          "kidText": "A slogan and a motto are short sayings. Scouts have one of each. Let us see if you know them!",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What is the Scout slogan?",
+                  "choices": [
+                    "Always Be First",
+                    "Do a Good Turn Daily",
+                    "Never Give Up"
+                  ],
+                  "answer": 1,
+                  "explain": "The slogan is \"Do a Good Turn Daily.\""
+                },
+                {
+                  "prompt": "What is the Scout motto?",
+                  "choices": [
+                    "Be Prepared",
+                    "Do a Good Turn Daily",
+                    "Always Win"
+                  ],
+                  "answer": 0,
+                  "explain": "The motto is \"Be Prepared.\""
+                },
+                {
+                  "prompt": "Which one is a good turn?",
+                  "choices": [
+                    "Waiting to be paid before you help",
+                    "Skipping a chore",
+                    "Helping a neighbor carry groceries"
+                  ],
+                  "answer": 2,
+                  "explain": "A good turn is a kind act you do without asking for a reward."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.bobcat.7",
+          "number": "7",
+          "adultText": "Go see a Scouting America troop in action, either together with fellow patrol members or alongside a parent or guardian. A meeting, a daytime activity, or an overnight each counts.",
+          "kidText": "A troop is a group of older Scouts. You will join one soon. Visit a troop meeting or outing to see what it is like.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Visit a Troop",
+              "kidSteps": [
+                "Ask your parent or leader to set up a troop visit.",
+                "Go to a troop meeting, a daytime activity, or an overnight.",
+                "Notice how Scouts lead their own meetings.",
+                "Ask one Scout what they like best about the troop."
+              ],
+              "parentNote": "Your den leader or local council can help you find a troop. The official options are a troop meeting, a daytime activity, or an overnight. Overnights follow Arrow of Light camping rules.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.bobcat.8",
+          "number": "8",
+          "adultText": "At home, a parent or guardian and the Scout work through the exercises in the Scouting America youth protection booklet for parents. Parents should read it first.",
+          "kidText": "This one is just for you and your parent at home. You will work through a booklet about staying safe. Ask any question you want.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Staying Safe at Home",
+              "kidSteps": [
+                "Pick a calm time at home with your parent or guardian.",
+                "Do the booklet exercises together.",
+                "Ask any questions you have.",
+                "Remember: tell a trusted adult if anything ever feels wrong."
+              ],
+              "parentNote": "Booklet: \"How to Protect Your Children from Child Abuse: A Parent's Guide\" (found at the front of the Arrow of Light handbook; online and Spanish versions exist). Read it first, then do the exercises together in a private, calm setting. This is done at home, not as a group.",
+              "evidence": "checklist"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "arrow-of-light.personal-fitness",
+      "name": "Personal Fitness",
+      "category": "fitness",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/personal-fitness/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Plan a camp meal and track your active days. Move with others and check your health record.",
+      "requirements": [
+        {
+          "id": "arrow-of-light.personal-fitness.1",
+          "number": "1",
+          "adultText": "Plan a balanced meal suited to a camping trip. Then cook it using the sort of gear you would bring on a campout.",
+          "kidText": "A balanced meal has foods from different groups. Plan one for a campout. Then cook it with camp gear.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Cook a Camp Meal",
+              "kidSteps": [
+                "Plan a meal with protein, grains, fruit, vegetables, and dairy.",
+                "Check with your parent about food allergies.",
+                "Pack the camp gear you would use to cook.",
+                "Cook your meal with an adult helping."
+              ],
+              "parentNote": "Check allergies and diet needs first. Cooking with a knife requires the Knife Safety adventure first. Official activity options include a picnic-style meal or a pizza on a campout (which needs a BALOO-trained adult).",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "craft",
+            "params": {
+              "prompt": "Build a balanced camp dinner.",
+              "result": "Balanced camp dinner",
+              "ingredients": [
+                {
+                  "id": "protein",
+                  "label": "Bean chili (protein)"
+                },
+                {
+                  "id": "grain",
+                  "label": "Brown rice (grain)"
+                },
+                {
+                  "id": "veg",
+                  "label": "Carrot sticks (vegetable)"
+                },
+                {
+                  "id": "fruit",
+                  "label": "Apple slices (fruit)"
+                },
+                {
+                  "id": "dairy",
+                  "label": "Cheese or milk (dairy)"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "candy",
+                  "label": "Candy bars"
+                },
+                {
+                  "id": "soda",
+                  "label": "Soda"
+                },
+                {
+                  "id": "chips",
+                  "label": "Bag of chips"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.personal-fitness.2",
+          "number": "2",
+          "adultText": "Think about what physical fitness means for you. Keep a two-week log of every day you get half an hour or more of exercise. Share what you enjoyed and whether you keep the Oath's promise to stay strong.",
+          "kidText": "Being fit means your body is strong. For 14 days, log every day you move for 30 minutes or more. Then share what you found.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "14-Day Fitness Log",
+              "kidSteps": [
+                "Pick activities you like, such as running, swimming, or basketball.",
+                "Each day, move for 30 minutes or more if you can.",
+                "Write each active day in a log for 14 days.",
+                "Count your active days.",
+                "Tell your family or patrol what you enjoyed.",
+                "Decide if you are keeping the Scout Oath promise to stay physically strong."
+              ],
+              "parentNote": "Use the activity log in the Arrow of Light handbook or any chart. The requirement is to track honestly and talk about it, not to reach a set number of days.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "How long should an active session last to count in your log?",
+                  "choices": [
+                    "30 minutes or more",
+                    "5 minutes",
+                    "All day"
+                  ],
+                  "answer": 0,
+                  "explain": "Each session you log should be 30 minutes or longer."
+                },
+                {
+                  "prompt": "Which part of the Scout Oath is about fitness?",
+                  "choices": [
+                    "Obey the Scout Law",
+                    "Help other people",
+                    "Keep myself physically strong"
+                  ],
+                  "answer": 2,
+                  "explain": "The Oath promises to keep yourself physically strong, mentally awake, and morally straight."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.personal-fitness.3",
+          "number": "3",
+          "adultText": "Spend half an hour exercising with others: your patrol, younger Scouts, or even one friend. Mix stretching with movement, such as a bike ride or a sport.",
+          "kidText": "Get moving with others for 30 minutes. Include stretching and active play. Biking or a sport both work.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Active With Friends",
+              "kidSteps": [
+                "Pick your group: your patrol, a younger den, or one other person.",
+                "Warm up with stretches.",
+                "Be active for 30 minutes, with a bike ride, a sport, or a game.",
+                "Finish with a cool-down stretch."
+              ],
+              "parentNote": "If you bike, do an ABC Quick Check first (air, brakes, cranks and chain), wear a helmet, and use an Activity Consent form for a ride away from the usual meeting place.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "rhythm",
+            "params": {
+              "prompt": "Warm up with jumping jacks. Tap on every beat.",
+              "exercise": "jumping jacks",
+              "reps": 12,
+              "bpm": 80
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.personal-fitness.4",
+          "number": "4",
+          "adultText": "Read through the Scout's Annual Health and Medical Record together with a parent or guardian, then talk about which patrol and pack activities the Scout can take part in.",
+          "kidText": "The Annual Health and Medical Record lists your health details. Read it with your parent. Talk about what you can do at Scout events.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Health Record Chat",
+              "kidSteps": [
+                "Sit down with your parent or guardian and the record.",
+                "Read through it together.",
+                "Talk about which patrol and pack activities you can join.",
+                "Tell your leader about anything they should know, such as allergies."
+              ],
+              "parentNote": "Look over the current Annual Health and Medical Record form together, update anything that changed, and talk openly about what the Scout can and cannot do at activities.",
+              "evidence": "checklist"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "arrow-of-light.first-aid",
+      "name": "First Aid",
+      "category": "personal-safety",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/first-aid/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn how to help when someone is hurt: hurry cases, common injuries, and your own first-aid kit.",
+      "requirements": [
+        {
+          "id": "arrow-of-light.first-aid.1",
+          "number": "1",
+          "adultText": "Get a parent or guardian's okay, then view the Protect Yourself Rules video made for Arrow of Light Scouts. It teaches Scouts how to protect themselves.",
+          "kidText": "Ask your parent for permission. Then watch the Protect Yourself Rules video together. It teaches you how to stay safe.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Protect Yourself Rules",
+              "kidSteps": [
+                "Ask your parent or guardian for permission.",
+                "Watch the Arrow of Light Protect Yourself Rules video together.",
+                "Talk about what you learned."
+              ],
+              "parentNote": "Preview the Arrow of Light Protect Yourself Rules video (linked from Scouting America's Youth Protection pages) and watch it with your Scout. Invite questions. A trusted adult is always the right person to tell if something feels unsafe.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.first-aid.2",
+          "number": "2",
+          "adultText": "Describe what to do when you find a person who needs help with an injury: check the scene, stay calm, call for help, and give care.",
+          "kidText": "If someone is hurt, you can help. The steps start with four Cs. Put them in order.",
+          "digital": true,
+          "activity": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the steps for helping someone who is hurt in order.",
+              "steps": [
+                "Check that the scene is safe for you.",
+                "Calm down and think about what is needed.",
+                "Call for help, or send a person to call 911.",
+                "Care for the person until help arrives."
+              ]
+            }
+          },
+          "notes": "Uses the four-step version from the First Aid First Response activity. The hurry-cases activity teaches a shorter Check, Call, Care version."
+        },
+        {
+          "id": "arrow-of-light.first-aid.3",
+          "number": "3",
+          "adultText": "Act out the response to each hurry case: stroke, poisoning, stopped breathing, sudden cardiac arrest or a heart attack, and serious bleeding. Use a buddy or a dummy, never real force.",
+          "kidText": "Hurry cases are emergencies where every second counts. Learn what to do for each one. Then practice with an adult.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Hurry Case Practice",
+              "kidSteps": [
+                "Learn the three Cs with your parent or leader: Check, Call, Care.",
+                "Practice stopping serious bleeding on a buddy. Press hard with gauze or cloth.",
+                "Watch an adult show CPR on a rolled blanket. Then try the hand position.",
+                "Learn the stroke signs called FAST: face, arm, speech, time.",
+                "Act out what to do for poisoning. Call 911 for help.",
+                "Show your parent each hurry case in your own words."
+              ],
+              "parentNote": "Official practice uses buddy role-play, pressure on a pretend wound, and CPR on a rolled blanket or dummy (30 compressions, then 2 pretend breaths). Never practice real compressions on a person. A trained first aider can guide this. Stroke signs: face drooping, arm weakness, speech trouble, time to call 911.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Is it a hurry case or a minor injury?",
+              "bins": [
+                {
+                  "id": "hurry",
+                  "label": "Hurry case: call 911 now"
+                },
+                {
+                  "id": "minor",
+                  "label": "Minor: treat and watch"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Serious bleeding",
+                  "bin": "hurry"
+                },
+                {
+                  "label": "Small scrape",
+                  "bin": "minor"
+                },
+                {
+                  "label": "Heart attack",
+                  "bin": "hurry"
+                },
+                {
+                  "label": "Mosquito bite",
+                  "bin": "minor"
+                },
+                {
+                  "label": "Stopped breathing",
+                  "bin": "hurry"
+                },
+                {
+                  "label": "Mild sunburn",
+                  "bin": "minor"
+                },
+                {
+                  "label": "Stroke",
+                  "bin": "hurry"
+                },
+                {
+                  "label": "Small blister",
+                  "bin": "minor"
+                },
+                {
+                  "label": "Poisoning",
+                  "bin": "hurry"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.first-aid.4",
+          "number": "4",
+          "adultText": "Show the right way to help someone who is choking: five back blows, then five belly thrusts, repeating until the object comes out or help arrives. Practice gently on a buddy.",
+          "kidText": "Choking means something is blocking a person's breathing tube. Learn the back blows and belly thrusts. Practice gently.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Help a Choking Person",
+              "kidSteps": [
+                "Watch an adult show back blows and belly thrusts.",
+                "Say what you do first: ask if they are choking and send someone to call 911.",
+                "Practice the hand positions on a buddy. Use no real force.",
+                "Say each step out loud as you do it."
+              ],
+              "parentNote": "Official practice is an adult demo plus gentle buddy practice: five back blows with the heel of the hand, then five abdominal thrusts, alternating until the object comes out, the person passes out, or help arrives. Never use full force.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the choking steps in order.",
+              "steps": [
+                "Ask if the person is choking and send someone to call 911.",
+                "Give five back blows between the shoulder blades.",
+                "Stand behind them and wrap your arms around their waist.",
+                "Make a fist above the belly button and cover it with your other hand.",
+                "Give five quick thrusts inward and upward.",
+                "Repeat until the object comes out or help arrives."
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.first-aid.5",
+          "number": "5",
+          "adultText": "Show how to care for a person in shock: call 911, lay them down, raise the feet slightly if there are no head, neck, back, hip, or leg injuries, keep them warm, give nothing to eat or drink, and stay.",
+          "kidText": "Shock is a dangerous body reaction after a serious injury. You can help while you wait for help. Learn the steps.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Treat Shock",
+              "kidSteps": [
+                "Pretend to call 911 right away.",
+                "Have your buddy lie on their back.",
+                "Raise their feet a little if no head, neck, back, hip, or leg injury.",
+                "Cover them if it is cool. Give no food or drink.",
+                "Stay with them until help arrives."
+              ],
+              "parentNote": "Practice on a willing adult or buddy lying on a mat. Key points: call 911, lie flat, raise the feet slightly only if no head, neck, back, hip, or leg injury, cover if cool, nothing to eat or drink, stay until help arrives.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the steps for treating shock in order.",
+              "steps": [
+                "Call 911 for help right away.",
+                "Have the person lie down on their back.",
+                "Raise their feet a little if no head, neck, back, hip, or leg injury.",
+                "Cover them with a sheet if the weather is cool.",
+                "Give them nothing to eat or drink.",
+                "Stay with them until help arrives."
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.first-aid.6",
+          "number": "6",
+          "adultText": "Show how to treat nosebleeds, insect and animal bites and stings, burns and scalds, and cuts and scratches. Practice each one at a station with a buddy and clean supplies.",
+          "kidText": "Four common injuries need simple care: cuts, burns, bites, and nosebleeds. Learn each treatment. Then show a grown-up.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Four Common Injuries",
+              "kidSteps": [
+                "Cuts and scratches: wash with soap and water, then cover.",
+                "Burns and scalds: cool the burn in chilly water, then cover it loosely.",
+                "Bites and stings: scrape out a stinger, or pull a tick with tweezers.",
+                "Nosebleed: sit up, lean forward, and pinch the nose for 10 minutes."
+              ],
+              "parentNote": "For bigger cuts, press directly on the wound and have an adult look at it. Remove a tick by grasping it close to the skin and pulling gently. Call for help if a nosebleed lasts over 15 minutes. Check for allergies before using ointment.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Match each treatment to the injury.",
+              "bins": [
+                {
+                  "id": "cut",
+                  "label": "Cuts and scratches"
+                },
+                {
+                  "id": "burn",
+                  "label": "Burns"
+                },
+                {
+                  "id": "bite",
+                  "label": "Bites and stings"
+                },
+                {
+                  "id": "nose",
+                  "label": "Nosebleed"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Wash with soap and water",
+                  "bin": "cut"
+                },
+                {
+                  "label": "Press on it with clean gauze",
+                  "bin": "cut"
+                },
+                {
+                  "label": "Cool it in chilly water",
+                  "bin": "burn"
+                },
+                {
+                  "label": "Cover with a loose, clean dressing",
+                  "bin": "burn"
+                },
+                {
+                  "label": "Scrape out a stinger with a card edge",
+                  "bin": "bite"
+                },
+                {
+                  "label": "Pull a tick out with tweezers",
+                  "bin": "bite"
+                },
+                {
+                  "label": "Sit up and lean forward",
+                  "bin": "nose"
+                },
+                {
+                  "label": "Pinch the nostrils for 10 minutes",
+                  "bin": "nose"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.first-aid.7",
+          "number": "7",
+          "adultText": "Assemble your own first-aid kit, then show what each item is for and the correct way to use it.",
+          "kidText": "Every Scout carries a first-aid kit. Build your own. Then show how to use each item.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Build Your First-Aid Kit",
+              "kidSteps": [
+                "Get a quart-size bag or small pouch and label it.",
+                "Add items like bandages and ointment.",
+                "Show your leader what each item is for.",
+                "Show how to use each item correctly."
+              ],
+              "parentNote": "A basic kit: adhesive bandages, moleskin, first-aid ointment, and latex-free gloves. Optional extras: gauze, tape, soap, scissors, mouth barrier, antiseptic wipes, pencil and paper. Check for allergies to adhesive or ointment before use.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "craft",
+            "params": {
+              "prompt": "Pack your personal first-aid kit.",
+              "result": "Personal first-aid kit",
+              "ingredients": [
+                {
+                  "id": "bandages",
+                  "label": "Adhesive bandages"
+                },
+                {
+                  "id": "moleskin",
+                  "label": "Moleskin"
+                },
+                {
+                  "id": "ointment",
+                  "label": "First-aid ointment"
+                },
+                {
+                  "id": "gloves",
+                  "label": "Latex-free gloves"
+                },
+                {
+                  "id": "gauze",
+                  "label": "Gauze pads"
+                },
+                {
+                  "id": "tape",
+                  "label": "Adhesive tape"
+                },
+                {
+                  "id": "barrier",
+                  "label": "Mouth barrier"
+                },
+                {
+                  "id": "wipes",
+                  "label": "Antiseptic wipes"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "candy",
+                  "label": "Candy bar"
+                },
+                {
+                  "id": "gel",
+                  "label": "Hair gel"
+                },
+                {
+                  "id": "matches",
+                  "label": "Matches"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "arrow-of-light.duty-to-god",
+      "name": "Duty to God",
+      "category": "family-reverence",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/duty-to-god/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Talk about faith and values with your family. Meet a community helper. Think about what duty to God means to you.",
+      "requirements": [
+        {
+          "id": "arrow-of-light.duty-to-god.1",
+          "number": "1",
+          "adultText": "Talk with a parent or guardian about the faith traditions your family follows, or another tradition you pick. Choose a value from it that ties to the Scout Law and discuss how each family member shows it.",
+          "kidText": "Faith traditions are the customs and beliefs your family follows. Pick one value that matches a Scout Law point. Talk about how each person shows it.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Family Faith Talk",
+              "kidSteps": [
+                "Choose a time to talk with your parent or guardian.",
+                "Talk about your family's faith traditions, or one you choose.",
+                "Pick a value from it that links to the Scout Law.",
+                "Ask how each family member shows that value."
+              ],
+              "parentNote": "Scouting America is nonsectarian, so any faith or belief tradition fits, and families lead this talk at home. Look for the Scout naming one value and linking it to a Scout Law point.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.duty-to-god.2",
+          "number": "2",
+          "adultText": "Meet someone from a local faith-based group that helps people in crisis whatever their beliefs. Find out who the group serves and what help it gives.",
+          "kidText": "Some faith groups help anyone in a hard time. Meet someone from one in your town. Ask who they help and how.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Meet a Community Helper",
+              "kidSteps": [
+                "Ask your parent or leader to help you find a local group.",
+                "Set up a visit or call with someone who works there.",
+                "Ask who they help and how they help.",
+                "Ask if they help people of any faith."
+              ],
+              "parentNote": "Examples might include a food pantry or a shelter. A guest speaker visiting the den is one official option. Sit in on the meeting with your Scout.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.duty-to-god.3",
+          "number": "3",
+          "adultText": "Share with a parent, guardian, or adult leader how you understand Duty to God and how it shows up in your daily life.",
+          "kidText": "Duty to God means following your faith teachings and respecting what others believe. Tell an adult what it means to you.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "What Duty to God Means to Me",
+              "kidSteps": [
+                "Pick an adult to talk with: a parent, guardian, or Scout leader.",
+                "Tell what duty to God means to you.",
+                "Share ways you live it every day."
+              ],
+              "parentNote": "Scouting America is nonsectarian. Any faith or belief tradition fits. Let your Scout speak first and listen without correcting.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Scouting America is nonsectarian. What does that mean?",
+                  "choices": [
+                    "Only one faith may join",
+                    "It is not tied to one faith",
+                    "It has no rules about belief"
+                  ],
+                  "answer": 1,
+                  "explain": "Nonsectarian means open to every faith. Scouts respect each other's beliefs."
+                },
+                {
+                  "prompt": "Which Scout Law point is about being faithful in your religious duties and respecting others?",
+                  "choices": [
+                    "Reverent",
+                    "Thrifty",
+                    "Loyal"
+                  ],
+                  "answer": 0,
+                  "explain": "A Scout is reverent. That includes respecting the beliefs of others."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "arrow-of-light.citizenship",
+      "name": "Citizenship",
+      "category": "citizenship",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/citizenship/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Plan a safe service project, then serve your community for at least two hours.",
+      "requirements": [
+        {
+          "id": "arrow-of-light.citizenship.1",
+          "number": "1",
+          "adultText": "Think of a way your group of Scouts could help the community through a service project, then use the SAFE Checklist to build a plan for doing it safely.",
+          "kidText": "Think of a service project your patrol could do. Then use the SAFE Checklist to plan it. SAFE is a list of four safety checks.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Plan a Safe Service Project",
+              "kidSteps": [
+                "Think of a project that helps your community.",
+                "Write down the steps to get it done.",
+                "Check each SAFE point: Supervision, Assessment, Fitness and Skill, Equipment and Environment.",
+                "Change the plan or pick a new project if any point is unsafe."
+              ],
+              "parentNote": "The project does not have to be carried out for real. Use the SAFE Service Project Planning Checklist and help your Scout think through all four points. If one cannot be met, choose a different project.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which SAFE point does each question belong to?",
+              "bins": [
+                {
+                  "id": "s",
+                  "label": "Supervision"
+                },
+                {
+                  "id": "a",
+                  "label": "Assessment"
+                },
+                {
+                  "id": "f",
+                  "label": "Fitness and Skill"
+                },
+                {
+                  "id": "e",
+                  "label": "Equipment and Environment"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Which adults are in charge?",
+                  "bin": "s"
+                },
+                {
+                  "label": "Are the adults trained and trustworthy?",
+                  "bin": "s"
+                },
+                {
+                  "label": "What could go wrong, and how do we avoid it?",
+                  "bin": "a"
+                },
+                {
+                  "label": "Have leaders checked the rules?",
+                  "bin": "a"
+                },
+                {
+                  "label": "Do health records show everyone can take part?",
+                  "bin": "f"
+                },
+                {
+                  "label": "Does each Scout have the skill for the job?",
+                  "bin": "f"
+                },
+                {
+                  "label": "Are the tools the right size and safe?",
+                  "bin": "e"
+                },
+                {
+                  "label": "Is the work area safe in this weather?",
+                  "bin": "e"
+                }
+              ]
+            }
+          },
+          "notes": "Kept as a field mission (digital false) because the Scout must name and plan a real project; the in-game sort only rehearses the four SAFE points."
+        },
+        {
+          "id": "arrow-of-light.citizenship.2",
+          "number": "2",
+          "adultText": "Serve in a community service project for at least two hours total, either in one project or in several that add up to two hours.",
+          "kidText": "Time to serve! Help out until you have put in two hours. You can add up several short projects.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Serve Your Community",
+              "kidSteps": [
+                "Pick a service project with your patrol, pack, or family.",
+                "Follow your safety plan.",
+                "Serve for two hours in total. Shorter projects can add up.",
+                "Tell your parent what you did and how it helped."
+              ],
+              "parentNote": "Keep a simple log of the date, project, and time. Official options include council and national events as well as projects your den picks. Adults supervise, and tools must fit the Scout's age.",
+              "evidence": "checklist"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "arrow-of-light.outdoor-adventurer",
+      "name": "Outdoor Adventurer",
+      "category": "outdoors",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/outdoor-adventurer/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn the Scout Basic Essentials and plan a campout. Pack, set up camp, and camp with your patrol or a troop.",
+      "requirements": [
+        {
+          "id": "arrow-of-light.outdoor-adventurer.1",
+          "number": "1",
+          "adultText": "Get to know the Scout Basic Essentials, the gear Scouts carry to be ready outdoors.",
+          "kidText": "The Scout Basic Essentials are gear every Scout carries outside. Find them on the trail. Learn why each one matters.",
+          "digital": true,
+          "activity": {
+            "type": "collect",
+            "params": {
+              "prompt": "Find the Scout Basic Essentials on the trail.",
+              "zone": "nature-trail",
+              "targets": [
+                {
+                  "id": "pocketknife",
+                  "label": "Pocketknife",
+                  "count": 1,
+                  "hint": "A handy tool. You must earn Knife Safety before you carry one."
+                },
+                {
+                  "id": "rain-gear",
+                  "label": "Rain gear",
+                  "count": 1,
+                  "hint": "A poncho or parka keeps you dry and blocks wind."
+                },
+                {
+                  "id": "trail-food",
+                  "label": "Trail food",
+                  "count": 1,
+                  "hint": "Granola or nuts give you energy on the trail."
+                },
+                {
+                  "id": "flashlight",
+                  "label": "Flashlight",
+                  "count": 1,
+                  "hint": "Light for the dark. Pack spare batteries."
+                },
+                {
+                  "id": "extra-clothing",
+                  "label": "Extra clothing",
+                  "count": 1,
+                  "hint": "Layers help when the weather changes."
+                },
+                {
+                  "id": "first-aid-kit",
+                  "label": "First-aid kit",
+                  "count": 1,
+                  "hint": "For blisters, small cuts, and other minor injuries."
+                },
+                {
+                  "id": "sun-protection",
+                  "label": "Sun protection",
+                  "count": 1,
+                  "hint": "Sunscreen, a hat, and sunglasses guard your skin."
+                },
+                {
+                  "id": "map-compass",
+                  "label": "Map and compass",
+                  "count": 1,
+                  "hint": "They show the way in new places."
+                },
+                {
+                  "id": "fire-starters",
+                  "label": "Matches and fire starters",
+                  "count": 1,
+                  "hint": "Only used with training and an adult."
+                },
+                {
+                  "id": "water-bottle",
+                  "label": "Water bottle",
+                  "count": 1,
+                  "hint": "Carry at least one quart of water."
+                },
+                {
+                  "id": "backpack",
+                  "label": "Backpack",
+                  "count": 1,
+                  "hint": "It carries everything else."
+                }
+              ]
+            }
+          },
+          "notes": "Eleven targets: the ten essentials plus the backpack that carries them. Hints are the teaching text. Safe to spread across the zone and reveal in two or three groups."
+        },
+        {
+          "id": "arrow-of-light.outdoor-adventurer.2",
+          "number": "2",
+          "adultText": "Work out what gear goes on an overnight camping trip, including shelter and sleeping equipment, and how it will be carried.",
+          "kidText": "What would you bring on a campout? Pack the right gear in your bag. Leave out what you do not need.",
+          "digital": true,
+          "activity": {
+            "type": "craft",
+            "params": {
+              "prompt": "Pack your bag for an overnight campout.",
+              "result": "Overnight camping pack",
+              "ingredients": [
+                {
+                  "id": "tent",
+                  "label": "Tent"
+                },
+                {
+                  "id": "sleeping-bag",
+                  "label": "Sleeping bag"
+                },
+                {
+                  "id": "pad",
+                  "label": "Sleeping pad"
+                },
+                {
+                  "id": "backpack",
+                  "label": "Backpack"
+                },
+                {
+                  "id": "clothes",
+                  "label": "Extra clothes"
+                },
+                {
+                  "id": "rain",
+                  "label": "Rain gear"
+                },
+                {
+                  "id": "water",
+                  "label": "Water bottle"
+                },
+                {
+                  "id": "light",
+                  "label": "Flashlight"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "skateboard",
+                  "label": "Skateboard"
+                },
+                {
+                  "id": "bowling",
+                  "label": "Bowling ball"
+                },
+                {
+                  "id": "toolbox",
+                  "label": "Heavy toolbox"
+                }
+              ]
+            }
+          },
+          "notes": "Planning requirement, so digital. The real packing happens when the Scout prepares for the campout in requirement 5."
+        },
+        {
+          "id": "arrow-of-light.outdoor-adventurer.3",
+          "number": "3",
+          "adultText": "Go over the four points of the SAFE Checklist and how each one applies to your campout: supervision, assessment of risk, fitness and skill, and equipment and environment.",
+          "kidText": "SAFE is a checklist that keeps Scouts safe. Each letter is one safety check. Show what you know about it.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What does the S in SAFE stand for?",
+                  "choices": [
+                    "Sleeping bag",
+                    "Supervision",
+                    "Safety gear"
+                  ],
+                  "answer": 1,
+                  "explain": "S is Supervision. Trained, trustworthy adults set the example for safety."
+                },
+                {
+                  "prompt": "Which SAFE point means checking for risks while planning?",
+                  "choices": [
+                    "Assessment",
+                    "Equipment",
+                    "Fitness"
+                  ],
+                  "answer": 0,
+                  "explain": "A is Assessment. Leaders check the risks and rules before an activity."
+                },
+                {
+                  "prompt": "Checking health records and skills fits which point?",
+                  "choices": [
+                    "Supervision",
+                    "Assessment",
+                    "Fitness and Skill"
+                  ],
+                  "answer": 2,
+                  "explain": "F is Fitness and Skill. Everyone must be able to take part safely."
+                },
+                {
+                  "prompt": "Checking the weather and testing your gear fits which point?",
+                  "choices": [
+                    "Fitness and Skill",
+                    "Equipment and Environment",
+                    "Supervision"
+                  ],
+                  "answer": 1,
+                  "explain": "E is Equipment and Environment. Check gear and the place for changing conditions."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.outdoor-adventurer.4",
+          "number": "4",
+          "adultText": "Find the place where you will camp on a map, either a paper map or a digital one.",
+          "kidText": "Maps show where you are going. Find your real campsite on a map. Practice map reading in the game first.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Find Camp on the Map",
+              "kidSteps": [
+                "Learn where your campout will be.",
+                "Open a paper map or a digital map.",
+                "Find the campsite and point to it.",
+                "Trace the route you will take to get there."
+              ],
+              "parentNote": "Either a paper map or a digital map works. Help your Scout find the actual campground and talk about the route.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "navigate",
+            "params": {
+              "prompt": "Follow the map marker to reach camp.",
+              "zone": "nature-trail",
+              "waypoints": [
+                {
+                  "id": "trailhead",
+                  "label": "Trailhead sign"
+                },
+                {
+                  "id": "footbridge",
+                  "label": "Footbridge"
+                },
+                {
+                  "id": "lookout",
+                  "label": "Lookout rock"
+                },
+                {
+                  "id": "campsite",
+                  "label": "Campsite"
+                }
+              ],
+              "useCompass": false
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.outdoor-adventurer.5",
+          "number": "5",
+          "adultText": "Join an overnight camping trip, either with your own patrol or alongside a Scouting America troop.",
+          "kidText": "Time to camp! Go on a real campout with your patrol or a troop. Stay with your buddy and follow the safety rules.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Go Camping",
+              "kidSteps": [
+                "Pack your gear from your list.",
+                "Go on the campout with your patrol or a troop.",
+                "Stay with a buddy and follow the adults' safety rules.",
+                "Help your team and have fun."
+              ],
+              "parentNote": "Cub Scout campouts need at least one BALOO-trained adult, current Annual Health and Medical Records, and the Hazardous Weather training. A Scout camping with a troop follows Arrow of Light camping rules.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.outdoor-adventurer.6",
+          "number": "6",
+          "adultText": "Survey the campsite and choose spots for cooking, eating, sleeping tents, and the fire ring. Put up shared patrol equipment before pitching your personal tent.",
+          "kidText": "Pick smart spots for the kitchen, eating area, tents, and fire pit. Set up patrol gear first. Then put up your own tent.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Set Up Camp",
+              "kidSteps": [
+                "Walk around the campsite with your patrol.",
+                "Choose spots for the kitchen, eating area, tents, and fire pit.",
+                "Help set up the patrol gear first.",
+                "Then set up your own tent."
+              ],
+              "parentNote": "Good tent spots are flat, free of rocks and sticks, and away from dead branches. The kitchen should be covered and near water for cleanup. Use an existing fire pit with tents a safe distance away.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "craft",
+            "params": {
+              "prompt": "Choose the best camp setup.",
+              "result": "A safe, comfortable campsite",
+              "ingredients": [
+                {
+                  "id": "flat",
+                  "label": "Flat tent spot, no rocks"
+                },
+                {
+                  "id": "branches",
+                  "label": "Tents away from dead branches"
+                },
+                {
+                  "id": "kitchen",
+                  "label": "Kitchen near water"
+                },
+                {
+                  "id": "fire",
+                  "label": "Use the existing fire ring"
+                },
+                {
+                  "id": "gear",
+                  "label": "Patrol gear up first"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "creek",
+                  "label": "Tent in a dry creek bed"
+                },
+                {
+                  "id": "tree",
+                  "label": "Tent under a lone tree"
+                },
+                {
+                  "id": "inside",
+                  "label": "Cooking inside a tent"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.outdoor-adventurer.7",
+          "number": "7",
+          "adultText": "Explain how to store food safely and keep the camp kitchen clean, then show it during the campout, including handwashing and dish cleanup.",
+          "kidText": "Dirty hands and warm food can make people sick. Learn the rules for safe food and a clean kitchen. Then show them at camp.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Keep a Clean Kitchen",
+              "kidSteps": [
+                "Wash your hands, then use sanitizer, before touching food.",
+                "Keep cold foods in a closed ice chest.",
+                "Never reuse a board or knife from raw meat until it is cleaned.",
+                "Wash dishes with the three-tub method.",
+                "Dump dishwater far from water sources."
+              ],
+              "parentNote": "Official guidance: handwashing plus sanitizer; meat, dairy, and eggs stay cold in a closed ice chest; avoid cross-contamination; three-tub washing (hot soapy, hot rinse, cold sanitizer); dump wash water about 200 feet from water sources. Check allergies first.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which foods stay in the cold ice chest?",
+                  "choices": [
+                    "Bread and crackers",
+                    "Meat, cheese, and eggs",
+                    "Dry cereal"
+                  ],
+                  "answer": 1,
+                  "explain": "Meat, dairy, and eggs must stay cold so germs do not grow."
+                },
+                {
+                  "prompt": "Why use a clean board after cutting raw meat?",
+                  "choices": [
+                    "Germs can spread to other food",
+                    "The board gets heavy",
+                    "It looks nicer"
+                  ],
+                  "answer": 0,
+                  "explain": "Germs moving from raw meat to other food is called cross-contamination."
+                },
+                {
+                  "prompt": "What should you do before touching food?",
+                  "choices": [
+                    "Wipe hands on your pants",
+                    "Nothing",
+                    "Wash hands, then use sanitizer"
+                  ],
+                  "answer": 2,
+                  "explain": "Clean hands keep germs out of the food."
+                },
+                {
+                  "prompt": "What goes in the third tub when washing dishes?",
+                  "choices": [
+                    "Cold water with sanitizer",
+                    "Hot soapy water",
+                    "Plain drinking water"
+                  ],
+                  "answer": 0,
+                  "explain": "Tub one is hot and soapy. Tub two is a hot rinse. Tub three has sanitizer."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "arrow-of-light.outdoor-adventurer.8",
+          "number": "8",
+          "adultText": "Hold a debrief with your patrol after the campout. Share successes and ideas to improve, and point out how the group lived out Leave No Trace Principles for Kids and the Outdoor Code.",
+          "kidText": "Leave No Trace means leaving nature as you found it. After camp, talk with your patrol. Share what worked and what to change.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Campout Debrief",
+              "kidSteps": [
+                "Gather your patrol after the campout.",
+                "Share what went well.",
+                "Share what you would do differently next time.",
+                "Tell how you followed the Outdoor Code and Leave No Trace."
+              ],
+              "parentNote": "One official activity is Start, Stop, Continue: each Scout names one thing to start, stop, and continue. Use the Outdoor Code and Leave No Trace Principles for Kids as prompts.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which choices follow Leave No Trace?",
+              "bins": [
+                {
+                  "id": "do",
+                  "label": "Do this outdoors"
+                },
+                {
+                  "id": "dont",
+                  "label": "Do not do this"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Pack out all your trash",
+                  "bin": "do"
+                },
+                {
+                  "label": "Pick wildflowers to take home",
+                  "bin": "dont"
+                },
+                {
+                  "label": "Stay on the trail",
+                  "bin": "do"
+                },
+                {
+                  "label": "Feed the squirrels",
+                  "bin": "dont"
+                },
+                {
+                  "label": "Leave rocks and flowers where you find them",
+                  "bin": "do"
+                },
+                {
+                  "label": "Burn trash in the fire",
+                  "bin": "dont"
+                },
+                {
+                  "label": "Keep a safe distance from wildlife",
+                  "bin": "do"
+                },
+                {
+                  "label": "Carve your name in a tree",
+                  "bin": "dont"
+                },
+                {
+                  "label": "Use an existing fire ring",
+                  "bin": "do"
+                },
+                {
+                  "label": "Make a new shortcut trail",
+                  "bin": "dont"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "electives": [
+    {
+      "id": "arrow-of-light.champions-for-nature",
+      "name": "Champions for Nature AOL",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/champions-for-nature-aol/",
+      "summary": "Explore how farming and food affect the planet, and find ways to save food and resources."
+    },
+    {
+      "id": "arrow-of-light.cycling",
+      "name": "Cycling",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/cycling/",
+      "summary": "Check your bike and safety gear, then get ready for a longer bike ride."
+    },
+    {
+      "id": "arrow-of-light.engineer",
+      "name": "Engineer",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/engineer/",
+      "summary": "Think like an engineer and try your own design and building projects."
+    },
+    {
+      "id": "arrow-of-light.estimations",
+      "name": "Estimations",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/estimations/",
+      "summary": "Learn simple ways to guess time, height, and cost when you do not need an exact answer."
+    },
+    {
+      "id": "arrow-of-light.fishing",
+      "name": "Fishing",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/fishing/",
+      "summary": "Plan a safe fishing trip using the SAFE Checklist."
+    },
+    {
+      "id": "arrow-of-light.high-tech-outdoors",
+      "name": "High Tech Outdoors",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/high-tech-outdoors/",
+      "summary": "See how modern gear and digital tools help you navigate, learn, and stay safe outside."
+    },
+    {
+      "id": "arrow-of-light.into-the-wild",
+      "name": "Into the Wild",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/into-the-wild/",
+      "summary": "Meet the mammals, birds, reptiles, amphibians, and insects that share your neighborhood."
+    },
+    {
+      "id": "arrow-of-light.into-the-woods",
+      "name": "Into the Woods",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/into-the-woods/",
+      "summary": "Explore the trees and plants near you and learn why they matter."
+    },
+    {
+      "id": "arrow-of-light.knife-safety",
+      "name": "Knife Safety",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/knife-safety/",
+      "summary": "Learn the safety rules for pocketknives and kitchen knives. You earn the right to use a knife."
+    },
+    {
+      "id": "arrow-of-light.paddle-craft",
+      "name": "Paddle Craft",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/paddle-craft/",
+      "summary": "Try paddling a canoe, kayak, or similar boat on calm water with trained adult leaders."
+    },
+    {
+      "id": "arrow-of-light.race-time",
+      "name": "Race Time AOL",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/race-time-aol/",
+      "summary": "Design and build a Pinewood Derby car or Raingutter Regatta boat, and mentor younger Scouts."
+    },
+    {
+      "id": "arrow-of-light.summertime-fun",
+      "name": "Summertime Fun AOL",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/summertime-fun-aol/",
+      "summary": "Join three Cub Scout activities over the summer, like camp or a picnic."
+    },
+    {
+      "id": "arrow-of-light.swimming",
+      "name": "Swimming",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/swimming/",
+      "summary": "Try the Scouting America swimmer test to get ready for water fun in Scouts BSA."
+    }
+  ]
+}
