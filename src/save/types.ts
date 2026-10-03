@@ -69,6 +69,13 @@ export interface RequirementProgress {
   status: RequirementStatus;
   attempts: number;
   bestScore?: number; // 0 to 1
+  /**
+   * Set when the requirement's "learn" activity has been completed in-game.
+   * The learn activity is `activity` for digital requirements and `practice` for
+   * field missions that have one. Learning does not complete a field mission;
+   * the real-world part still goes handout -> check-in -> parent approval.
+   */
+  learnedAt?: string;
   completedAt?: string;
   approvedAt?: string;
 }
