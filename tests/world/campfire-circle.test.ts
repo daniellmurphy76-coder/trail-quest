@@ -141,6 +141,38 @@ describe('Campfire Circle zone (placeholder art)', () => {
     }
   });
 
+  it('keeps the follow camera lane behind the spawn clear of trees, plants, and props', () => {
+    // On arrival the camera sits ~7.5 units behind the player and 3 up (z ~ 23), level with the tree wall.
+    const fromZ = 14;
+    const laneHalf = 8;
+    const crown = 2.5; // a tree's crown reaches about this far past its trunk
+    const inLane = (p: THREE.Vector3, margin = 0): boolean => p.z > fromZ && Math.abs(p.x) < laneHalf + margin;
+
+    const trees = zone.root.getObjectByName('trees')!;
+    const m = new THREE.Matrix4();
+    for (const part of trees.children as THREE.InstancedMesh[]) {
+      for (let i = 0; i < part.count; i++) {
+        part.getMatrixAt(i, m);
+        const p = new THREE.Vector3().setFromMatrixPosition(m);
+        expect(inLane(p, crown), `tree instance ${i} (${p.x.toFixed(1)}, ${p.z.toFixed(1)}) is in the camera lane`).toBe(false);
+      }
+    }
+
+    const plants = zone.root.getObjectByName('plants')!.children[0] as THREE.InstancedMesh;
+    expect(plants.count).toBeGreaterThan(100); // still heavy elsewhere
+    for (let i = 0; i < plants.count; i++) {
+      plants.getMatrixAt(i, m);
+      const p = new THREE.Vector3().setFromMatrixPosition(m);
+      expect(inLane(p), `plant ${i} (${p.x.toFixed(1)}, ${p.z.toFixed(1)}) is in the camera lane`).toBe(false);
+    }
+
+    // Every other prop (the trail sign beside the spawn is the one thing meant to be near it).
+    for (const name of ['benches', 'stumps', 'lanterns', 'reading-rock', 'woodpile']) {
+      for (const p of instancePositions(zone.root, name)) expect(inLane(p), `${name} is in the camera lane`).toBe(false);
+    }
+    expect(inLane(zone.root.getObjectByName('gateway')!.position)).toBe(false);
+  });
+
   it('rings the walkable square with trees just outside it, and the grove with more inside', () => {
     const trunks = zone.root.getObjectByName('trees')!.children[0] as THREE.InstancedMesh;
     expect(trunks.count).toBeGreaterThanOrEqual(60);

@@ -84,10 +84,19 @@ const OPEN_RING = 8.4;
 const OPEN_SLOTS = 12;
 const OPEN_CLEARANCE = 1; // an open spot stays this far beyond the edge of any prop
 
-const OUTER_TREE_COUNT = 56;
+const OUTER_TREE_COUNT = 62;
 const INNER_TREE_COUNT = 26;
 const INNER_RING = 12.6;
 const ENTRANCE_HALF_WIDTH = 5.2; // the inner tree ring leaves this much room either side of x = 0
+/**
+ * On arrival the follow camera sits about 7.5 units behind the player and 3 up, so it is out past
+ * z = 22, level with the outer tree wall. Keep a lane behind the spawn free of trees and plants:
+ * for z beyond LANE_FROM_Z, nothing within LANE_HALF_WIDTH of x = 0. A tree's crown reaches about
+ * CROWN_ALLOWANCE past its trunk, so tree trunks keep that much farther out.
+ */
+const LANE_FROM_Z = 14;
+const LANE_HALF_WIDTH = 8;
+const CROWN_ALLOWANCE = 2.5;
 
 const FIREFLY_COUNT = 9;
 
@@ -462,7 +471,10 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
   // The inner ring leaves a gap at +z, where the gateway stands, and keeps off the rocks and woodpile.
   const treeSpots: Spot[] = [];
   for (let i = 0; i < OUTER_TREE_COUNT; i++) {
-    treeSpots.push(perimeterPoint((i + rng() * 0.7) / OUTER_TREE_COUNT, WALK_HALF + 1.5 + rng() * 2.5));
+    // Draw first, then skip, so the other trees land the same with or without the camera lane.
+    const spot = perimeterPoint((i + rng() * 0.7) / OUTER_TREE_COUNT, WALK_HALF + 1.5 + rng() * 2.5);
+    if (spot.z > LANE_FROM_Z && Math.abs(spot.x) < LANE_HALF_WIDTH + CROWN_ALLOWANCE) continue;
+    treeSpots.push(spot);
   }
   const innerStart = treeSpots.length;
   const decor = [rockSpot, smallRockSpot, stackSpot];
@@ -525,6 +537,8 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
     { x: SPAWN.x, z: SPAWN.z, radius: 2.5 },
     { x: SIGN_X, z: SIGN_Z, radius: 1.4 },
     ...[8.8, 10.8, 12.8, 14.8, 16.8].map((z) => ({ x: 0, z, radius: 2 })), // the lane from the spawn to the fire
+    // The camera lane behind the spawn: overlapping circles that cover |x| < LANE_HALF_WIDTH for z > LANE_FROM_Z.
+    ...[-6, -3, 0, 3, 6].map((x) => ({ x, z: 16, radius: 3.2 })),
     ...stumpPlacements.map((p) => ({ x: p.x, z: p.z, radius: 1.2 })),
     { x: -GATE_POST_X, z: GATE_Z, radius: 1 },
     { x: GATE_POST_X, z: GATE_Z, radius: 1 },
