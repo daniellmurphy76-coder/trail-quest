@@ -8,14 +8,16 @@
  * update loop always works on the current one (bounds, animation, interactables).
  */
 import * as THREE from 'three';
-import type { ZoneId } from '../activities/types';
+import type { RankId, ZoneId } from '../activities/types';
 import { FollowCamera, type FollowTarget } from '../engine/camera';
 import { createEnvironment } from '../engine/environment';
 import { Input } from '../engine/input';
 import { WorldLabels, type WorldLabel } from '../engine/labels';
 import { GameLoop } from '../engine/loop';
 import { Renderer } from '../engine/renderer';
+import { defaultAvatar } from '../player/avatar/options';
 import { Player } from '../player/controller';
+import type { AvatarConfig } from '../save/types';
 import { findInteractableInRange, type Interactable, type Zone } from '../world/zone';
 import { createZone, type ZoneDeps } from '../world/zones';
 import { guidedStartPose } from './guided-start';
@@ -34,6 +36,11 @@ export interface World {
   /** The zone the player is in now. It changes when the player travels. */
   readonly zone: Zone;
   player: Player;
+  /**
+   * Change the Scout's look in place (the avatar editor, or a profile being chosen). Pass the
+   * profile's `rank` so a v1 avatar with no neckerchief color gets its rank's color.
+   */
+  setPlayerAvatar(config: AvatarConfig, rank?: RankId): void;
   labels: WorldLabels;
   follow: FollowCamera;
   /** What happens when the player talks to the Den Chief. Replaces any earlier handler. */
@@ -93,7 +100,8 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   const baseCamp = createZone('base-camp', zoneDeps);
   scene.add(baseCamp.root);
 
-  const player = new Player({ bodyColor: 0xf2c14e });
+  // The look is replaced by the profile's avatar once the app knows who is playing (setPlayerAvatar).
+  const player = new Player({ avatar: defaultAvatar('wolf'), rank: 'wolf' });
   player.setPosition(baseCamp.spawn, Math.PI); // facing -z, toward the campfire
   scene.add(player.root);
 
@@ -241,6 +249,9 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       return traveler.zone;
     },
     player,
+    setPlayerAvatar(config, rank) {
+      player.setAvatar(config, rank);
+    },
     labels,
     follow,
     setDenChiefHandler(handler) {

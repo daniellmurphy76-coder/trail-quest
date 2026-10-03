@@ -3,6 +3,7 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import { lintRankVocabulary, snippet } from './vocabulary.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const schemaPath = resolve(here, '..', 'content', 'schema', 'rank.schema.json');
@@ -159,12 +160,53 @@ function toJsonPath(instancePath) {
 }
 
 /**
- * Validate every *.json file in `dir` against content/schema/rank.schema.json plus
- * extra semantic checks. Returns { files, errors } with human-readable messages.
+ * Run the grade-level vocabulary and sentence-length rules on one parsed rank file.
+ * Each finding goes to `err(path, message)`, and the per-file detail is appended to
+ * `vocabulary.reports`. Skipped when the file has no numeric `grade` (the schema reports that).
  */
-export function validateRankFiles(dir) {
+function checkVocabularyRules(data, name, err, vocabulary) {
+  if (!isObj(data) || typeof data.grade !== 'number') return;
+  const result = lintRankVocabulary(data);
+  const report = (path, msg) => {
+    vocabulary.errors.push(`${name} ${path}: ${msg}`);
+    err(path, msg);
+  };
+  for (const f of result.flagged) {
+    report(f.path, `"${f.word}" (${f.reason}) in: "${snippet(f.text)}"`);
+  }
+  for (const l of result.longSentences) {
+    report(l.path, `sentence has ${l.words} words, grade ${result.grade} limit is ${l.limit}, in: "${snippet(l.sentence)}"`);
+  }
+  vocabulary.reports.push({
+    file: name,
+    grade: result.grade,
+    strings: result.strings,
+    flagged: result.flagged.map(({ path, word, reason }) => ({ path, word, reason })),
+    longSentences: result.longSentences.map(({ path, words, limit }) => ({ path, words, limit })),
+  });
+}
+
+/**
+ * Validate every *.json file in `dir` against content/schema/rank.schema.json plus
+ * extra semantic checks, and (unless `vocabulary` is false) the grade-level vocabulary
+ * and sentence-length rules in scripts/vocabulary.mjs, using each file's own `grade`.
+ *
+ * Returns { files, errors, vocabulary }. `errors` holds every human-readable message.
+ * `vocabulary.errors` is the vocabulary and sentence-length subset of `errors`, and
+ * `vocabulary.reports` has per-file flagged words and long sentences for summaries.
+ *
+ * @param {string} dir
+ * @param {{ vocabulary?: boolean }} [options] pass { vocabulary: false } to skip the vocabulary rules
+ */
+export function validateRankFiles(dir, options) {
+  const withVocabulary = !options || options.vocabulary !== false;
   const validate = buildValidator();
   const errors = [];
+  const vocabulary = {
+    /** @type {string[]} */ errors: [],
+    /** @type {{ file: string, grade: number, strings: number, flagged: { path: string, word: string, reason: string }[], longSentences: { path: string, words: number, limit: number }[] }[]} */
+    reports: [],
+  };
   let names = [];
   try {
     names = readdirSync(dir)
@@ -190,6 +232,7 @@ export function validateRankFiles(dir) {
       }
     }
     checkSemantics(data, err);
+    if (withVocabulary) checkVocabularyRules(data, name, err, vocabulary);
   }
-  return { files: names.length, errors };
+  return { files: names.length, errors, vocabulary };
 }

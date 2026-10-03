@@ -19,8 +19,15 @@ export interface TrailPanelOptions {
    * is in (its button says "You are here" and does nothing). Omit to leave the section out.
    */
   places?: { current: ZoneId };
+  /**
+   * Adds a "Change my look" button. The panel stays open underneath: call the avatar editor from
+   * here. If the function returns a promise, the button waits (disabled) until it settles, so a
+   * double tap never opens two editors. Omit to leave the button out.
+   */
+  onEditAvatar?: () => void | Promise<void>;
 }
 
+export const CHANGE_LOOK_LABEL = 'Change my look';
 export const PLACES_TITLE = 'Places';
 export const PLACES_HERE = 'You are here';
 
@@ -49,6 +56,32 @@ function placesSection(current: ZoneId, onPick: (zone: ZoneId) => void): HTMLEle
 }
 
 const TITLE = "Today's Trail";
+
+/** The "Change my look" button: runs `onEdit`, and stays disabled while it is still working. */
+function lookButton(onEdit: () => void | Promise<void>): HTMLButtonElement {
+  const btn = button(CHANGE_LOOK_LABEL, {
+    icon: '\u{1F3A8}',
+    onClick: () => {
+      if (btn.disabled) return;
+      let result: void | Promise<void>;
+      try {
+        result = onEdit();
+      } catch (err) {
+        console.error(err);
+        return;
+      }
+      if (result && typeof result.then === 'function') {
+        btn.disabled = true;
+        result
+          .catch((err: unknown) => console.error(err))
+          .finally(() => {
+            btn.disabled = false;
+          });
+      }
+    },
+  });
+  return btn;
+}
 
 function itemRows(items: TrailView['items']): HTMLElement {
   return h(
@@ -112,6 +145,7 @@ export function showTrailPanel(host: HTMLElement, options: TrailPanelOptions): P
         })
       : null;
     const close = button('Close', { variant: startButton ? 'secondary' : 'primary', onClick: () => finish('close') });
+    const editLook = options.onEditAvatar ? lookButton(options.onEditAvatar) : null;
     overlay.card.append(
       h('div', { class: 'tq-prompt' }, h('h2', null, TITLE)),
       ...(startButton ? [startButton] : []),
@@ -120,6 +154,7 @@ export function showTrailPanel(host: HTMLElement, options: TrailPanelOptions): P
       h(
         'div',
         { class: 'tq-actions' },
+        editLook,
         button('Switch Scout', { icon: '⇄', onClick: () => finish('switch') }),
         button('Parent', { onClick: () => finish('parent') }),
         close,

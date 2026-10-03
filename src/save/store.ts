@@ -3,8 +3,9 @@
  * Everything goes through an injectable KeyValueStore so tests never touch localStorage.
  */
 import type { RankId } from '../activities/types';
+import { defaultAvatar, fillAvatar } from '../player/avatar/options';
 import { migrate } from './migrations';
-import { SAVE_VERSION, STORAGE_KEY, type Profile, type SaveFile } from './types';
+import { SAVE_VERSION, STORAGE_KEY, type AvatarConfig, type Profile, type SaveFile } from './types';
 
 export interface KeyValueStore {
   get(key: string): string | null;
@@ -99,13 +100,13 @@ export function importSave(json: string): SaveFile {
   }
 }
 
-const AVATAR_COLORS = ['#e07a5f', '#3d85c6', '#81b29a', '#f2cc8f', '#9b72cf', '#e9a23b'];
-
 export interface NewProfileOptions {
   name: string;
   rank: RankId;
   guideName?: string;
   readAloud?: boolean;
+  /** The Scout's look from the avatar editor. Omit for the rank's default uniform look. */
+  avatar?: AvatarConfig;
 }
 
 /** Create a profile, add it to the save (mutating it) and make it the active profile. */
@@ -119,7 +120,7 @@ export function createProfile(save: SaveFile, options: NewProfileOptions): Profi
     guideName: options.guideName?.trim() || 'Den Chief',
     readAloud: options.readAloud ?? options.rank === 'wolf',
     createdAt: new Date().toISOString(),
-    avatar: { bodyColor: AVATAR_COLORS[save.profiles.length % AVATAR_COLORS.length] },
+    avatar: options.avatar ? fillAvatar(options.avatar, options.rank) : defaultAvatar(options.rank),
     xp: 0,
     streak: { current: 0, best: 0, embers: 0 },
     requirements: {},

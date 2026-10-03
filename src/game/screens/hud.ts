@@ -3,34 +3,33 @@ import { button } from '../../ui/widgets';
 import { line } from '../lines';
 import type { TrailView } from '../session';
 
-/** Today's trail has three stops. Used when the trail is done and the stops are not in memory. */
+/** A trail has three stops. Used when the trail is done and the stops are not in memory. */
 export const TRAIL_STOPS = 3;
 
 export interface TrailProgress {
-  /** Stops finished today. */
+  /** Stops finished on the current trail. */
   done: number;
-  /** Stops on today's trail. */
+  /** Stops on the current trail. */
   total: number;
-  /** Today's trail is finished: show the check mark. */
+  /** The trail is finished: show the check mark. */
   complete: boolean;
 }
 
 /**
- * The three progress dots under the Today's Trail button. Null when there is nothing to track
- * (no stops today). A finished trail reads as all dots filled, even after a reload when the
- * stops themselves are no longer in memory.
+ * The progress dots under the Today's Trail button: one per stop of the current trail (today's
+ * first, or the one the Scout is keeping going with). Null when there is nothing to track (no
+ * stops today). A finished trail reads as all dots filled and a check mark, even after a reload
+ * when the stops themselves are no longer in memory. If the last trail was finished with a stop
+ * skipped, the dots show how many were done and there is no check mark.
  */
 export function trailProgress(view: TrailView): TrailProgress | null {
   if (view.state === 'empty') return null;
+  const done = view.items.filter((item) => item.status === 'done').length;
   if (view.state === 'done-today') {
-    const total = view.items.length > 0 ? view.items.length : TRAIL_STOPS;
-    return { done: total, total, complete: true };
+    if (view.items.length === 0) return { done: TRAIL_STOPS, total: TRAIL_STOPS, complete: true };
+    return { done, total: view.items.length, complete: done === view.items.length };
   }
-  return {
-    done: view.items.filter((item) => item.status === 'done').length,
-    total: view.items.length,
-    complete: false,
-  };
+  return { done, total: view.items.length, complete: false };
 }
 
 export interface HudInfo {
@@ -53,8 +52,10 @@ export interface Hud {
 }
 
 /**
- * The top-left status card: name and rank, XP, the campfire streak (flame icon, "Day N" and the
- * word "streak"), the Today's Trail button, and three dots under it that fill as stops are done.
+ * The top-left status card: name and rank (the rank label comes from the content, so any of the
+ * six ranks reads right), XP, the campfire streak (flame icon, "Day N" and the word "streak"), the
+ * Today's Trail button, and dots under it, one per stop of the current trail, that fill as stops
+ * are done.
  * The dots are always paired with words ("1 of 3", then a check mark and "Done"), so progress is
  * never colour alone.
  */

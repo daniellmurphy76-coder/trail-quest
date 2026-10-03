@@ -4,12 +4,14 @@
  * Throws an Error whose message names the field that failed.
  */
 import type { RankId } from '../activities/types';
+import { BUILDS, EYE_STYLES, HAIR_STYLES, LEG_STYLES } from '../player/avatar/options';
 import { isYmd } from '../quests/dates';
 import { SAVE_VERSION, type SaveFile } from './types';
 
 const RANKS: readonly string[] = ['lion', 'tiger', 'wolf', 'bear', 'webelos', 'arrow-of-light'];
 const STATUSES: readonly string[] = ['locked', 'available', 'in-progress', 'pending-approval', 'done'];
 const STOP_KINDS: readonly string[] = ['warm-up', 'new-step', 'field-check', 'bonus'];
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 type Rec = Record<string, unknown>;
 
@@ -33,6 +35,20 @@ function str(value: unknown, path: string): string {
 
 function optStr(value: unknown, path: string): void {
   if (value !== undefined) str(value, path);
+}
+
+function optColor(value: unknown, path: string): void {
+  if (value !== undefined && (typeof value !== 'string' || !HEX_COLOR.test(value))) {
+    fail(path, 'must be a color like #2f5fa8');
+  }
+}
+
+function optOneOf(value: unknown, allowed: readonly string[], path: string): void {
+  if (value !== undefined) oneOf(value, allowed, path);
+}
+
+function optBool(value: unknown, path: string): void {
+  if (value !== undefined) bool(value, path);
 }
 
 function num(value: unknown, path: string): number {
@@ -74,8 +90,21 @@ function checkProfile(raw: unknown, path: string): void {
 
   const avatar = record(p.avatar, `${path}.avatar`);
   str(avatar.bodyColor, `${path}.avatar.bodyColor`);
+  // Everything after bodyColor is optional, so v1 saves (bodyColor only) still load.
   optStr(avatar.hat, `${path}.avatar.hat`);
-  optStr(avatar.neckerchief, `${path}.avatar.neckerchief`);
+  optColor(avatar.neckerchief, `${path}.avatar.neckerchief`);
+  optOneOf(avatar.build, BUILDS.map((c) => c.value), `${path}.avatar.build`);
+  optColor(avatar.skin, `${path}.avatar.skin`);
+  optOneOf(avatar.hairStyle, HAIR_STYLES.map((c) => c.value), `${path}.avatar.hairStyle`);
+  optColor(avatar.hairColor, `${path}.avatar.hairColor`);
+  optOneOf(avatar.eyes, EYE_STYLES.map((c) => c.value), `${path}.avatar.eyes`);
+  optColor(avatar.shirt, `${path}.avatar.shirt`);
+  optOneOf(avatar.legs, LEG_STYLES.map((c) => c.value), `${path}.avatar.legs`);
+  optColor(avatar.legColor, `${path}.avatar.legColor`);
+  optColor(avatar.shoes, `${path}.avatar.shoes`);
+  optColor(avatar.hatColor, `${path}.avatar.hatColor`);
+  optBool(avatar.glasses, `${path}.avatar.glasses`);
+  optBool(avatar.backpack, `${path}.avatar.backpack`);
 
   const streak = record(p.streak, `${path}.streak`);
   num(streak.current, `${path}.streak.current`);

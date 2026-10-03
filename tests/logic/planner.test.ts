@@ -12,6 +12,7 @@ import type { TodaysTrail } from '../../src/quests/types';
 import type { RequirementProgress } from '../../src/save/types';
 import { card, deepFreeze, doneReq, learnedReq, makeProfile, TODAY } from '../fixtures/profile.fixture';
 import { ADVENTURE, fixtureRank, ID } from '../fixtures/rank.fixture';
+import { LION_ID, lionRank } from '../game/lion-fixture';
 
 type Progress = Record<string, RequirementProgress>;
 
@@ -409,5 +410,74 @@ describe('planner: implemented option', () => {
     const profile = deepFreeze(makeProfile({ requirements: { [ID.campQuiz]: doneReq() } }));
     const options = { implemented: only('quiz', 'fieldMission') };
     expect(planTrail(profile, fixtureRank, TODAY, options)).toEqual(planTrail(profile, fixtureRank, TODAY, options));
+  });
+});
+
+describe('planner: keep going (excludeRequirementIds)', () => {
+  const threeStops = () =>
+    makeProfile({ requirements: { [ID.campQuiz]: doneReq() }, review: { [ID.campQuiz]: card(0, '2026-10-02') } });
+  const implemented = new Set<ActivityType>(['quiz', 'sequence', 'fieldMission']);
+
+  it('plans exactly as before when nothing is excluded', () => {
+    const profile = threeStops();
+    const plain = planTrail(profile, fixtureRank, TODAY, { implemented });
+    expect(planTrail(profile, fixtureRank, TODAY, { implemented, excludeRequirementIds: [] })).toEqual(plain);
+    expect(ids(plain)).toEqual([ID.campQuiz, ID.campChore, ID.campErrand]);
+  });
+
+  it('leaves out every excluded requirement: the next new step, the next mission and the next review', () => {
+    const profile = threeStops();
+    const first = planTrail(profile, fixtureRank, TODAY, { implemented });
+    const next = planTrail(profile, fixtureRank, TODAY, { implemented, excludeRequirementIds: ids(first) });
+    for (const id of ids(first)) expect(ids(next)).not.toContain(id);
+    // The new step moves on to the next requirement that can be learned (the Trek's chore).
+    expect(next.stops[0]).toMatchObject({ kind: 'new-step', requirementId: ID.trekChore });
+  });
+
+  it('skips an excluded mission waiting on the parent, so it is not asked again the same day', () => {
+    const waiting = { [ID.campErrand]: { status: 'pending-approval' as const, attempts: 1 } };
+    const profile = makeProfile({ requirements: waiting });
+    expect(planTrail(profile, fixtureRank, TODAY).stops.some((s) => s.requirementId === ID.campErrand)).toBe(true);
+    const again = planTrail(profile, fixtureRank, TODAY, { excludeRequirementIds: [ID.campErrand] });
+    expect(ids(again)).not.toContain(ID.campErrand);
+  });
+
+  it('skips an excluded review, and a bonus review moves on to an older item', () => {
+    const profile = makeProfile({ requirements: allRequiredDone() });
+    const first = planTrail(profile, fixtureRank, TODAY);
+    expect(first.stops[0].kind).toBe('bonus');
+    const second = planTrail(profile, fixtureRank, TODAY, { excludeRequirementIds: ids(first) });
+    expect(second.stops[0].kind).toBe('bonus');
+    expect(second.stops[0].requirementId).not.toBe(first.stops[0].requirementId);
+  });
+
+  it('is empty once everything is excluded or done', () => {
+    const progress = allRequiredDone();
+    const profile = makeProfile({ requirements: progress });
+    const all = Object.keys(progress);
+    expect(planTrail(profile, fixtureRank, TODAY, { excludeRequirementIds: all }).stops).toEqual([]);
+  });
+
+  it('does not mutate a frozen profile or the excluded list', () => {
+    const profile = deepFreeze(threeStops());
+    const exclude = Object.freeze([ID.campQuiz]);
+    expect(() => planTrail(profile, fixtureRank, TODAY, { implemented, excludeRequirementIds: exclude })).not.toThrow();
+  });
+});
+
+describe('planner: a Lion-style rank', () => {
+  it('plans a trail for rank "lion" at reading level grade1, and keeps going through it', () => {
+    expect(lionRank.rank).toBe('lion');
+    expect(lionRank.readingLevel).toBe('grade1');
+    const profile = makeProfile({ rank: 'lion' });
+    const first = planTrail(profile, lionRank, TODAY);
+    expect(first.profileId).toBe(profile.id);
+    expect(first.stops.map((s) => `${s.kind}:${s.requirementId}`)).toEqual([
+      `new-step:${LION_ID.roarQuiz}`,
+      `field-check:${LION_ID.roarErrand}`,
+    ]);
+    expect(first.stops[0]!.zone).toBe('base-camp'); // the Lion's Bobcat-category adventure is taught at camp
+    const next = planTrail(profile, lionRank, TODAY, { excludeRequirementIds: ids(first) });
+    expect(next.stops[0]).toMatchObject({ kind: 'new-step', requirementId: LION_ID.roarChore });
   });
 });

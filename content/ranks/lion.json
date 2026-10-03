@@ -1,0 +1,1267 @@
+{
+  "rank": "lion",
+  "label": "Lion",
+  "grade": 0,
+  "ageRange": "5-6",
+  "readingLevel": "grade1",
+  "program": {
+    "name": "Scouting America Cub Scouts",
+    "year": 2024,
+    "indexUrl": "https://www.scouting.org/programs/cub-scouts/adventures/lion/",
+    "fetchedOn": "2026-10-03"
+  },
+  "adventures": [
+    {
+      "id": "lion.bobcat",
+      "name": "Bobcat",
+      "category": "bobcat",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bobcat-lion/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Start your Lion trail! Meet your den and learn to be friendly.",
+      "requirements": [
+        {
+          "id": "lion.bobcat.1",
+          "number": "1",
+          "adultText": "Spend time meeting the other Lions and adult partners in your den, learning names and a little about each person.",
+          "kidText": "Meet the kids in your den. Say hi. Learn each name.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Meet your den",
+              "kidSteps": [
+                "Say hi to each Scout.",
+                "Learn each name.",
+                "Tell your name, too."
+              ],
+              "parentNote": "Approve once your Lion has met the den and can name a few new friends. Name songs, games, or a den craft all work.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "How many fingers make the Cub Scout sign?",
+                  "choices": [
+                    "Two",
+                    "Five",
+                    "One"
+                  ],
+                  "answer": 0,
+                  "explain": "Two! It looks like wolf ears."
+                },
+                {
+                  "prompt": "You see the sign. What do you do?",
+                  "choices": [
+                    "Stop and listen",
+                    "Keep on talking",
+                    "Run around"
+                  ],
+                  "answer": 0,
+                  "explain": "Stop and listen. Then everyone can hear."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Hold up two fingers.",
+              "That is the Cub Scout sign.",
+              "It looks like wolf ears!",
+              "When you see it, stop and listen."
+            ]
+          },
+          "notes": "The sign practice comes from the official \"Lions Talk and Lions Listen\" option for this requirement. Lion Bobcat does not ask for the Oath, salute or handshake."
+        },
+        {
+          "id": "lion.bobcat.2",
+          "number": "2",
+          "adultText": "Your adult partner or den leader reads you the Scout Law. Then you show, in your own way, what being friendly means.",
+          "kidText": "A grown-up reads the Scout Law to you. Then show what friendly means.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Be friendly",
+              "kidSteps": [
+                "Listen to the Scout Law.",
+                "Show what friendly means.",
+                "Be friendly to someone."
+              ],
+              "parentNote": "Read the Scout Law aloud (any copy works). Then ask your Lion to show or tell what being friendly looks like: saying hi, sharing, or asking someone to play. Approve once they have shown it.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which ones are friendly? Sort them.",
+              "bins": [
+                {
+                  "id": "friendly",
+                  "label": "Friendly"
+                },
+                {
+                  "id": "not",
+                  "label": "Not friendly"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Say hi to a new kid",
+                  "bin": "friendly"
+                },
+                {
+                  "label": "Share your toys",
+                  "bin": "friendly"
+                },
+                {
+                  "label": "Ask a kid to play",
+                  "bin": "friendly"
+                },
+                {
+                  "label": "Grab a toy away",
+                  "bin": "not"
+                },
+                {
+                  "label": "Say go away",
+                  "bin": "not"
+                },
+                {
+                  "label": "Leave a kid out",
+                  "bin": "not"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Law says: be friendly.",
+              "A friendly Scout is kind to all.",
+              "Say hi. Share. Ask a kid to play."
+            ]
+          }
+        },
+        {
+          "id": "lion.bobcat.3",
+          "number": "3",
+          "adultText": "At a den meeting or at home, tell your adult partner about a time you lived out the Cub Scout motto, Do Your Best.",
+          "kidText": "Our motto is Do Your Best. Tell a grown-up when you did your best.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Do your best",
+              "kidSteps": [
+                "Think of a time you tried hard.",
+                "Tell a grown-up about it.",
+                "Say the motto: Do Your Best!"
+              ],
+              "parentNote": "Listen as your Lion tells about a time they tried hard, at home or at a den meeting. It does not have to be a win; effort is the point. Approve once they have shared.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What is the Cub Scout motto?",
+                  "choices": [
+                    "Do Your Best",
+                    "Be the First",
+                    "Win Every Game"
+                  ],
+                  "answer": 0,
+                  "explain": "Do Your Best! Try hard and be proud."
+                },
+                {
+                  "prompt": "What does doing your best mean?",
+                  "choices": [
+                    "Try hard",
+                    "Always win",
+                    "Give up fast"
+                  ],
+                  "answer": 0,
+                  "explain": "You try hard. You do not have to win."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Our motto is Do Your Best.",
+              "Doing your best means you try hard.",
+              "You do not have to win.",
+              "Trying hard is what counts!"
+            ]
+          }
+        },
+        {
+          "id": "lion.bobcat.4",
+          "number": "4",
+          "adultText": "At home, a parent or guardian goes through the activities in the Scouting America child abuse prevention booklet with the Lion.",
+          "kidText": "Sit with your grown-up. You will do some pages together.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Pages together",
+              "kidSteps": [
+                "Sit with your grown-up.",
+                "Do the pages together.",
+                "Ask any questions you have."
+              ],
+              "parentNote": "Do the activities in the booklet \"How to Protect Your Children from Child Abuse: A Parent's Guide\" with your Lion, at home. This is a private family time; the game never asks what you talked about. Approve once you have finished.",
+              "evidence": "checklist"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "lion.mountain-lion",
+      "name": "Mountain Lion",
+      "category": "outdoors",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/mountain-lion/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Go outside with six helpers. Learn what to do if you get lost.",
+      "requirements": [
+        {
+          "id": "lion.mountain-lion.1",
+          "number": "1",
+          "adultText": "Learn the six items Cub Scouts bring outdoors (water bottle, whistle, flashlight, trail snack, sun protection, first-aid kit) and show what each one is for.",
+          "kidText": "Six helpers go outside with us. Learn them. Show what each one does.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Six helpers",
+              "kidSteps": [
+                "Find your six helpers.",
+                "Show what each one does.",
+                "Pack them in a bag."
+              ],
+              "parentNote": "The six: filled water bottle, whistle, flashlight, trail snack, sun protection (sunscreen, hat), and a small first-aid kit. Have your Lion name each one and show what it is for. The trail game has no whistle, so check that one in person. Approve when done.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "collect",
+            "params": {
+              "prompt": "Find five helpers on the trail.",
+              "zone": "nature-trail",
+              "targets": [
+                {
+                  "id": "water-bottle",
+                  "label": "Water bottle",
+                  "count": 1,
+                  "hint": "Look near the trees."
+                },
+                {
+                  "id": "flashlight",
+                  "label": "Flashlight",
+                  "count": 1,
+                  "hint": "Look by the path."
+                },
+                {
+                  "id": "trail-food",
+                  "label": "Trail snack",
+                  "count": 1,
+                  "hint": "Look in the grass."
+                },
+                {
+                  "id": "sun-protection",
+                  "label": "Sun hat",
+                  "count": 1,
+                  "hint": "Look in the open sun."
+                },
+                {
+                  "id": "first-aid-kit",
+                  "label": "First-aid kit",
+                  "count": 1,
+                  "hint": "Look near the camp."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Six helpers go with us outside.",
+              "Water to drink. A whistle to call.",
+              "A flashlight for the dark. A snack to eat.",
+              "A hat for the sun. A kit for ouches."
+            ]
+          },
+          "notes": "Six Essentials per the official adventure activities: water bottle, whistle, flashlight, sun protection, trail mix, first-aid kit. Collect shows five (no whistle model)."
+        },
+        {
+          "id": "lion.mountain-lion.2",
+          "number": "2",
+          "adultText": "Take a walk outside of at least 20 minutes with your den, pack, or family, carrying the Six Essentials, and point out things from nature and things people made.",
+          "kidText": "Walk outside for 20 minutes. Bring your six helpers. Look for things from nature. Look for things people made.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Go for a walk",
+              "kidSteps": [
+                "Pack your six helpers.",
+                "Walk outside for 20 minutes.",
+                "Spot things from nature.",
+                "Spot things people made."
+              ],
+              "parentNote": "Walk about 20 minutes with your Lion (den, pack, or family all count) and have them carry the six helpers. Ask them to point out nature (trees, rocks, birds) and things people made (benches, signs, cars). Approve afterward.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "navigate",
+            "params": {
+              "prompt": "Walk the trail. Visit each place.",
+              "zone": "nature-trail",
+              "waypoints": [
+                {
+                  "id": "trailhead",
+                  "label": "Trail start"
+                },
+                {
+                  "id": "footbridge",
+                  "label": "Bridge"
+                },
+                {
+                  "id": "lookout",
+                  "label": "Lookout"
+                },
+                {
+                  "id": "campsite",
+                  "label": "Campsite"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Let us take a walk on the trail.",
+              "Go to each marker. Look around!",
+              "Trees and rocks are from nature.",
+              "Benches and bridges are made by people."
+            ]
+          }
+        },
+        {
+          "id": "lion.mountain-lion.3",
+          "number": "3",
+          "adultText": "Learn what S.A.W. stands for: Stay put, Answer when called, and use your Whistle if you are ever separated from your group outdoors.",
+          "kidText": "What if you get lost? S.A.W. tells you what to do.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "You are lost. What do you do first?",
+                  "choices": [
+                    "Stay put",
+                    "Run far away",
+                    "Hide"
+                  ],
+                  "answer": 0,
+                  "explain": "Stay put. Your grown-ups will come back to look."
+                },
+                {
+                  "prompt": "Someone calls your name. What do you do?",
+                  "choices": [
+                    "Answer back",
+                    "Stay quiet",
+                    "Walk away"
+                  ],
+                  "answer": 0,
+                  "explain": "Answer back so they can find you."
+                },
+                {
+                  "prompt": "What do you blow to be found?",
+                  "choices": [
+                    "Whistle",
+                    "Spoon",
+                    "Shoe"
+                  ],
+                  "answer": 0,
+                  "explain": "Blow your whistle. Blow three short blasts."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "S.A.W. helps if you get lost.",
+              "S is for Stay. Stay where you are.",
+              "A is for Answer. Call back when you hear your name.",
+              "W is for Whistle. Blow three short blasts."
+            ]
+          }
+        },
+        {
+          "id": "lion.mountain-lion.4",
+          "number": "4",
+          "adultText": "Name common animals that live near you and sort them into wild animals and domesticated animals (pets and farm animals).",
+          "kidText": "Some animals live in the wild. Some live with people. Sort them!",
+          "digital": true,
+          "activity": {
+            "type": "sort",
+            "params": {
+              "prompt": "Sort the animals.",
+              "bins": [
+                {
+                  "id": "wild",
+                  "label": "Wild"
+                },
+                {
+                  "id": "pet",
+                  "label": "Pet or farm"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Deer",
+                  "bin": "wild"
+                },
+                {
+                  "label": "Squirrel",
+                  "bin": "wild"
+                },
+                {
+                  "label": "Fox",
+                  "bin": "wild"
+                },
+                {
+                  "label": "Dog",
+                  "bin": "pet"
+                },
+                {
+                  "label": "Cat",
+                  "bin": "pet"
+                },
+                {
+                  "label": "Cow",
+                  "bin": "pet"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Wild animals live outside on their own.",
+              "Deer, foxes, and squirrels are wild.",
+              "Dogs, cats, and cows live with people.",
+              "Never pet an animal you do not know."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lion.fun-on-the-run",
+      "name": "Fun on the Run",
+      "category": "fitness",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/fun-on-the-run/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn the food groups. Wash your hands. Move your body, then rest.",
+      "requirements": [
+        {
+          "id": "lion.fun-on-the-run.1",
+          "number": "1",
+          "adultText": "Learn the five food groups (fruits, vegetables, grains, protein, dairy) and tell them apart.",
+          "kidText": "Food has five groups. Can you find one from each? Fill your plate!",
+          "digital": true,
+          "activity": {
+            "type": "craft",
+            "params": {
+              "prompt": "Fill your plate. Pick one food from each group.",
+              "result": "Healthy plate",
+              "ingredients": [
+                {
+                  "id": "apple",
+                  "label": "Apple (fruit)"
+                },
+                {
+                  "id": "carrot",
+                  "label": "Carrot (vegetable)"
+                },
+                {
+                  "id": "bread",
+                  "label": "Bread (grain)"
+                },
+                {
+                  "id": "egg",
+                  "label": "Egg (protein)"
+                },
+                {
+                  "id": "cheese",
+                  "label": "Cheese (dairy)"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "candy",
+                  "label": "Candy (treat)"
+                },
+                {
+                  "id": "soda",
+                  "label": "Soda (treat)"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Food comes in five groups.",
+              "Apples are fruit. Carrots are vegetables.",
+              "Bread is a grain. Eggs are protein.",
+              "Milk and cheese are dairy."
+            ]
+          }
+        },
+        {
+          "id": "lion.fun-on-the-run.2",
+          "number": "2",
+          "adultText": "Practice washing your hands the right way, and point out the times when hands should be washed, such as before eating and after playing.",
+          "kidText": "Wash your hands the right way. Then tell when to wash them.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Wash your hands",
+              "kidSteps": [
+                "Wash your hands with soap.",
+                "Sing a song while you scrub.",
+                "Tell when you wash your hands."
+              ],
+              "parentNote": "Watch your Lion wet, soap, scrub (about 20 seconds, or one song), rinse, and dry. Ask when hands should be washed: before eating, after the bathroom, after playing outside, after sneezing. Approve when they can do both.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the hand washing steps in order.",
+              "steps": [
+                "Wet your hands.",
+                "Rub in soap.",
+                "Scrub and sing a song.",
+                "Rinse and dry."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Clean hands keep germs away.",
+              "Wet your hands. Rub in soap and scrub.",
+              "Rinse off the soap. Dry your hands.",
+              "Wash before you eat and after you play."
+            ]
+          }
+        },
+        {
+          "id": "lion.fun-on-the-run.3",
+          "number": "3",
+          "adultText": "Get moving for a total of 20 minutes with a dance, a freeze game, or any other active play.",
+          "kidText": "Move your body for 20 minutes. Dance, run, or play a game!",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Move for 20 minutes",
+              "kidSteps": [
+                "Pick a game or a dance.",
+                "Move for 20 minutes.",
+                "Drink some water after."
+              ],
+              "parentNote": "Any active play counts: dancing, freeze tag, Simon Says, a walk. About 20 minutes in total is the goal and breaks are fine. Approve once your Lion has been active.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "rhythm",
+            "params": {
+              "prompt": "Warm up with jumping jacks. Tap to the beat!",
+              "exercise": "jumping jacks",
+              "reps": 6,
+              "bpm": 70
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Moving your body makes you strong.",
+              "Try to move for 20 minutes today.",
+              "Run, dance, or play a game.",
+              "Let us warm up with jumping jacks!"
+            ]
+          }
+        },
+        {
+          "id": "lion.fun-on-the-run.4",
+          "number": "4",
+          "adultText": "Practice calm ways to rest and relax, such as quiet music, a book, deep breaths, or a steady bedtime.",
+          "kidText": "Your body needs rest. Try a quiet way to rest.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Rest time",
+              "kidSteps": [
+                "Pick a quiet way to rest.",
+                "Try it for five minutes.",
+                "Tell how it feels."
+              ],
+              "parentNote": "Try one calm rest method together: quiet music, a book, deep breaths, or a bedtime routine. Approve once your Lion has tried it.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which things help you rest? Sort them.",
+              "bins": [
+                {
+                  "id": "rest",
+                  "label": "Helps me rest"
+                },
+                {
+                  "id": "wake",
+                  "label": "Wakes me up"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Read a quiet book",
+                  "bin": "rest"
+                },
+                {
+                  "label": "Soft music",
+                  "bin": "rest"
+                },
+                {
+                  "label": "Deep breaths",
+                  "bin": "rest"
+                },
+                {
+                  "label": "A loud game",
+                  "bin": "wake"
+                },
+                {
+                  "label": "Jump on the bed",
+                  "bin": "wake"
+                },
+                {
+                  "label": "Run and yell",
+                  "bin": "wake"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Your body needs rest.",
+              "Rest helps you grow and feel good.",
+              "Quiet things help you rest.",
+              "Loud, fast things wake you up."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lion.king-of-the-jungle",
+      "name": "King of the Jungle",
+      "category": "citizenship",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/king-of-the-jungle/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Help your family and your town. Do a job at home.",
+      "requirements": [
+        {
+          "id": "lion.king-of-the-jungle.1",
+          "number": "1",
+          "adultText": "Make a drawing or take a photo showing the people who live in your home.",
+          "kidText": "Draw the people you live with. Or take a photo of them.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "My home crew",
+              "kidSteps": [
+                "Think of who lives with you.",
+                "Draw them, or take a photo."
+              ],
+              "parentNote": "Any home counts. Your Lion draws or photographs the people they live with. Approve once it is done.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "lion.king-of-the-jungle.2",
+          "number": "2",
+          "adultText": "Together with your adult partner, choose a household job that helps your family, then follow through and do it at least one time.",
+          "kidText": "Pick a job that helps your family. Do it at least once.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Family helper",
+              "kidSteps": [
+                "Pick a job with a grown-up.",
+                "Do the job.",
+                "Tell how it helped."
+              ],
+              "parentNote": "Agree on a safe job that fits a five- or six-year-old: setting the table, putting toys away, feeding a pet. Approve once your Lion has done it at least once.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which jobs are good for a Lion? Sort them.",
+              "bins": [
+                {
+                  "id": "mine",
+                  "label": "My job"
+                },
+                {
+                  "id": "adult",
+                  "label": "Grown-up job"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Set the table",
+                  "bin": "mine"
+                },
+                {
+                  "label": "Put toys away",
+                  "bin": "mine"
+                },
+                {
+                  "label": "Feed the pet",
+                  "bin": "mine"
+                },
+                {
+                  "label": "Use the stove",
+                  "bin": "adult"
+                },
+                {
+                  "label": "Drive the car",
+                  "bin": "adult"
+                },
+                {
+                  "label": "Use a sharp knife",
+                  "bin": "adult"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A family is a team.",
+              "Every Lion can help at home.",
+              "Set the table. Put toys away.",
+              "Some jobs are for grown-ups."
+            ]
+          }
+        },
+        {
+          "id": "lion.king-of-the-jungle.3",
+          "number": "3",
+          "adultText": "Have a conversation with a grandparent or another older adult about what being a good citizen means in their life.",
+          "kidText": "Talk with a grandparent or an older grown-up. Ask how to help your town.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Ask an elder",
+              "kidSteps": [
+                "Pick a grandparent or older friend.",
+                "Ask how they help their town.",
+                "Listen. Then say thank you."
+              ],
+              "parentNote": "Set up a chat with a grandparent or another older adult, in person, by phone, or by video. Your Lion asks what citizenship means to them. Approve after the talk.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which one helps your town?",
+                  "choices": [
+                    "Pick up trash",
+                    "Drop trash",
+                    "Break a bench"
+                  ],
+                  "answer": 0,
+                  "explain": "Picking up trash helps everyone."
+                },
+                {
+                  "prompt": "Which one is kind and fair?",
+                  "choices": [
+                    "Wait your turn",
+                    "Cut in line",
+                    "Push a kid"
+                  ],
+                  "answer": 0,
+                  "explain": "Waiting your turn is fair. Good helpers do that."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A good helper in town is a citizen.",
+              "Older grown-ups know a lot.",
+              "Ask a grandparent how they help their town.",
+              "Listen. Then say thank you!"
+            ]
+          }
+        },
+        {
+          "id": "lion.king-of-the-jungle.4",
+          "number": "4",
+          "adultText": "Take part in a service project with your den, pack, or family, such as a book drive, an art supply drive, Scouting for Food, or cards for troops.",
+          "kidText": "Help others with a service project. Your den or family can help.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Help out",
+              "kidSteps": [
+                "Learn about the project.",
+                "Help with a job.",
+                "Say how it helps others."
+              ],
+              "parentNote": "Join any service project: a book or art-supply drive, Scouting for Food, or holiday cards for troops. Check the official adventure page for current dates. Approve after your Lion helps.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which things help other people? Sort them.",
+              "bins": [
+                {
+                  "id": "help",
+                  "label": "Helps others"
+                },
+                {
+                  "id": "me",
+                  "label": "Just for me"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Give books to kids",
+                  "bin": "help"
+                },
+                {
+                  "label": "Pick up litter",
+                  "bin": "help"
+                },
+                {
+                  "label": "Make cards for soldiers",
+                  "bin": "help"
+                },
+                {
+                  "label": "Bring cans of food",
+                  "bin": "help"
+                },
+                {
+                  "label": "Eat a snack",
+                  "bin": "me"
+                },
+                {
+                  "label": "Play a video game",
+                  "bin": "me"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A service project helps other people.",
+              "You give your time. You do not get paid.",
+              "You can give books or food.",
+              "You can pick up litter, too."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lion.lions-roar",
+      "name": "Lion’s Roar",
+      "category": "personal-safety",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/lions-roar/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn how to stay safe. Shout, run, and tell. Know when to call 911.",
+      "requirements": [
+        {
+          "id": "lion.lions-roar.1",
+          "number": "1",
+          "adultText": "With a parent or guardian’s permission, watch the Scouting America Protect Yourself Rules video made for Lions.",
+          "kidText": "Watch a video with your grown-up. It shows how to stay safe.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Watch and learn",
+              "kidSteps": [
+                "Sit with your grown-up.",
+                "Watch the video together.",
+                "Talk about it after."
+              ],
+              "parentNote": "Watch the Scouting America \"Protect Yourself Rules\" video for Lions together (about 13 minutes). Preview it first if you like. Talk afterward. Approve once you have watched.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "lion.lions-roar.2",
+          "number": "2",
+          "adultText": "With your adult partner, act out Shout, Run, Tell as taught in the video: say no loudly, get away, and tell a trusted adult.",
+          "kidText": "Shout, Run, Tell keeps you safe. Let us practice it!",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Shout, Run, Tell",
+              "kidSteps": [
+                "Shout No in a big voice.",
+                "Run to your grown-up.",
+                "Tell what happened."
+              ],
+              "parentNote": "Practice together. Your Lion shouts something like \"No!\" or \"Stay away from me!\", runs to you, and tells what happened. Let your Lion pick their own words. Approve once they have done it.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the steps in order.",
+              "steps": [
+                "Shout No in a big voice.",
+                "Run to a safe grown-up.",
+                "Tell what happened."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "If you feel unsafe, do three things.",
+              "First, shout No in a big voice.",
+              "Next, run to a grown-up you trust.",
+              "Last, tell them what happened."
+            ]
+          }
+        },
+        {
+          "id": "lion.lions-roar.3",
+          "number": "3",
+          "adultText": "With your adult partner, practice how to reach emergency help, such as calling 911, so your Lion knows when and how to ask for it.",
+          "kidText": "Learn how to call for help. You call 911 in an emergency.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Call for help",
+              "kidSteps": [
+                "Learn the number 911.",
+                "Learn when to call it.",
+                "Practice with a toy phone."
+              ],
+              "parentNote": "Practice on a toy phone or a pretend keypad; never dial 911 for real. Your Lion should know when to call (a fire, someone hurt or not waking up, a crime). Optional: list five trusted adults together. Approve once practiced.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What number do you call in an emergency?",
+                  "choices": [
+                    "911",
+                    "555",
+                    "123"
+                  ],
+                  "answer": 0,
+                  "explain": "Call 911 to get help fast."
+                },
+                {
+                  "prompt": "When do you call 911?",
+                  "choices": [
+                    "A fire",
+                    "I lost a toy",
+                    "I am bored"
+                  ],
+                  "answer": 0,
+                  "explain": "Call for a fire or a big hurt."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "In an emergency, you call 911.",
+              "Fires and big hurts are emergencies.",
+              "A helper will answer. Tell them where you are.",
+              "Never call 911 for fun."
+            ]
+          }
+        },
+        {
+          "id": "lion.lions-roar.4",
+          "number": "4",
+          "adultText": "With your adult partner, practice crossing a street safely and walking through a parking lot.",
+          "kidText": "Learn how to cross the street safely. Then try a parking lot.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Cross safely",
+              "kidSteps": [
+                "Hold a grown-up’s hand.",
+                "Stop. Look both ways.",
+                "Walk across. Do not run.",
+                "Stay close in a parking lot."
+              ],
+              "parentNote": "Practice at a real crosswalk or a pretend one made with chalk or tape: stop at the curb, look and listen, then walk. Also practice staying right beside you in a parking lot where cars may back up. Approve once practiced.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the steps in order. Cross safely!",
+              "steps": [
+                "Stop at the curb.",
+                "Look both ways.",
+                "Listen for cars.",
+                "Walk across. Do not run."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Cars are big and move fast.",
+              "Hold a grown-up’s hand near cars.",
+              "At the curb, stop. Look both ways. Listen.",
+              "Then walk across. Do not run."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lion.lions-pride",
+      "name": "Lion’s Pride",
+      "category": "family-reverence",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/lions-pride/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Share your family’s special days. Make a card for someone you love.",
+      "requirements": [
+        {
+          "id": "lion.lions-pride.1",
+          "number": "1",
+          "adultText": "Talk with a parent or guardian about your family’s faith traditions, then draw a picture of a favorite holiday or celebration your family keeps.",
+          "kidText": "Talk about your family’s special days. Then draw your favorite one.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "My special day",
+              "kidSteps": [
+                "Talk with your grown-up.",
+                "Pick your favorite special day.",
+                "Draw a picture of it."
+              ],
+              "parentNote": "Talk about the faith traditions your family keeps. Every family’s are different and none is required. Your Lion draws a favorite holiday or celebration. Approve once the picture is done.",
+              "evidence": "checklist"
+            }
+          },
+          "notes": "Scouting America is nonsectarian. The official page says the adventure can also be earned with a Religious Emblem the family chooses."
+        },
+        {
+          "id": "lion.lions-pride.2",
+          "number": "2",
+          "adultText": "Go to a worship service, or another gathering your family chooses, that reflects how your family shows reverence.",
+          "kidText": "Go with your family to a special place. Be calm and kind there.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "A special time",
+              "kidSteps": [
+                "Go with your family.",
+                "Be calm and kind there.",
+                "Tell what you liked."
+              ],
+              "parentNote": "Your family picks: a worship service, or another gathering that reflects how your family shows reverence. Approve once you have gone.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "lion.lions-pride.3",
+          "number": "3",
+          "adultText": "Create a happy card or drawing for a person you love, and deliver it to them yourself.",
+          "kidText": "Make a cheerful card or a picture. Give it to someone you love.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Make a card",
+              "kidSteps": [
+                "Pick who gets your card.",
+                "Make a card or a picture.",
+                "Give it to them."
+              ],
+              "parentNote": "Your Lion makes a card or drawing and gives it to someone they love. Approve once it has been given.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "craft",
+            "params": {
+              "prompt": "Make a cheerful card. Pick the right things.",
+              "result": "Cheerful card",
+              "ingredients": [
+                {
+                  "id": "paper",
+                  "label": "Paper"
+                },
+                {
+                  "id": "crayons",
+                  "label": "Crayons"
+                },
+                {
+                  "id": "sticker",
+                  "label": "Heart sticker"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "rock",
+                  "label": "Rock"
+                },
+                {
+                  "id": "shoe",
+                  "label": "Shoe"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A card says you care.",
+              "Cheerful means happy and kind.",
+              "Pick paper, crayons, and a sticker."
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "electives": [
+    {
+      "id": "lion.build-it-up-knock-it-down",
+      "name": "Build It Up, Knock It Down",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/build-it-up-knock-it-down/",
+      "summary": "Build a tower on your own. Then build one with a team."
+    },
+    {
+      "id": "lion.champions-for-nature",
+      "name": "Champions for Nature Lion",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/champions-for-nature-lion/",
+      "summary": "Learn to care for nature. Help with a service project."
+    },
+    {
+      "id": "lion.count-on-me",
+      "name": "Count On Me",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/count-on-me/",
+      "summary": "Find shapes all around you. Name them with a grown-up."
+    },
+    {
+      "id": "lion.everyday-tech",
+      "name": "Everyday Tech",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/everyday-tech/",
+      "summary": "See how tech helps us. Learn to use it safely."
+    },
+    {
+      "id": "lion.gizmos-and-gadgets",
+      "name": "Gizmos and Gadgets",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/gizmos-and-gadgets/",
+      "summary": "Build a useful thing with a grown-up. See how things move."
+    },
+    {
+      "id": "lion.go-fish",
+      "name": "Go Fish",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/go-fish/",
+      "summary": "Go fishing with a grown-up. Have a great time!"
+    },
+    {
+      "id": "lion.ill-do-it-myself",
+      "name": "I’ll Do It Myself",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/ill-do-it-myself/",
+      "summary": "Learn good habits. Do more things on your own."
+    },
+    {
+      "id": "lion.lets-camp",
+      "name": "Let’s Camp Lion",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/lets-camp-lion/",
+      "summary": "Camp out for a night with your grown-up."
+    },
+    {
+      "id": "lion.on-a-roll",
+      "name": "On a Roll",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/on-a-roll/",
+      "summary": "Learn bike safety. Then go for a bike ride!"
+    },
+    {
+      "id": "lion.on-your-mark",
+      "name": "On Your Mark",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/on-your-mark/",
+      "summary": "Play fun games with your family and den. Race a box car!"
+    },
+    {
+      "id": "lion.pick-my-path",
+      "name": "Pick My Path",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/pick-my-path-lion/",
+      "summary": "Play games. See what happens when you choose."
+    },
+    {
+      "id": "lion.race-time",
+      "name": "Race Time Lion",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/race-time-lion/",
+      "summary": "Build a car or boat with a grown-up. Then race it!"
+    },
+    {
+      "id": "lion.ready-set-grow",
+      "name": "Ready, Set, Grow",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/ready-set-grow/",
+      "summary": "Grow plants for fun and food. Learn how plants live."
+    },
+    {
+      "id": "lion.time-to-swim",
+      "name": "Time to Swim",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/time-to-swim/",
+      "summary": "Learn to stay safe in water. Get used to the water."
+    }
+  ]
+}

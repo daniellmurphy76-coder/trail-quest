@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { assets } from '../engine/assets';
 import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
+import { createDenChief } from '../player/avatar/presets';
 import { perimeterPoint, squareBounds } from './bounds';
 import { createGround, createGroundApron } from './ground';
 import {
@@ -9,7 +10,6 @@ import {
   flagpole,
   instancedModel,
   lodge,
-  personPlaceholder,
   rock,
   scatterModels,
   scatterPlants,
@@ -37,10 +37,10 @@ const CLEARING_RADIUS = 8;
 const CLEARING_FEATHER = 3;
 const PLANT_COUNT = 150;
 
-const DEN_CHIEF_COLOR = 0x2f6fd0; // blue, easy to tell from the scout's gold
+/** Label height for the Den Chief: just above the hat of the tall avatar build (about 2.15 units). */
 const DEN_CHIEF_HEIGHT = 2.3;
-/** The Den Chief model is a little taller than the scouts, who stand 1.8 units in the manifest. */
-const DEN_CHIEF_MODEL_SCALE = 2.1 / 1.8;
+/** Seconds between the Den Chief's friendly waves. */
+const WAVE_EVERY = 14;
 
 /** Models that replace or add to the primitive props once they load. */
 const TREE_MODELS = ['tree.pine', 'tree.pine.tall', 'tree.round', 'tree.oak'] as const;
@@ -53,7 +53,6 @@ const BASE_CAMP_MODELS = [
   'tent.small',
   'cabin',
   'signpost',
-  'character.denchief',
 ] as const;
 
 /** Yaw that turns a model whose front is +z to look at (tx, tz) from (x, z). */
@@ -117,10 +116,11 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
 
   const spawn = new THREE.Vector3(0, 0, 9);
 
-  const denChief = personPlaceholder(DEN_CHIEF_COLOR, DEN_CHIEF_HEIGHT);
-  denChief.position.set(3.4, 0, -1.8);
-  denChief.rotation.y = Math.atan2(spawn.x - denChief.position.x, spawn.z - denChief.position.z);
-  root.add(denChief);
+  // The Den Chief is the same blocky avatar rig as the player, in a preset look (see player/avatar/presets).
+  const denChief = createDenChief();
+  denChief.root.position.set(3.4, 0, -1.8);
+  denChief.root.rotation.y = Math.atan2(spawn.x - denChief.root.position.x, spawn.z - denChief.root.position.z);
+  root.add(denChief.root);
 
   // Plants gather around the clearing's edge and at the feet of props, and keep off the dirt, the
   // spawn point, and the doorsteps. They are decoration only: nothing here blocks the player.
@@ -153,7 +153,7 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
   const talk: Interactable = {
     id: 'den-chief',
     // y is the label height (see Interactable): just above the Den Chief's head.
-    position: new THREE.Vector3(denChief.position.x, DEN_CHIEF_HEIGHT, denChief.position.z),
+    position: new THREE.Vector3(denChief.root.position.x, DEN_CHIEF_HEIGHT, denChief.root.position.z),
     radius: 2,
     label: 'Talk',
     nameTag: 'Den Chief',
@@ -161,11 +161,11 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
   };
 
   // ---- progressive swap: primitives stay until the models arrive -----------------------------------
-  // Draw calls after the swap (about 31): ground 2 (apron + ground), trees up to 4, rocks up to 3,
+  // Draw calls after the swap (about 33): ground 2 (apron + ground), trees up to 4, rocks up to 3,
   // campfire 5 (model 2, flames 2, embers 1), flagpole 3, cabin 1, tents 2, signpost 1, plants up
-  // to 8, Den Chief 2 plus its blob shadow 1. Primitives only: about 26. The sun's shadow pass
-  // draws the casting props a second time, about 20 more.
-  let denChiefAnimator: ReturnType<typeof assets.animator>;
+  // to 8, Den Chief 7 (head, torso, two arms, two legs, blob shadow). Primitives only: about 28.
+  // The sun's shadow pass draws the casting props a second time, about 20 more.
+  let waveClock = 5; // the first wave comes a few seconds after the Scout arrives
 
   const swapInModels = (): void => {
     const modelRng = mulberry32(SEED + 1); // separate stream, so the primitive layout never shifts
@@ -209,16 +209,6 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
       setShadowCasting(sign, true, true);
       root.add(sign);
     }
-
-    if (assets.has('character.denchief')) {
-      const model = assets.instance('character.denchief');
-      model.scale.setScalar(DEN_CHIEF_MODEL_SCALE);
-      setShadowCasting(model, true, true);
-      denChief.body.visible = false; // the blob shadow stays
-      denChief.add(model);
-      denChiefAnimator = assets.animator('character.denchief', model);
-      denChiefAnimator?.play('idle', 0);
-    }
   };
 
   assets
@@ -236,7 +226,12 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
     interactables: [talk],
     update: (dt: number) => {
       fire.update(dt);
-      denChiefAnimator?.update(dt);
+      waveClock -= dt;
+      if (waveClock <= 0) {
+        denChief.play('wave');
+        waveClock = WAVE_EVERY;
+      }
+      denChief.update(dt, { moving: false, speed: 0 });
     },
   };
 }

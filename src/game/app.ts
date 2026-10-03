@@ -32,11 +32,12 @@ import { showDialog } from '../ui/dialog';
 import { askNewPin, askPin } from '../ui/pinpad';
 import { showToast } from '../ui/toast';
 import { GREETING_DELAY_MS, shouldAutoGreet } from './guided-start';
-import { line, lineLevelOf, PARENT_TEXT, type LineLevel, type LineVars } from './lines';
+import { line, lineLevelOf, PARENT_TEXT, RANK_FALLBACK_LABELS, type LineLevel, type LineVars } from './lines';
 import { overlayCount, watchOverlays } from './overlays';
 import { createSession, type Session } from './session';
 import { activeStreak } from './streak';
 import { showApprovalScreen } from './screens/approval';
+import { showAvatarEditor } from './screens/avatar-editor';
 import { showBadgeCard } from './screens/badge';
 import { ControlsHintGate, controlsMode, createControlsHint } from './screens/controls-hint';
 import { createDock } from './screens/dock';
@@ -119,7 +120,8 @@ export function startApp(options: AppOptions = {}): App {
   const noSpeak = (): void => {};
 
   const ranks = listRankContent();
-  const rankLabel = (rank: RankId): string => ranks.find((c) => c.rank === rank)?.label ?? rank;
+  /** The rank's label from its content file; a plain name only when the content is missing. */
+  const rankLabel = (rank: RankId): string => ranks.find((c) => c.rank === rank)?.label ?? RANK_FALLBACK_LABELS[rank] ?? rank;
 
   function writeSave(): void {
     if (!persistSave(store, save)) showToast(ui, SAVE_FAILED, 6000);
@@ -234,7 +236,7 @@ export function startApp(options: AppOptions = {}): App {
       return;
     }
     const view = current.view();
-    const mode = startMode(view.state, view.state === 'done-today' && current.bonusAvailable());
+    const mode = startMode(view.state, view.state === 'done-today' && current.keepGoingAvailable());
     const visible = startVisible(mode, { overlayOpen: overlayCount(ui) > 0, busy: current.busy });
     start.set(mode, visible && atBaseCamp(), activeLevel); // the Den Chief lives at Base Camp
     // The arrow over the Den Chief and the compass: only while today's trail is waiting.
@@ -387,6 +389,7 @@ export function startApp(options: AppOptions = {}): App {
     session = buildSession(content);
     activeLevel = lineLevelOf(content.readingLevel);
     world.setGuideName(profile.guideName);
+    world.setPlayerAvatar(profile.avatar, profile.rank);
     world.setDenChiefHandler(() => talkToGuide());
     if (arrive) {
       hintGate = new ControlsHintGate();
@@ -516,12 +519,19 @@ export function startApp(options: AppOptions = {}): App {
     try {
       const level = activeLevel;
       const view = session.view();
-      const mode = startMode(view.state, view.state === 'done-today' && session.bonusAvailable());
+      const mode = startMode(view.state, view.state === 'done-today' && session.keepGoingAvailable());
       const choice = await showTrailPanel(ui, {
         view,
         level,
         start: mode === 'hidden' ? undefined : { label: startLabel(mode, level) },
         places: { current: world.currentZoneId() },
+        onEditAvatar: async () => {
+          const next = await showAvatarEditor(ui, { initial: profile.avatar, rank: profile.rank });
+          if (!next) return;
+          profile.avatar = next;
+          writeSave();
+          world.setPlayerAvatar(next, profile.rank);
+        },
       });
       if (typeof choice === 'object') {
         await travel(choice.travel); // a free-roam hop from the Places section

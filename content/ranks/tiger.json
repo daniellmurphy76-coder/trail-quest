@@ -1,0 +1,1604 @@
+{
+  "rank": "tiger",
+  "label": "Tiger",
+  "grade": 1,
+  "ageRange": "6-7",
+  "readingLevel": "grade1",
+  "program": {
+    "name": "Scouting America Cub Scouts",
+    "year": 2024,
+    "indexUrl": "https://www.scouting.org/programs/cub-scouts/adventures/tiger/",
+    "fetchedOn": "2026-10-03"
+  },
+  "adventures": [
+    {
+      "id": "tiger.bobcat",
+      "name": "Bobcat",
+      "category": "bobcat",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bobcat-tiger/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Start your Tiger trail! Meet your den. Learn the Scout Oath and Law.",
+      "requirements": [
+        {
+          "id": "tiger.bobcat.1",
+          "number": "1",
+          "adultText": "Spend time getting to know the other Scouts in your Tiger den.",
+          "kidText": "Meet your den friends. Say hi to each one. Learn their names.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Meet your den",
+              "kidSteps": [
+                "Say hi to each Scout in your den.",
+                "Learn each Scout's name.",
+                "Ask each Scout a fun question."
+              ],
+              "parentNote": "Approve once your Scout has said hello to the den members and can name them. A name game or craft at a den meeting works well (the official page suggests Me Too Name Game, Den Flag, or Spider Web).",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "tiger.bobcat.2",
+          "number": "2",
+          "adultText": "Say the Scout Oath together with your den, with your Tiger adult partner joining in.",
+          "kidText": "Say the Scout Oath with your den. Your grown-up says it too. Practice here first!",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Say the Scout Oath",
+              "kidSteps": [
+                "Stand with your den and your grown-up.",
+                "Say the Scout Oath together.",
+                "Do your best on each part."
+              ],
+              "parentNote": "The den leader leads and your Scout joins in. The Oath is printed in the Tiger handbook, so reading along is fine. Approve once your Scout has said it with the group.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the Scout Oath parts in order.",
+              "steps": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law",
+                "to help other people at all times"
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Oath is a promise. It starts like this. On my honor I will do my best.",
+              "Next is part two. To do my duty to God and my country.",
+              "Part three. To obey the Scout Law. Part four. To help other people at all times.",
+              "The last part is about you. Keep a strong body and a ready mind. Do what is right."
+            ]
+          },
+          "notes": "Practice orders the first four parts of the Oath. The last part (strong, awake, straight) is taught in plain words in the lesson; the den says the full Oath in the field mission."
+        },
+        {
+          "id": "tiger.bobcat.3",
+          "number": "3",
+          "adultText": "Your adult partner or den leader reads the Scout Law to you. Then you show what being trustworthy, helpful, or friendly means (pick one).",
+          "kidText": "Your grown-up reads the Scout Law to you. Then show what trustworthy, helpful, or friendly means.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Sam breaks a cup. What is trustworthy?",
+                  "choices": [
+                    "Tell the truth",
+                    "Hide the cup"
+                  ],
+                  "answer": 0,
+                  "explain": "Trustworthy means you tell the truth."
+                },
+                {
+                  "prompt": "Mia sees a friend drop books. What is helpful?",
+                  "choices": [
+                    "Walk past",
+                    "Pick them up"
+                  ],
+                  "answer": 1,
+                  "explain": "Helpful means you help out."
+                },
+                {
+                  "prompt": "A new kid is all alone. What is friendly?",
+                  "choices": [
+                    "Say hi and ask to play",
+                    "Look away",
+                    "Run off"
+                  ],
+                  "answer": 0,
+                  "explain": "Friendly means you are nice. Say hi!"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Law tells how a Scout acts. Your grown-up reads it to you.",
+              "Trustworthy means you tell the truth. People can count on you.",
+              "Helpful means you help others out.",
+              "Friendly means you are nice to others. You say hi."
+            ]
+          },
+          "notes": "The adult partner reading the Scout Law aloud happens off screen; the quiz shows the understanding part. Any one of the three points satisfies the requirement."
+        },
+        {
+          "id": "tiger.bobcat.4",
+          "number": "4",
+          "adultText": "Perform the Cub Scout sign, salute, and handshake, and explain or act out when each one is used.",
+          "kidText": "Show the Cub Scout sign, salute, and handshake. Show when you use each one. Learn them here first.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Sign, salute, handshake",
+              "kidSteps": [
+                "Show the Cub Scout sign.",
+                "Show the salute.",
+                "Show the handshake.",
+                "Tell when you use each one."
+              ],
+              "parentNote": "Your Scout shows all three and says when each is used. The sign goes with the Oath and Law, the salute honors the flag, and the handshake greets other Scouts. A leader or the handbook can model them.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "How many fingers go up in the sign?",
+                  "choices": [
+                    "Two",
+                    "Five"
+                  ],
+                  "answer": 0,
+                  "explain": "Two fingers go up. Your leader can show you."
+                },
+                {
+                  "prompt": "When do you give the salute?",
+                  "choices": [
+                    "Wave to a friend",
+                    "Show respect to the flag"
+                  ],
+                  "answer": 1,
+                  "explain": "The salute shows respect. Use it for the flag."
+                },
+                {
+                  "prompt": "When do you use the handshake?",
+                  "choices": [
+                    "To say hi to a Scout",
+                    "To pay for lunch"
+                  ],
+                  "answer": 0,
+                  "explain": "The handshake is a Scout hello."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The sign is a Scout hello. Hold up two fingers. Keep them apart.",
+              "The salute shows respect. Two fingers stay together. They touch near your head.",
+              "The handshake says hi. Two fingers stretch along the other wrist.",
+              "Use the sign for the Oath. Use the salute for the flag."
+            ]
+          }
+        },
+        {
+          "id": "tiger.bobcat.5",
+          "number": "5",
+          "adultText": "Tell your adult partner, at a den meeting or at home, about a time you lived the Cub Scout motto, Do Your Best.",
+          "kidText": "Our motto is Do Your Best. Tell about a time you did your best.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Do your best",
+              "kidSteps": [
+                "Think of a time you tried hard.",
+                "Tell your grown-up about it.",
+                "Say how it felt."
+              ],
+              "parentNote": "Your Scout shares a real moment of trying hard, such as learning a skill or finishing something difficult. Listen, then approve once they have told you the story.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which ones show Do Your Best?",
+              "bins": [
+                {
+                  "id": "best",
+                  "label": "Doing my best"
+                },
+                {
+                  "id": "not",
+                  "label": "Not my best"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Try again after a miss",
+                  "bin": "best"
+                },
+                {
+                  "label": "Finish what I start",
+                  "bin": "best"
+                },
+                {
+                  "label": "Keep going when it is hard",
+                  "bin": "best"
+                },
+                {
+                  "label": "Give up right away",
+                  "bin": "not"
+                },
+                {
+                  "label": "Rush and skip steps",
+                  "bin": "not"
+                },
+                {
+                  "label": "Say I will not try",
+                  "bin": "not"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Cub Scout motto is Do Your Best.",
+              "Doing your best means you try hard. You do not have to win.",
+              "Think of a time you tried hard. Then tell your grown-up."
+            ]
+          }
+        },
+        {
+          "id": "tiger.bobcat.6",
+          "number": "6",
+          "adultText": "At home, a parent or guardian works through the activities in the Scouting America child-abuse-prevention booklet with the Scout.",
+          "kidText": "Sit with your grown-up at home. Do the safety pages together. You can ask any question.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Safety talk at home",
+              "kidSteps": [
+                "Sit with your grown-up at home.",
+                "Do the safety pages together.",
+                "Ask any question you have."
+              ],
+              "parentNote": "Do the activities in the booklet \"How to Protect Your Children from Child Abuse: A Parent's Guide\" with your Scout at home (it is on the Scouting America Youth Protection parent guides page). Approve once you have done them together.",
+              "evidence": "checklist"
+            }
+          },
+          "notes": "Gentle and parent-led. No quiz, score, or review. The booklet name appears only in the parent note."
+        }
+      ]
+    },
+    {
+      "id": "tiger.tiger-bites",
+      "name": "Tiger Bites",
+      "category": "fitness",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tiger-bites/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn the five food groups. Wash your hands. Move and sleep well.",
+      "requirements": [
+        {
+          "id": "tiger.tiger-bites.1",
+          "number": "1",
+          "adultText": "Learn the names of the five food groups: fruits, vegetables, grains, protein, and dairy.",
+          "kidText": "Your body needs five food groups. Can you find all five?",
+          "digital": true,
+          "activity": {
+            "type": "craft",
+            "params": {
+              "prompt": "Build a healthy plate. Pick the five food groups.",
+              "result": "Healthy plate",
+              "ingredients": [
+                {
+                  "id": "fruits",
+                  "label": "Fruits"
+                },
+                {
+                  "id": "vegetables",
+                  "label": "Vegetables"
+                },
+                {
+                  "id": "grains",
+                  "label": "Grains"
+                },
+                {
+                  "id": "protein",
+                  "label": "Protein"
+                },
+                {
+                  "id": "dairy",
+                  "label": "Dairy"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "candy",
+                  "label": "Candy"
+                },
+                {
+                  "id": "chips",
+                  "label": "Chips"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Your body needs five food groups. Let us meet them.",
+              "Fruits, like apples. Vegetables, like carrots. Grains, like bread.",
+              "Protein, like eggs and beans. Dairy, like milk and cheese.",
+              "Candy and chips are treats. They are not a food group."
+            ]
+          },
+          "notes": "Food groups follow USDA MyPlate (fruits, vegetables, grains, protein, dairy). Distractors are treats, not a group."
+        },
+        {
+          "id": "tiger.tiger-bites.2",
+          "number": "2",
+          "adultText": "Practice washing your hands the right way, and tell when handwashing is needed.",
+          "kidText": "Clean hands keep germs away. Wash your hands the right way. Know when to wash.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Wash your hands",
+              "kidSteps": [
+                "Wet your hands and add soap.",
+                "Rub all over. Say the Scout Oath.",
+                "Rinse and dry your hands.",
+                "Tell your grown-up when to wash."
+              ],
+              "parentNote": "Watch for soap, rubbing the backs, between the fingers, and the thumbs, then a good rinse. About 20 seconds, or the time the Scout Oath and Law take, is a good rub. Your Scout also names times to wash, such as before eating or after the bathroom.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "When do you wash your hands? Sort them.",
+              "bins": [
+                {
+                  "id": "wash",
+                  "label": "Wash hands"
+                },
+                {
+                  "id": "fine",
+                  "label": "No need"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Before you eat",
+                  "bin": "wash"
+                },
+                {
+                  "label": "After the bathroom",
+                  "bin": "wash"
+                },
+                {
+                  "label": "After you pet a dog",
+                  "bin": "wash"
+                },
+                {
+                  "label": "After you read a book",
+                  "bin": "fine"
+                },
+                {
+                  "label": "When you wave to a friend",
+                  "bin": "fine"
+                },
+                {
+                  "label": "While you look at clouds",
+                  "bin": "fine"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Clean hands keep germs away.",
+              "Wash before you eat. Wash after the bathroom.",
+              "Wash after you pet a dog. Reading or waving needs no soap.",
+              "Rub with soap for 20 seconds. Say the Scout Oath to count."
+            ]
+          }
+        },
+        {
+          "id": "tiger.tiger-bites.3",
+          "number": "3",
+          "adultText": "Move your body in active play for 30 minutes, such as an obstacle course, a game, or a sport.",
+          "kidText": "Move your body for 30 minutes. Play a game. Run, jump, and have fun!",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Move for 30 minutes",
+              "kidSteps": [
+                "Pick a game that makes you move.",
+                "Play for 30 minutes.",
+                "Drink some water after."
+              ],
+              "parentNote": "Any active play counts: an obstacle course, red light green light, soccer, or a bike ride. Approve once your Scout has been active for 30 minutes.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "rhythm",
+            "params": {
+              "prompt": "Do jumping jacks to the beat. Warm up!",
+              "exercise": "jumping jacks",
+              "reps": 8
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Moving makes your heart and legs strong.",
+              "Try to move for 30 minutes today.",
+              "Let us warm up with jumping jacks. Tap with the beat."
+            ]
+          },
+          "notes": "The rhythm practice is a warm-up only; the 30 minutes happen offline."
+        },
+        {
+          "id": "tiger.tiger-bites.4",
+          "number": "4",
+          "adultText": "Try habits that help you sleep well, such as a set bedtime and a calm routine.",
+          "kidText": "Sleep helps you grow and learn. Try things that help you sleep.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Make a bedtime plan",
+              "kidSteps": [
+                "Pick a bedtime with your grown-up.",
+                "Pick two calm things to do first.",
+                "Try your plan tonight."
+              ],
+              "parentNote": "Kids this age need about 9 to 12 hours of sleep. Agree on a bedtime and a calm routine (a quiet book, dim lights, no screens). Approve once your Scout has tried the plan.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What helps you fall asleep?",
+                  "choices": [
+                    "A quiet book",
+                    "A loud game"
+                  ],
+                  "answer": 0,
+                  "explain": "Calm things help you sleep."
+                },
+                {
+                  "prompt": "When do you go to bed?",
+                  "choices": [
+                    "Any time at all",
+                    "The same time each night"
+                  ],
+                  "answer": 1,
+                  "explain": "The same bedtime helps your body."
+                },
+                {
+                  "prompt": "Which room helps you sleep?",
+                  "choices": [
+                    "Dark and calm",
+                    "Bright and loud"
+                  ],
+                  "answer": 0,
+                  "explain": "A dark, calm room helps you rest."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Sleep helps you grow and learn.",
+              "Go to bed at the same time.",
+              "A quiet book helps you get sleepy.",
+              "A dark, calm room helps too. Loud games keep you up."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tiger.tigers-in-the-wild",
+      "name": "Tigers in the Wild",
+      "category": "outdoors",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tigers-in-the-wild/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Go for a nature walk. Learn the Six Essentials. Spot animals and trees.",
+      "requirements": [
+        {
+          "id": "tiger.tigers-in-the-wild.1",
+          "number": "1",
+          "adultText": "Name the Cub Scout Six Essentials and show what each item is for.",
+          "kidText": "Meet the Six Essentials. They are your hiking helpers. Show what each one does.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Six Essentials show-and-tell",
+              "kidSteps": [
+                "Gather your Six Essentials.",
+                "Show each one to your grown-up.",
+                "Tell what each one is for."
+              ],
+              "parentNote": "The six are a first-aid kit, a filled water bottle, a flashlight, trail food, sun protection, and a whistle. Check that your Scout can name each one and say what it is for, then approve.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "collect",
+            "params": {
+              "prompt": "Find five of your Six Essentials.",
+              "zone": "nature-trail",
+              "targets": [
+                {
+                  "id": "water-bottle",
+                  "label": "Water bottle",
+                  "count": 1,
+                  "hint": "It holds water to drink."
+                },
+                {
+                  "id": "first-aid-kit",
+                  "label": "First-aid kit",
+                  "count": 1,
+                  "hint": "It helps with small cuts."
+                },
+                {
+                  "id": "flashlight",
+                  "label": "Flashlight",
+                  "count": 1,
+                  "hint": "It lights up the dark."
+                },
+                {
+                  "id": "trail-food",
+                  "label": "Trail food",
+                  "count": 1,
+                  "hint": "A snack for energy."
+                },
+                {
+                  "id": "sun-protection",
+                  "label": "Sunscreen",
+                  "count": 1,
+                  "hint": "It guards your skin."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Scouts pack six things on every hike. They are the Six Essentials.",
+              "A water bottle to drink. A first-aid kit for small cuts.",
+              "A flashlight for the dark. Trail food for energy.",
+              "Sunscreen to guard your skin. A whistle to call for help."
+            ]
+          },
+          "notes": "Collect covers five of the six; there is no whistle pickup model, so the whistle is taught in the lesson and shown in the field mission. Source lists: filled water bottle, first-aid kit, whistle, flashlight, sun protection, trail mix."
+        },
+        {
+          "id": "tiger.tigers-in-the-wild.2",
+          "number": "2",
+          "adultText": "Learn the Outdoor Code together with your den leader or adult partner.",
+          "kidText": "The Outdoor Code is a promise to nature. Let us learn its four parts.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "You finish a snack on the trail. What now?",
+                  "choices": [
+                    "Take the wrapper home",
+                    "Drop the wrapper"
+                  ],
+                  "answer": 0,
+                  "explain": "Be clean. Take your trash with you."
+                },
+                {
+                  "prompt": "When can you have a campfire?",
+                  "choices": [
+                    "Any time I want",
+                    "Only with a grown-up"
+                  ],
+                  "answer": 1,
+                  "explain": "Be careful with fire. Ask a grown-up first."
+                },
+                {
+                  "prompt": "How do you care for nature?",
+                  "choices": [
+                    "Pick every flower",
+                    "Leave plants and animals safe",
+                    "Chase the frogs"
+                  ],
+                  "answer": 1,
+                  "explain": "Take care of nature. Plants and animals need it."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Outdoor Code is a promise to nature. It has four parts.",
+              "Be clean. Take your trash home with you.",
+              "Be careful with fire. Be kind to other people outside.",
+              "Take care of nature. Plants and animals need it."
+            ]
+          },
+          "notes": "The four parts are clean, careful, considerate, and conservation-minded (the Four C's in the Tiger handbook)."
+        },
+        {
+          "id": "tiger.tigers-in-the-wild.3",
+          "number": "3",
+          "adultText": "Go on an outdoor walk of 20 minutes or more with your den, pack, or family, bringing the Six Essentials. Together, spot things made by nature and things made by people.",
+          "kidText": "Take a walk outside for 20 minutes. Bring your Six Essentials. Spot things nature made and things people made.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Take a nature walk",
+              "kidSteps": [
+                "Pack your Six Essentials.",
+                "Walk with your buddy for 20 minutes.",
+                "Find something nature made.",
+                "Find something people made."
+              ],
+              "parentNote": "Walk at least 20 minutes with your Scout and the Six Essentials. Use the buddy system, check the weather, and stay close. Ask your Scout to point out natural things (trees, rocks, birds) and manmade things (benches, fences, paths).",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Who made it? Sort what you see.",
+              "bins": [
+                {
+                  "id": "nature",
+                  "label": "Nature made it"
+                },
+                {
+                  "id": "people",
+                  "label": "People made it"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Tree",
+                  "bin": "nature"
+                },
+                {
+                  "label": "Rock",
+                  "bin": "nature"
+                },
+                {
+                  "label": "River",
+                  "bin": "nature"
+                },
+                {
+                  "label": "Bench",
+                  "bin": "people"
+                },
+                {
+                  "label": "Fence",
+                  "bin": "people"
+                },
+                {
+                  "label": "Sidewalk",
+                  "bin": "people"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Look around outside. Some things were made by nature. A tree and a rock are two.",
+              "Some things were made by people. A bench and a fence are two.",
+              "On your walk, find one of each. Bring your Six Essentials."
+            ]
+          }
+        },
+        {
+          "id": "tiger.tigers-in-the-wild.4",
+          "number": "4",
+          "adultText": "Name common animals where you live, learn which ones are domesticated (live with people) and which are wild, and draw a favorite.",
+          "kidText": "Look for animals near your home. Some live with people. Some are wild. Draw your favorite one.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Know your animals",
+              "kidSteps": [
+                "Name animals you see near home.",
+                "Tell which ones live with people.",
+                "Tell which ones are wild.",
+                "Draw your favorite animal."
+              ],
+              "parentNote": "Your Scout names local animals and tells which are domesticated (pets and farm animals) and which are wild, then draws a favorite. Approve after the talk and the drawing.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Who lives with people? Who is wild?",
+              "bins": [
+                {
+                  "id": "people",
+                  "label": "Lives with people"
+                },
+                {
+                  "id": "wild",
+                  "label": "Wild"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Dog",
+                  "bin": "people"
+                },
+                {
+                  "label": "Cow",
+                  "bin": "people"
+                },
+                {
+                  "label": "Cat",
+                  "bin": "people"
+                },
+                {
+                  "label": "Deer",
+                  "bin": "wild"
+                },
+                {
+                  "label": "Frog",
+                  "bin": "wild"
+                },
+                {
+                  "label": "Squirrel",
+                  "bin": "wild"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Some animals live with people. Dogs, cats, and cows do.",
+              "Wild animals live on their own. Deer, frogs, and squirrels do.",
+              "Next time outside, look for animals. Then draw your favorite."
+            ]
+          }
+        },
+        {
+          "id": "tiger.tigers-in-the-wild.5",
+          "number": "5",
+          "adultText": "Find a tree near where you live and tell one way that tree is helpful.",
+          "kidText": "Find a tree near your home. Look at it up close. Tell how it helps.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Visit a tree",
+              "kidSteps": [
+                "Find a tree near your home.",
+                "Look at it up close.",
+                "Tell your grown-up one way it helps."
+              ],
+              "parentNote": "Any tree counts. Your Scout should say at least one way it helps, such as shade, a home for animals, fruit, or cleaner air.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What does a tree give on hot days?",
+                  "choices": [
+                    "Shade",
+                    "Snow"
+                  ],
+                  "answer": 0,
+                  "explain": "A tree gives cool shade."
+                },
+                {
+                  "prompt": "Who can live in a tree?",
+                  "choices": [
+                    "Cars and trucks",
+                    "Birds and squirrels"
+                  ],
+                  "answer": 1,
+                  "explain": "Trees are homes for birds and bugs."
+                },
+                {
+                  "prompt": "Trees help clean what?",
+                  "choices": [
+                    "The air",
+                    "Your room"
+                  ],
+                  "answer": 0,
+                  "explain": "Trees help clean the air we breathe."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Trees are big helpers. Let us see how.",
+              "A tree gives shade on hot days.",
+              "Trees are homes for birds and bugs.",
+              "Trees help clean the air we breathe."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tiger.team-tiger",
+      "name": "Team Tiger",
+      "category": "citizenship",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/team-tiger/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Play on a team. Pick a job. Help others with a service project.",
+      "requirements": [
+        {
+          "id": "tiger.team-tiger.1",
+          "number": "1",
+          "adultText": "Take part in a rule-based game with your den or family. Afterward, talk about what the rules do for that game.",
+          "kidText": "Play a game with rules. Then talk about why rules help.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Play by the rules",
+              "kidSteps": [
+                "Pick a game with rules.",
+                "Say the rules before you start.",
+                "Play the game.",
+                "Talk about why rules help."
+              ],
+              "parentNote": "Any game with clear rules counts (Go Fish, cornhole, kickball). Ask why the rules matter: they keep the game fair, safe, and fun. Approve after the game and the talk.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which ones are fair? Sort them.",
+              "bins": [
+                {
+                  "id": "fair",
+                  "label": "Fair play"
+                },
+                {
+                  "id": "unfair",
+                  "label": "Not fair"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Take turns",
+                  "bin": "fair"
+                },
+                {
+                  "label": "Follow the rules",
+                  "bin": "fair"
+                },
+                {
+                  "label": "Play nice",
+                  "bin": "fair"
+                },
+                {
+                  "label": "Cheat to win",
+                  "bin": "unfair"
+                },
+                {
+                  "label": "Change rules to win",
+                  "bin": "unfair"
+                },
+                {
+                  "label": "Push to be first",
+                  "bin": "unfair"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Every game has rules. Rules make a game fair.",
+              "Rules keep everyone safe. They keep the game fun.",
+              "Fair players take turns. They follow the rules."
+            ]
+          }
+        },
+        {
+          "id": "tiger.team-tiger.2",
+          "number": "2",
+          "adultText": "Together with your adult partner, choose one task that supports your team, then carry it out at least once.",
+          "kidText": "Pick a job that helps your team. Do it at least once.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Do a team job",
+              "kidSteps": [
+                "Pick a job with your grown-up.",
+                "Do the job.",
+                "Tell how it helped your team."
+              ],
+              "parentNote": "Examples: set up or clean up for a pack meeting, greet people at the door, or help at a school flag ceremony. Approve once your Scout has done the job at least once.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which job helps a team?",
+                  "choices": [
+                    "Set up the chairs",
+                    "Hide from work"
+                  ],
+                  "answer": 0,
+                  "explain": "Setting up chairs helps the whole team."
+                },
+                {
+                  "prompt": "The meeting is over. What helps?",
+                  "choices": [
+                    "Leave a mess",
+                    "Help clean up"
+                  ],
+                  "answer": 1,
+                  "explain": "Cleaning up helps your team."
+                },
+                {
+                  "prompt": "Who can do a team job?",
+                  "choices": [
+                    "Only grown-ups",
+                    "Only big kids",
+                    "Every Scout"
+                  ],
+                  "answer": 2,
+                  "explain": "Every Scout can help the team."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A team works best when everyone helps.",
+              "Jobs can be small. You can set up chairs or greet people.",
+              "Pick one job. Do it with a smile."
+            ]
+          }
+        },
+        {
+          "id": "tiger.team-tiger.3",
+          "number": "3",
+          "adultText": "Play a game that needs two sides (with your den or two other family members), then talk about teamwork and what a good teammate does.",
+          "kidText": "Play a game with two teams. Then talk about being a good teammate.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Play on a team",
+              "kidSteps": [
+                "Split into two teams.",
+                "Play the game together.",
+                "Talk about being on a team.",
+                "Say what a good teammate does."
+              ],
+              "parentNote": "Games with two teams work (kickball, charades, wiffle ball). Afterward ask what makes a good teammate: cheering others on, taking turns, sharing, and being kind when you lose.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which ones are good teammates?",
+              "bins": [
+                {
+                  "id": "good",
+                  "label": "Good teammate"
+                },
+                {
+                  "id": "not",
+                  "label": "Not a good teammate"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Cheer for others",
+                  "bin": "good"
+                },
+                {
+                  "label": "Take turns",
+                  "bin": "good"
+                },
+                {
+                  "label": "Share the ball",
+                  "bin": "good"
+                },
+                {
+                  "label": "Blame others",
+                  "bin": "not"
+                },
+                {
+                  "label": "Grab the ball",
+                  "bin": "not"
+                },
+                {
+                  "label": "Quit when you lose",
+                  "bin": "not"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A team plays together. Each person matters.",
+              "A good teammate cheers for others. They take turns and share.",
+              "A good teammate stays kind, win or lose."
+            ]
+          }
+        },
+        {
+          "id": "tiger.team-tiger.4",
+          "number": "4",
+          "adultText": "Join a project where you help others in your den, pack, or community.",
+          "kidText": "Join a service project. You will help other people.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Help with a service project",
+              "kidSteps": [
+                "Pick a project with your den.",
+                "Do your part.",
+                "Tell what you did to help."
+              ],
+              "parentNote": "A den, pack, or family project counts, such as a sock drive, holiday cards for troops, or helping at a park. Use only tools that are safe for a six-year-old and supervise closely. Approve once your Scout has taken part.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What is a service project?",
+                  "choices": [
+                    "Work that helps others",
+                    "A race to win"
+                  ],
+                  "answer": 0,
+                  "explain": "A service project helps other people."
+                },
+                {
+                  "prompt": "Which one is a service project?",
+                  "choices": [
+                    "Watch a movie",
+                    "Pick up trash at a park"
+                  ],
+                  "answer": 1,
+                  "explain": "Cleaning a park helps your town."
+                },
+                {
+                  "prompt": "A sock drive helps who?",
+                  "choices": [
+                    "People who need socks",
+                    "Only me"
+                  ],
+                  "answer": 0,
+                  "explain": "Socks keep other feet warm."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A service project helps other people.",
+              "You give your time and your work.",
+              "You can pick up trash or collect socks.",
+              "Helping makes your town a better place."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tiger.tiger-circles",
+      "name": "Tiger Circles",
+      "category": "family-reverence",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tiger-circles/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn about your family. Share a celebration. Do a kind act.",
+      "requirements": [
+        {
+          "id": "tiger.tiger-circles.1",
+          "number": "1",
+          "adultText": "With a parent or guardian, talk over the faith traditions your family keeps. Pick out three holidays or celebrations, then draw the one you like best.",
+          "kidText": "Talk with your grown-up about your family's faith. Name three celebrations. Draw your favorite.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "My family celebrations",
+              "kidSteps": [
+                "Talk about your family's faith.",
+                "Name three holidays or celebrations.",
+                "Draw your favorite one."
+              ],
+              "parentNote": "Share your family's faith traditions in whatever way fits your family. Your Scout names three holidays or celebrations and draws a favorite. Approve once the talk and the drawing are done.",
+              "evidence": "checklist"
+            }
+          },
+          "notes": "Scouting America is nonsectarian. The official page says the whole adventure can instead be earned with a religious emblem of the family's choice. Keep game text neutral and let the family decide."
+        },
+        {
+          "id": "tiger.tiger-circles.2",
+          "number": "2",
+          "adultText": "Go with your family to a worship service or a different gathering that reflects how your family practices reverence.",
+          "kidText": "Go with your family to a worship service. Or join another meeting that shows your faith. Be kind and quiet.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Join your family",
+              "kidSteps": [
+                "Go with your family.",
+                "Sit with your family.",
+                "Listen and be kind."
+              ],
+              "parentNote": "Attend a worship service or another gathering that shows how your family expresses reverence. Approve once you have gone together.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which ones are kind and quiet?",
+              "bins": [
+                {
+                  "id": "good",
+                  "label": "Good way to act"
+                },
+                {
+                  "id": "not",
+                  "label": "Not a good way"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Use a quiet voice",
+                  "bin": "good"
+                },
+                {
+                  "label": "Listen to others",
+                  "bin": "good"
+                },
+                {
+                  "label": "Sit with your family",
+                  "bin": "good"
+                },
+                {
+                  "label": "Run around",
+                  "bin": "not"
+                },
+                {
+                  "label": "Shout",
+                  "bin": "not"
+                },
+                {
+                  "label": "Play loud games",
+                  "bin": "not"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Reverent means you show respect.",
+              "At a service, we use quiet voices. We listen well.",
+              "We sit with our family and are kind."
+            ]
+          }
+        },
+        {
+          "id": "tiger.tiger-circles.3",
+          "number": "3",
+          "adultText": "Do something kind for another person.",
+          "kidText": "Do one kind thing for someone. Then tell your grown-up.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Do a kind act",
+              "kidSteps": [
+                "Think of someone to be kind to.",
+                "Do one kind thing for them.",
+                "Tell your grown-up what you did."
+              ],
+              "parentNote": "Ideas: make a card, help at home, or invite someone who is alone to play. Approve once your Scout has done a kind act and can say what it was.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which one is kind?",
+                  "choices": [
+                    "Share your snack",
+                    "Take a toy"
+                  ],
+                  "answer": 0,
+                  "explain": "Sharing is kind."
+                },
+                {
+                  "prompt": "A friend feels sad. What is kind?",
+                  "choices": [
+                    "Laugh at them",
+                    "Say something nice"
+                  ],
+                  "answer": 1,
+                  "explain": "Kind words can cheer a friend."
+                },
+                {
+                  "prompt": "Who can you be kind to?",
+                  "choices": [
+                    "Only friends",
+                    "Anyone"
+                  ],
+                  "answer": 1,
+                  "explain": "You can be kind to anyone."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Kindness means you care about others.",
+              "A kind act can be small. Share a toy or write a note.",
+              "Do one kind thing today. Then tell your grown-up."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tiger.tigers-roar",
+      "name": "Tiger's Roar",
+      "category": "personal-safety",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tigers-roar/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn how to stay safe. Shout, Run, Tell. Know what to do if lost.",
+      "requirements": [
+        {
+          "id": "tiger.tigers-roar.1",
+          "number": "1",
+          "adultText": "Once a parent or guardian says yes, watch the Tiger-level Protect Yourself Rules video.",
+          "kidText": "Watch a safety video with your grown-up. Ask your questions after.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Watch the safety video",
+              "kidSteps": [
+                "Ask your grown-up to watch with you.",
+                "Watch the safety video together.",
+                "Ask any questions after."
+              ],
+              "parentNote": "With your permission, watch the Tiger-level Protect Yourself Rules video (about 13 minutes) together with your Scout. It is on the Scouting America Youth Protection site; review it first and read the Tiger's Roar parent notice. Approve after you have watched it together.",
+              "evidence": "checklist"
+            }
+          },
+          "notes": "Parent-led and off screen. The game does not show the video."
+        },
+        {
+          "id": "tiger.tigers-roar.2",
+          "number": "2",
+          "adultText": "Act out Shout, Run, Tell with your adult partner, following what the Protect Yourself Rules video shows.",
+          "kidText": "If something feels wrong, use Shout, Run, Tell. Practice it with your grown-up.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Shout, Run, Tell",
+              "kidSteps": [
+                "Shout NO in a loud, strong voice.",
+                "Run to a grown-up you trust.",
+                "Tell them what happened."
+              ],
+              "parentNote": "Practice with your Scout: a loud \"No!\" or \"Stay away from me!\", running to you or another trusted adult, then telling what happened (for example, \"I need to tell you something\"). Let your Scout pick the words to shout. If your Scout ever shares something that worries you, stay calm and thank them for telling you. Approve after all three parts are practiced.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put Shout, Run, Tell in order.",
+              "steps": [
+                "Shout NO in a loud voice",
+                "Run to a grown-up you trust",
+                "Tell them what happened"
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "If something feels wrong, use Shout, Run, Tell.",
+              "Shout. Say no in a loud, strong voice.",
+              "Run. Go to a grown-up you trust.",
+              "Tell. Say what happened. You will not be in trouble."
+            ]
+          }
+        },
+        {
+          "id": "tiger.tigers-roar.3",
+          "number": "3",
+          "adultText": "Show your adult partner how you would get help from emergency services.",
+          "kidText": "Learn how to call for help. 911 is the number to call.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "How to call 911",
+              "kidSteps": [
+                "Learn the number to call for help.",
+                "Show your grown-up how to dial it.",
+                "Pretend to call. Do not press call.",
+                "Say your name and where you are."
+              ],
+              "parentNote": "Show your Scout how to reach emergency services on your phone or a home voice device. Make it a pretend call; do not place a real one. Your Scout should know the number is 911, stay on the line, and tell the helper where they are. Approve after the demonstration.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "A house is on fire. Do you call 911?",
+                  "choices": [
+                    "Yes",
+                    "No"
+                  ],
+                  "answer": 0,
+                  "explain": "Yes! Fire is an emergency."
+                },
+                {
+                  "prompt": "You lost your homework. Call 911?",
+                  "choices": [
+                    "Yes",
+                    "No"
+                  ],
+                  "answer": 1,
+                  "explain": "No. 911 is for real emergencies."
+                },
+                {
+                  "prompt": "What do you do on a 911 call?",
+                  "choices": [
+                    "Hang up fast",
+                    "Stay on the line"
+                  ],
+                  "answer": 1,
+                  "explain": "Stay on and answer the helper's questions."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Call 911 in an emergency. A fire is one. A bad hurt is one too.",
+              "Lost homework is not an emergency.",
+              "Stay on the phone. Answer the helper's questions.",
+              "Say your name and where you are."
+            ]
+          }
+        },
+        {
+          "id": "tiger.tigers-roar.4",
+          "number": "4",
+          "adultText": "Show your adult partner the steps you would take if you were lost or became separated from your group.",
+          "kidText": "If you get lost, Stay, Answer, Whistle. Practice with your grown-up.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "If you are lost",
+              "kidSteps": [
+                "Stay where you are.",
+                "Answer when you hear your name.",
+                "Blow your whistle three short times.",
+                "Show your grown-up each step."
+              ],
+              "parentNote": "Practice the three steps: stay where you are, answer when your name is called, and blow the whistle in three short blasts, repeating until found. Hide and seek can make it a game. Approve once your Scout has shown all three steps.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "If you are lost, what is smart?",
+              "bins": [
+                {
+                  "id": "smart",
+                  "label": "Smart"
+                },
+                {
+                  "id": "not",
+                  "label": "Not smart"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Stay where you are",
+                  "bin": "smart"
+                },
+                {
+                  "label": "Answer when called",
+                  "bin": "smart"
+                },
+                {
+                  "label": "Blow your whistle",
+                  "bin": "smart"
+                },
+                {
+                  "label": "Wander off to look",
+                  "bin": "not"
+                },
+                {
+                  "label": "Hide from helpers",
+                  "bin": "not"
+                },
+                {
+                  "label": "Go with a stranger",
+                  "bin": "not"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "If you get lost, stay where you are.",
+              "Your grown-up will come back to that spot.",
+              "Shout back when you hear your name. Blow your whistle, three short blasts.",
+              "Never wander off or hide. Never go with a stranger."
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "electives": [
+    {
+      "id": "tiger.champions-for-nature-tiger",
+      "name": "Champions for Nature Tiger",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/champions-for-nature-tiger/",
+      "summary": "Help take care of nature. Do a service project."
+    },
+    {
+      "id": "tiger.curiosity-intrigue-and-magical-mysteries",
+      "name": "Curiosity, Intrigue, and Magical Mysteries",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/curiosity-intrigue-and-magical-mysteries/",
+      "summary": "Learn a magic trick. Make a secret code."
+    },
+    {
+      "id": "tiger.designed-by-tiger",
+      "name": "Designed by Tiger",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/designed-by-tiger/",
+      "summary": "Plan it, build it, then make it better."
+    },
+    {
+      "id": "tiger.fish-on",
+      "name": "Fish On",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/fish-on/",
+      "summary": "Learn how to fish. Then go fishing!"
+    },
+    {
+      "id": "tiger.floats-and-boats",
+      "name": "Floats and Boats",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/floats-and-boats/",
+      "summary": "Find out what floats. Make a model boat."
+    },
+    {
+      "id": "tiger.good-knights",
+      "name": "Good Knights",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/good-knights/",
+      "summary": "Make a shield and a castle."
+    },
+    {
+      "id": "tiger.lets-camp-tiger",
+      "name": "Let's Camp Tiger",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/lets-camp-tiger/",
+      "summary": "Go on a campout with your grown-up."
+    },
+    {
+      "id": "tiger.race-time-tiger",
+      "name": "Race Time Tiger",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/race-time-tiger/",
+      "summary": "Build a car or a boat. Then race it!"
+    },
+    {
+      "id": "tiger.rolling-tigers",
+      "name": "Rolling Tigers",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/rolling-tigers/",
+      "summary": "Learn bike safety. Then go for a ride."
+    },
+    {
+      "id": "tiger.safe-and-smart",
+      "name": "Safe and Smart",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/safe-and-smart/",
+      "summary": "Learn fire safety. Learn what to do in an emergency."
+    },
+    {
+      "id": "tiger.sky-is-the-limit",
+      "name": "Sky is the Limit",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/sky-is-the-limit/",
+      "summary": "Look at the night sky. Find star groups."
+    },
+    {
+      "id": "tiger.stories-in-shapes",
+      "name": "Stories in Shapes",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/stories-in-shapes/",
+      "summary": "Use shapes and symbols to tell a story."
+    },
+    {
+      "id": "tiger.summertime-fun-tiger",
+      "name": "Summertime Fun Tiger",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/summertime-fun-tiger/",
+      "summary": "Stay active this summer. Go to camp or den events."
+    },
+    {
+      "id": "tiger.tech-all-around",
+      "name": "Tech All Around",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tech-all-around/",
+      "summary": "Find tech at home. Learn how to use it safely."
+    },
+    {
+      "id": "tiger.tiger-tag",
+      "name": "Tiger Tag",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tiger-tag/",
+      "summary": "Play team games and sports. Watch a game together."
+    },
+    {
+      "id": "tiger.tiger-iffic",
+      "name": "Tiger-iffic!",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tiger-iffic/",
+      "summary": "Play games. Take turns and follow the rules."
+    },
+    {
+      "id": "tiger.tigers-in-the-water",
+      "name": "Tigers in the Water",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tigers-in-the-water/",
+      "summary": "Learn water safety. Get used to the water."
+    }
+  ]
+}

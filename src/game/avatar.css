@@ -1,0 +1,310 @@
+/*
+ * Avatar editor ("Make your Scout") and the rank cards on the setup screen.
+ * Uses the overlay kit's tokens (src/ui/ui.css). Type never drops below the 1em of the overlay
+ * (20px on a laptop, 22px on iPad). Every control is 44px or taller.
+ */
+
+/* ---------- Editor card ---------- */
+
+.tq-card.tq-avatar {
+  max-width: 1080px;
+  gap: 12px;
+}
+
+.tq-avatar__body {
+  display: grid;
+  grid-template-columns: minmax(280px, 5fr) minmax(0, 7fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* Done is always in reach, even when the options run past the bottom of the screen. */
+.tq-card.tq-avatar > .tq-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding-top: 10px;
+  background: var(--tq-surface);
+}
+
+/* ---------- The picture ---------- */
+
+.tq-avatar__stage {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tq-avatar__view {
+  position: relative;
+  height: clamp(300px, 58vh, 500px);
+  overflow: hidden;
+  background: #cfe9f7; /* sky */
+  border: 4px solid var(--tq-ink);
+  border-radius: var(--tq-radius);
+}
+
+.tq-avatar__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  /* Sideways drags turn the Scout; up and down still scroll the page on a phone. */
+  touch-action: pan-y;
+}
+
+.tq-avatar__canvas:active {
+  cursor: grabbing;
+}
+
+.tq-avatar__nopicture {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.tq-avatar__hint {
+  margin: 0;
+  text-align: center;
+}
+
+.tq-avatar__turn {
+  position: absolute;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  font: inherit;
+  font-size: 1.4em;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tq-ink);
+  background: var(--tq-surface);
+  border: 3px solid var(--tq-ink);
+  border-radius: 50%;
+  box-shadow: 0 3px 0 rgba(31, 42, 31, 0.35);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tq-avatar__turn:first-of-type {
+  left: 10px;
+}
+
+.tq-avatar__turn:last-of-type {
+  right: 10px;
+}
+
+.tq-avatar__turn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(31, 42, 31, 0.35);
+}
+
+/* ---------- Tabs ---------- */
+
+.tq-avatar__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.tq-avatar__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tq-avatar__tab {
+  flex: 1 1 auto;
+  min-height: 48px;
+  padding: 6px 16px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--tq-ink);
+  background: var(--tq-surface-2);
+  border: 3px solid var(--tq-ink);
+  border-radius: var(--tq-radius);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The picked tab is filled and has a thick base, so it reads without color. */
+.tq-avatar__tab.is-selected {
+  color: var(--tq-primary-ink);
+  background: var(--tq-primary);
+  border-bottom-width: 9px;
+}
+
+.tq-avatar__tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tq-avatar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tq-avatar__group-title {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.tq-avatar__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+
+/* ---------- One option: a 56px swatch or picture, a word, a check when picked ---------- */
+
+.tq-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 4px 6px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--tq-ink);
+  background: var(--tq-surface);
+  border: 3px solid var(--tq-ink);
+  border-radius: var(--tq-radius);
+  box-shadow: 0 4px 0 rgba(31, 42, 31, 0.35);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tq-opt:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(31, 42, 31, 0.35);
+}
+
+.tq-opt.is-selected {
+  padding: 6px 2px 4px;
+  border-width: 5px;
+  border-color: var(--tq-ok);
+  background: color-mix(in srgb, var(--tq-ok) 12%, var(--tq-surface));
+}
+
+.tq-opt__face {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--swatch, #ffffff);
+  border: 3px solid var(--tq-ink);
+  border-radius: 12px;
+}
+
+.tq-opt--picture .tq-opt__face {
+  background: #ffffff;
+}
+
+.tq-opt__icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tq-opt__tick {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tq-primary-ink);
+  background: var(--tq-ok);
+  border: 2px solid var(--tq-ink);
+  border-radius: 50%;
+}
+
+.tq-opt.is-selected .tq-opt__tick {
+  display: flex;
+}
+
+.tq-opt__label {
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Phones and small windows: the picture sits on top and stays in view ---------- */
+
+@media (max-width: 719px) {
+  .tq-avatar__body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .tq-avatar__stage {
+    z-index: 2;
+    padding-bottom: 6px;
+    background: var(--tq-surface);
+  }
+
+  .tq-avatar__view {
+    height: clamp(190px, 30vh, 300px);
+  }
+
+  .tq-avatar__hint {
+    display: none;
+  }
+
+  .tq-avatar__grid {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-opt:active,
+  .tq-avatar__turn:active {
+    transform: none;
+  }
+}
+
+/* ---------- Setup screen: every rank as a card, two columns on narrow screens ---------- */
+
+.tq-card.tq-setup {
+  max-width: 760px;
+}
+
+.tq-setup .tq-rank-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 720px) {
+  .tq-setup .tq-rank-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,2018 @@
+{
+  "rank": "bear",
+  "label": "Bear",
+  "grade": 3,
+  "ageRange": "8-9",
+  "readingLevel": "grade3",
+  "program": {
+    "name": "Scouting America Cub Scouts",
+    "year": 2024,
+    "indexUrl": "https://www.scouting.org/programs/cub-scouts/adventures/bear/",
+    "fetchedOn": "2026-10-03"
+  },
+  "adventures": [
+    {
+      "id": "bear.bobcat",
+      "name": "Bobcat",
+      "category": "bobcat",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bobcat-bear/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Start your Bear trail! Meet your den. Learn the Oath, the Law, and the Cub Scout signs.",
+      "requirements": [
+        {
+          "id": "bear.bobcat.1",
+          "number": "1",
+          "adultText": "Spend time getting to know the other Scouts in the den.",
+          "kidText": "Meet your den friends. Learn each name. Ask each Scout a fun question.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Meet your den",
+              "kidSteps": [
+                "Say hi to each Scout in your den.",
+                "Learn each name.",
+                "Ask each Scout a fun question."
+              ],
+              "parentNote": "Approve once your Scout has met the den and can name the members. A den game or a den flag is a fun way to do this.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "bear.bobcat.2",
+          "number": "2",
+          "adultText": "Say the Scout Oath and Scout Law out loud with the den and den leader.",
+          "kidText": "Say the Scout Oath and Law out loud with your den. Your leader says them too. Practice here first!",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Say the Oath and Law",
+              "kidSteps": [
+                "Stand with your den and leader.",
+                "Say the Scout Oath together.",
+                "Say the Scout Law together."
+              ],
+              "parentNote": "The den leader leads and the den says the words together. Reading from the handbook is fine. Approve once your Scout has joined in.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the Scout Oath in order.",
+              "steps": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "to help other people at all times;",
+                "to keep myself physically strong,",
+                "mentally awake, and morally straight."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Oath is a promise. Scouts say it out loud.",
+              "First say: On my honor I will do my best. Next say: to do my duty to God and my country.",
+              "Then say: and to obey the Scout Law. Then say: to help other people at all times.",
+              "Last say: to keep myself physically strong. Then: mentally awake, and morally straight.",
+              "Then say the Scout Law. It lists 12 ways to act."
+            ]
+          },
+          "notes": "Practice is the Oath by line. The Law is taught here only as a first look; a Law quiz can reuse the Wolf style."
+        },
+        {
+          "id": "bear.bobcat.3",
+          "number": "3",
+          "adultText": "Learn about the Scout Oath and name its three points: duty to God and country, helping other people, and keeping oneself strong, awake, and straight.",
+          "kidText": "The Scout Oath has three big parts. Learn them here. Then show what you know.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "How many big parts does the Scout Oath have?",
+                  "choices": [
+                    "Two",
+                    "Three",
+                    "Twelve"
+                  ],
+                  "answer": 1,
+                  "explain": "Three. Duty, helping, and keeping yourself strong."
+                },
+                {
+                  "prompt": "Which part is about helping?",
+                  "choices": [
+                    "Do my duty",
+                    "Help other people",
+                    "Keep myself strong"
+                  ],
+                  "answer": 1,
+                  "explain": "Part two. Help other people at all times."
+                },
+                {
+                  "prompt": "What does morally straight mean?",
+                  "choices": [
+                    "Walk in a line",
+                    "Stand up tall",
+                    "Do what is right"
+                  ],
+                  "answer": 2,
+                  "explain": "You do what is right, even when it is hard."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Oath is a promise with three big parts.",
+              "Part one: do your duty to God and country. Duty means doing what you should.",
+              "Part two: help other people at all times.",
+              "Part three: be strong in body, awake in mind, and morally straight.",
+              "Morally straight means you do what is right."
+            ]
+          }
+        },
+        {
+          "id": "bear.bobcat.4",
+          "number": "4",
+          "adultText": "With the den, write a short set of behavior rules that everyone agrees to follow.",
+          "kidText": "Help your den make a Code of Conduct. That is a list of rules your den agrees on.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Make a den code",
+              "kidSteps": [
+                "Think of one fair rule.",
+                "Share it with your den.",
+                "Vote on the best rules together.",
+                "Help write the code."
+              ],
+              "parentNote": "The den leader guides the group to a few simple rules, such as taking turns and being kind. Approve once your Scout has joined in.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which rules help a den? Sort them.",
+              "bins": [
+                {
+                  "id": "good",
+                  "label": "Good den rule"
+                },
+                {
+                  "id": "not",
+                  "label": "Not a good rule"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Take turns",
+                  "bin": "good"
+                },
+                {
+                  "label": "Listen when others talk",
+                  "bin": "good"
+                },
+                {
+                  "label": "Help clean up",
+                  "bin": "good"
+                },
+                {
+                  "label": "Only some kids get a turn",
+                  "bin": "not"
+                },
+                {
+                  "label": "It is fine to laugh at mistakes",
+                  "bin": "not"
+                },
+                {
+                  "label": "Cutting in line is okay",
+                  "bin": "not"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A Code of Conduct is a list of rules. Your den picks them together.",
+              "Good rules are fair and kind. They help everyone have fun.",
+              "They keep everyone safe, too. Think of rules like take turns and listen.",
+              "Bad rules are unfair or mean. They hurt or leave someone out."
+            ]
+          }
+        },
+        {
+          "id": "bear.bobcat.5",
+          "number": "5",
+          "adultText": "Learn about the denner: a Cub Scout who helps the den leader at meetings, with jobs the leader picks. The denner is a helper, not the boss.",
+          "kidText": "A denner is a Scout who helps the den leader. Learn what a denner does.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What does a denner do?",
+                  "choices": [
+                    "Helps the den leader",
+                    "Is the boss of the den",
+                    "Sits out the meeting"
+                  ],
+                  "answer": 0,
+                  "explain": "A denner helps the den leader at the meeting."
+                },
+                {
+                  "prompt": "Which one is a denner job?",
+                  "choices": [
+                    "Tell friends what to do",
+                    "Skip clean up",
+                    "Help set up the meeting"
+                  ],
+                  "answer": 2,
+                  "explain": "Setting up, welcoming friends, and clean up are denner jobs."
+                },
+                {
+                  "prompt": "Who gets a turn as denner?",
+                  "choices": [
+                    "Only one Scout",
+                    "Every Scout",
+                    "Only the oldest"
+                  ],
+                  "answer": 1,
+                  "explain": "Every Scout gets a turn to be denner."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A denner is a Scout who helps the den leader.",
+              "Your leader picks the denner. Every Scout gets a turn.",
+              "A denner may set up and welcome friends. A denner may help clean up.",
+              "A denner may lead the Oath, too.",
+              "A denner is a helper, not the boss. Do your best to set a good example."
+            ]
+          }
+        },
+        {
+          "id": "bear.bobcat.6",
+          "number": "6",
+          "adultText": "Show the Cub Scout sign, salute, and handshake, and tell when each one is used.",
+          "kidText": "Show the Cub Scout sign, salute, and handshake. Show when you use each one. Learn them here first.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Sign, salute, handshake",
+              "kidSteps": [
+                "Show the Cub Scout sign.",
+                "Show the Cub Scout salute.",
+                "Show the Cub Scout handshake.",
+                "Tell when you use each one."
+              ],
+              "parentNote": "Your Scout shows all three and says when each is used. Sign: when saying the Oath and Law, or to get quiet. Salute: to honor the flag. Handshake: to greet a fellow Scout. The Bear handbook shows how to make each one.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "In the Cub Scout sign, the two fingers are...",
+                  "choices": [
+                    "Spread like a V",
+                    "Pressed together",
+                    "Curled in"
+                  ],
+                  "answer": 0,
+                  "explain": "They spread like a V. Your hand is held up high."
+                },
+                {
+                  "prompt": "In the Cub Scout salute, the two fingers are...",
+                  "choices": [
+                    "Spread apart",
+                    "Pressed together",
+                    "Crossed"
+                  ],
+                  "answer": 1,
+                  "explain": "Together. You touch your cap or eyebrow."
+                },
+                {
+                  "prompt": "When do you give the salute?",
+                  "choices": [
+                    "To say hi to a pet",
+                    "To order lunch",
+                    "To honor the flag"
+                  ],
+                  "answer": 2,
+                  "explain": "You salute to show respect for the flag."
+                },
+                {
+                  "prompt": "The handshake is a special way to...",
+                  "choices": [
+                    "Greet a fellow Scout",
+                    "Say bye to pets",
+                    "Pay for things"
+                  ],
+                  "answer": 0,
+                  "explain": "It is a special hello for Scouts."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The sign: hold up your right hand. Spread two fingers like a V.",
+              "Use the sign to say the Oath and Law. Use it to get quiet, too.",
+              "The salute: put your two fingers together. Touch your cap or eyebrow.",
+              "Use the salute to honor the flag. The handshake is a special hello for Scouts."
+            ]
+          },
+          "notes": "Showing the moves is physical, so this is a field mission. The quiz is the in-game rehearsal."
+        },
+        {
+          "id": "bear.bobcat.7",
+          "number": "7",
+          "adultText": "Tell the den or family about a time you followed the motto \"Do Your Best,\" and explain why doing your best matters.",
+          "kidText": "Tell about a time you did your best. Say why doing your best matters.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Tell your best moment",
+              "kidSteps": [
+                "Think of a time you did your best.",
+                "Tell your den or your family.",
+                "Say why doing your best matters."
+              ],
+              "parentNote": "Any real effort counts, big or small. Listen to the story and the reason, then approve.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What is the Cub Scout motto?",
+                  "choices": [
+                    "Be the best",
+                    "Win every game",
+                    "Do Your Best"
+                  ],
+                  "answer": 2,
+                  "explain": "The motto is Do Your Best."
+                },
+                {
+                  "prompt": "You try hard but lose. Did you do your best?",
+                  "choices": [
+                    "No, you lost",
+                    "Yes, you tried hard"
+                  ],
+                  "answer": 1,
+                  "explain": "Yes! Trying hard is doing your best."
+                },
+                {
+                  "prompt": "Why does doing your best matter?",
+                  "choices": [
+                    "You learn and grow",
+                    "You get a prize",
+                    "It is a rule"
+                  ],
+                  "answer": 0,
+                  "explain": "Trying hard helps you learn and grow."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Cub Scout motto is Do Your Best.",
+              "A motto is a short saying that shows what a group believes.",
+              "Doing your best does not mean winning. It means you try hard.",
+              "When you try your best, you learn and you grow."
+            ]
+          }
+        },
+        {
+          "id": "bear.bobcat.8",
+          "number": "8",
+          "adultText": "At home, you and your Scout work through the activities in Scouting America's child-abuse-prevention booklet together.",
+          "kidText": "Do the safety booklet with your parent. It is a talk together.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Safety booklet at home",
+              "kidSteps": [
+                "Sit down with your parent.",
+                "Do the booklet pages together."
+              ],
+              "parentNote": "Find the booklet 'How to Protect Your Children from Child Abuse: A Parent's Guide' on scouting.org. Work through its activities with your Scout at home, then approve here.",
+              "evidence": "checklist"
+            }
+          },
+          "notes": "Keep this gentle and private. Do not add game content about the topic; the parent handles it offline."
+        }
+      ]
+    },
+    {
+      "id": "bear.bear-strong",
+      "name": "Bear Strong",
+      "category": "fitness",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bear-strong/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Taste foods from different groups. Move your body. Take a calm break. Stay strong and awake!",
+      "requirements": [
+        {
+          "id": "bear.bear-strong.1",
+          "number": "1",
+          "adultText": "Try foods from any three of these five groups: protein, vegetables, fruit, dairy, and grains.",
+          "kidText": "Taste foods from three food groups. The groups are protein, veggies, fruit, dairy, and grains.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Taste three food groups",
+              "kidSteps": [
+                "Pick three food groups.",
+                "Pick one food from each group.",
+                "Taste each food."
+              ],
+              "parentNote": "Any three of the five groups count. Check the Annual Health and Medical Record and your family food limits first, so everyone stays safe around allergies. Approve after the tasting.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Sort each food into its group.",
+              "bins": [
+                {
+                  "id": "protein",
+                  "label": "Protein"
+                },
+                {
+                  "id": "dairy",
+                  "label": "Dairy"
+                },
+                {
+                  "id": "grain",
+                  "label": "Grain"
+                },
+                {
+                  "id": "produce",
+                  "label": "Fruit or veggie"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Eggs",
+                  "bin": "protein"
+                },
+                {
+                  "label": "Fish",
+                  "bin": "protein"
+                },
+                {
+                  "label": "Milk",
+                  "bin": "dairy"
+                },
+                {
+                  "label": "Cheese",
+                  "bin": "dairy"
+                },
+                {
+                  "label": "Rice",
+                  "bin": "grain"
+                },
+                {
+                  "label": "Oatmeal",
+                  "bin": "grain"
+                },
+                {
+                  "label": "Apple",
+                  "bin": "produce"
+                },
+                {
+                  "label": "Carrots",
+                  "bin": "produce"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Food comes in five groups. Each group helps your body.",
+              "Protein builds muscles. Eggs, fish, and chicken are protein.",
+              "Dairy helps bones grow strong. Milk and cheese are dairy.",
+              "Grains give you energy. Bread, rice, and oats are grains.",
+              "Fruits and veggies help your body run well. Taste three groups!"
+            ]
+          },
+          "notes": "Never ask about allergies in the game. The parent handles food limits offline."
+        },
+        {
+          "id": "bear.bear-strong.2",
+          "number": "2",
+          "adultText": "Exercise for half an hour together with the den or with one or more others, including stretching and movement.",
+          "kidText": "Move for 30 minutes with friends. Stretch first. Then run, jump, and play.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Move and stretch",
+              "kidSteps": [
+                "Pick friends or your den.",
+                "Stretch your arms and legs.",
+                "Move for 30 minutes.",
+                "Run, jump, or play a game."
+              ],
+              "parentNote": "Your Scout is active for 30 minutes with the den or at least one other person. The time must include stretching and moving. Approve afterward.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "rhythm",
+            "params": {
+              "prompt": "Warm up with jumping jacks. Tap to the beat!",
+              "exercise": "jumping jacks",
+              "reps": 12,
+              "bpm": 80
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Moving keeps your body strong. It is good for your mind, too.",
+              "First, stretch your arms, legs, and back. Go slow.",
+              "Then move! Run, jump, or play a game with a friend.",
+              "Warm up now with jumping jacks. Tap once for each jump."
+            ]
+          }
+        },
+        {
+          "id": "bear.bear-strong.3",
+          "number": "3",
+          "adultText": "Spend fifteen minutes on exercises you pick yourself, covering cardio, muscle strength, and flexibility.",
+          "kidText": "Do 15 minutes of exercise you pick. Mix fast moves, strong moves, and stretches.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "My exercise time",
+              "kidSteps": [
+                "Pick exercises you like.",
+                "Do fast moves, strong moves, and stretches.",
+                "Keep going for 15 minutes.",
+                "Rest when you need to."
+              ],
+              "parentNote": "Your Scout picks the exercises. Look for a mix of cardio (heart pumping), strength (such as push-ups or squats), and stretching. Offer tips on form, then approve.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Sort each exercise by what it does.",
+              "bins": [
+                {
+                  "id": "cardio",
+                  "label": "Fast heart"
+                },
+                {
+                  "id": "strength",
+                  "label": "Strong muscles"
+                },
+                {
+                  "id": "stretch",
+                  "label": "Stretching"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Jumping jacks",
+                  "bin": "cardio"
+                },
+                {
+                  "label": "Running in place",
+                  "bin": "cardio"
+                },
+                {
+                  "label": "Push-ups",
+                  "bin": "strength"
+                },
+                {
+                  "label": "Squats",
+                  "bin": "strength"
+                },
+                {
+                  "label": "Toe touches",
+                  "bin": "stretch"
+                },
+                {
+                  "label": "Reach up high",
+                  "bin": "stretch"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Your body needs three kinds of exercise.",
+              "Cardio makes your heart beat fast. Running and jumping are cardio.",
+              "Strength moves make muscles strong. Push-ups and squats are strength.",
+              "Stretching keeps your body bendy. Touch your toes. Reach up high.",
+              "Mix all three kinds in your 15 minutes."
+            ]
+          }
+        },
+        {
+          "id": "bear.bear-strong.4",
+          "number": "4",
+          "adultText": "Spend ten minutes on a relaxing activity.",
+          "kidText": "Do something calm for 10 minutes. Read, draw, or listen to music.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Calm time",
+              "kidSteps": [
+                "Pick something calm to do.",
+                "Try reading, drawing, music, or slow breaths.",
+                "Stay calm for 10 minutes."
+              ],
+              "parentNote": "Any quiet, calming activity works. Approve once your Scout has taken the full ten minutes.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "bear.bear-strong.5",
+          "number": "5",
+          "adultText": "Together, review the Scout's Annual Health and Medical Record and talk about which den and pack activities the Scout can join.",
+          "kidText": "Look at your health form with your parent. Talk about den and pack fun you can join.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Health form talk",
+              "kidSteps": [
+                "Sit with your parent.",
+                "Look at your health form together.",
+                "Talk about den and pack fun you can join."
+              ],
+              "parentNote": "Review the Scouting America Annual Health and Medical Record with your Scout, talk about any limits on activities, and share what matters with den leaders. Do not enter health details in this game.",
+              "evidence": "checklist"
+            }
+          },
+          "notes": "Never collect health details in the game. This is a parent conversation only."
+        }
+      ]
+    },
+    {
+      "id": "bear.bear-habitat",
+      "name": "Bear Habitat",
+      "category": "outdoors",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bear-habitat/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Plan a one-mile walk. Pack smart. Take care of nature as you go.",
+      "requirements": [
+        {
+          "id": "bear.bear-habitat.1",
+          "number": "1",
+          "adultText": "Get ready for a one-mile hike: pack the Six Essentials and wear shoes and clothes that suit the weather.",
+          "kidText": "Get ready for your one-mile walk. Pack the Six Essentials, six things every hiker needs. Dress for the weather.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Pack for the trail",
+              "kidSteps": [
+                "Gather the six hiking helpers.",
+                "Check the weather.",
+                "Pick clothes and shoes that fit the weather.",
+                "Put it all in your pack."
+              ],
+              "parentNote": "The Six Essentials: first-aid kit, filled water bottle, flashlight, trail food, sun protection, and a whistle. Look for sturdy closed shoes and weather-ready clothes. Approve once your Scout is packed.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "craft",
+            "params": {
+              "prompt": "Pack your hiking pack with the Six Essentials.",
+              "result": "Hiking pack",
+              "ingredients": [
+                {
+                  "id": "first-aid-kit",
+                  "label": "First-aid kit"
+                },
+                {
+                  "id": "water-bottle",
+                  "label": "Filled water bottle"
+                },
+                {
+                  "id": "flashlight",
+                  "label": "Flashlight"
+                },
+                {
+                  "id": "trail-food",
+                  "label": "Trail food"
+                },
+                {
+                  "id": "sun-protection",
+                  "label": "Sun protection"
+                },
+                {
+                  "id": "whistle",
+                  "label": "Whistle"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "game-tablet",
+                  "label": "Game tablet"
+                },
+                {
+                  "id": "soccer-ball",
+                  "label": "Soccer ball"
+                },
+                {
+                  "id": "pillow",
+                  "label": "Pillow"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Six Essentials are six things every hiker packs.",
+              "A first-aid kit, a filled water bottle, and a flashlight.",
+              "Trail food, sun protection, and a whistle.",
+              "Wear sturdy shoes and clothes that fit the weather.",
+              "Now pack your pack. Pick only the six helpers!"
+            ]
+          }
+        },
+        {
+          "id": "bear.bear-habitat.2",
+          "number": "2",
+          "adultText": "Find the walk's location on a map and confirm the one-mile route.",
+          "kidText": "Know before you go! Find your walk on a map. Check that it is one mile.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Map your walk",
+              "kidSteps": [
+                "Pick a place to walk.",
+                "Find it on a map.",
+                "Trace your route with a finger.",
+                "Check that it is one mile."
+              ],
+              "parentNote": "Use a paper or phone map. A map app can measure the route. Approve once your Scout has found the place and the one-mile route.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "navigate",
+            "params": {
+              "prompt": "Follow the map. Visit each stop in order.",
+              "zone": "nature-trail",
+              "waypoints": [
+                {
+                  "id": "trailhead",
+                  "label": "Trailhead"
+                },
+                {
+                  "id": "footbridge",
+                  "label": "Footbridge"
+                },
+                {
+                  "id": "lookout",
+                  "label": "Lookout"
+                },
+                {
+                  "id": "campsite",
+                  "label": "Campsite"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Know Before You Go means plan your hike before you leave.",
+              "A map shows where the trail starts and where it ends.",
+              "Look for the start, the turns, and the end of your route.",
+              "Now follow the map markers. Visit each stop in order."
+            ]
+          }
+        },
+        {
+          "id": "bear.bear-habitat.3",
+          "number": "3",
+          "adultText": "Learn about the path and the area around it before the walk.",
+          "kidText": "Choose the right path. Learn what your trail is like. Walk only on the trail.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Learn your path",
+              "kidSteps": [
+                "Ask or look up what your trail is like.",
+                "Find hills, water, and other things near it.",
+                "Learn where the trail is marked."
+              ],
+              "parentNote": "Your Scout learns about the trail, such as the ground, hills, plants, and water, from a map, sign, or park guide. Approve once your Scout can tell you about it.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which way is the right path?",
+              "bins": [
+                {
+                  "id": "right",
+                  "label": "Right path"
+                },
+                {
+                  "id": "wrong",
+                  "label": "Not the right path"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Stay on the marked trail",
+                  "bin": "right"
+                },
+                {
+                  "label": "Follow the trail signs",
+                  "bin": "right"
+                },
+                {
+                  "label": "Walk on the path hikers use",
+                  "bin": "right"
+                },
+                {
+                  "label": "Cut across a flower field",
+                  "bin": "wrong"
+                },
+                {
+                  "label": "Make a shortcut through bushes",
+                  "bin": "wrong"
+                },
+                {
+                  "label": "Step on young plants",
+                  "bin": "wrong"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Leave No Trace means leave nature as you found it.",
+              "Choose the Right Path is one Leave No Trace rule. Stay on the trail.",
+              "Learn about your trail first. Look for hills, water, and signs.",
+              "Follow the signs. No shortcuts through plants or bushes."
+            ]
+          }
+        },
+        {
+          "id": "bear.bear-habitat.4",
+          "number": "4",
+          "adultText": "Make a plan for handling your own trash and any trash found along the trail.",
+          "kidText": "Make a plan for your trash. Plan what to do with trash you find, too.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Trash plan",
+              "kidSteps": [
+                "Bring a bag for trash.",
+                "Plan where your trash will go.",
+                "Pick up trash you find, if it is safe.",
+                "Take it all home or to a bin."
+              ],
+              "parentNote": "A trash bag and gloves are handy. Adults handle anything sharp or yucky. Approve once your Scout has a plan and uses it.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "You finish a snack on the trail. Where does the wrapper go?",
+                  "choices": [
+                    "On the ground",
+                    "In your pack",
+                    "Under a rock"
+                  ],
+                  "answer": 1,
+                  "explain": "Pack it out. Take your trash home."
+                },
+                {
+                  "prompt": "You see trash on the trail. What is safe to do?",
+                  "choices": [
+                    "Kick it away",
+                    "Hide it in a bush",
+                    "Pick it up if it is safe"
+                  ],
+                  "answer": 2,
+                  "explain": "Pick up safe trash and take it with you."
+                },
+                {
+                  "prompt": "You find glass or sharp trash. What do you do?",
+                  "choices": [
+                    "Tell an adult",
+                    "Pick it up fast",
+                    "Toss it in the woods"
+                  ],
+                  "answer": 0,
+                  "explain": "Tell an adult. They can clean it up safely."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Trash Your Trash means you take your trash with you.",
+              "Bring a bag. Put every wrapper and scrap in it.",
+              "See trash that is not yours? Pick it up if it is safe.",
+              "Never grab sharp or yucky things. Tell an adult."
+            ]
+          }
+        },
+        {
+          "id": "bear.bear-habitat.5",
+          "number": "5",
+          "adultText": "Take photos, or bring a sketchbook and draw five things you want to remember from the walk.",
+          "kidText": "Take photos or draw five things from your walk. Leave them where you found them.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Remember five things",
+              "kidSteps": [
+                "Bring a camera or a sketchbook.",
+                "Pick five things to remember.",
+                "Take a photo or draw each one.",
+                "Leave everything where it is."
+              ],
+              "parentNote": "Photos or sketches both count. Rocks, plants, and feathers stay where they are. Approve once your Scout has five photos or drawings.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "You find a cool rock on the trail. What do you do?",
+                  "choices": [
+                    "Put it in your pocket",
+                    "Throw it far",
+                    "Take a photo and leave it"
+                  ],
+                  "answer": 2,
+                  "explain": "Take a photo. Leave the rock for others to enjoy."
+                },
+                {
+                  "prompt": "How can you remember a pretty flower?",
+                  "choices": [
+                    "Pick it",
+                    "Draw it",
+                    "Dig it up"
+                  ],
+                  "answer": 1,
+                  "explain": "Draw it or snap a photo. The flower stays alive."
+                },
+                {
+                  "prompt": "Why leave things where they are?",
+                  "choices": [
+                    "Animals and hikers enjoy them",
+                    "They are too heavy",
+                    "They are boring"
+                  ],
+                  "answer": 0,
+                  "explain": "Animals use them, and other hikers want to see them."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Leave What You Find means rocks, plants, and shells stay put.",
+              "Animals use them. Other hikers want to see them, too.",
+              "Instead, take a photo or draw what you see.",
+              "Pick five things you want to remember from your walk."
+            ]
+          }
+        },
+        {
+          "id": "bear.bear-habitat.6",
+          "number": "6",
+          "adultText": "Find out the fire danger rating for the area along your path.",
+          "kidText": "Find the fire danger rating for your trail. It tells how easily a fire could start.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Fire danger check",
+              "kidSteps": [
+                "Ask a grown-up to help you look it up.",
+                "Find the fire danger rating for your trail.",
+                "Say what the rating means."
+              ],
+              "parentNote": "Fire danger ratings are posted at parks and on state or local fire agency sites. Your Scout finds the rating for the walk day and says what it means. Approve afterward.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the fire danger ratings in order, from lowest to highest.",
+              "steps": [
+                "Low",
+                "Moderate",
+                "High",
+                "Very high",
+                "Extremely high"
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Fire can hurt people, trees, and animals. Be careful with fire.",
+              "A fire danger rating tells how easily a fire could start.",
+              "The ratings are low, moderate, high, very high, and extremely high.",
+              "On a high day, one spark can start a big fire. Check signs or look online."
+            ]
+          }
+        },
+        {
+          "id": "bear.bear-habitat.7",
+          "number": "7",
+          "adultText": "From a safe distance, spot six signs of mammals, birds, insects, or reptiles by looking up, down, and around.",
+          "kidText": "Spot six signs of animals from far away. Look up, down, and all around.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Animal signs",
+              "kidSteps": [
+                "Stay far from animals.",
+                "Look up, down, and all around.",
+                "Find six signs of animals.",
+                "Tell what you saw."
+              ],
+              "parentNote": "Signs can be the animal itself, tracks, feathers, nests, or holes. Mammals, birds, insects, and reptiles all count. Keep a safe distance. Approve after the walk.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "collect",
+            "params": {
+              "prompt": "Spot six animals. Stay back and look!",
+              "zone": "nature-trail",
+              "targets": [
+                {
+                  "id": "bird",
+                  "label": "Bird",
+                  "count": 2,
+                  "hint": "Look up in the trees."
+                },
+                {
+                  "id": "squirrel",
+                  "label": "Squirrel",
+                  "count": 2,
+                  "hint": "Look around the tree trunks."
+                },
+                {
+                  "id": "rabbit",
+                  "label": "Rabbit",
+                  "count": 1,
+                  "hint": "Look down in the grass."
+                },
+                {
+                  "id": "frog",
+                  "label": "Frog",
+                  "count": 1,
+                  "hint": "Look down near the water."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Respect Wildlife means watch animals from far away. Never touch or feed them.",
+              "Look up for birds. Look down for tracks. Look around for nests.",
+              "Mammals have fur, like squirrels. Birds have feathers.",
+              "Reptiles have scales, like lizards. Insects are bugs.",
+              "Now spot six animals. Stay back and look quietly."
+            ]
+          },
+          "notes": "Collect uses only the four animals with models, so some targets appear twice to make six."
+        },
+        {
+          "id": "bear.bear-habitat.8",
+          "number": "8",
+          "adultText": "Work out, as a den, what to do to be kind to other people on the path.",
+          "kidText": "Other people use the trail, too. Find the ways to be kind to them.",
+          "digital": true,
+          "activity": {
+            "type": "sort",
+            "params": {
+              "prompt": "Sort how to act on a trail.",
+              "bins": [
+                {
+                  "id": "kind",
+                  "label": "Kind"
+                },
+                {
+                  "id": "notkind",
+                  "label": "Not kind"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Say hello to hikers",
+                  "bin": "kind"
+                },
+                {
+                  "label": "Step aside to let others pass",
+                  "bin": "kind"
+                },
+                {
+                  "label": "Keep your voice low",
+                  "bin": "kind"
+                },
+                {
+                  "label": "Shout and run past people",
+                  "bin": "notkind"
+                },
+                {
+                  "label": "Play loud music",
+                  "bin": "notkind"
+                },
+                {
+                  "label": "Block the whole trail",
+                  "bin": "notkind"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Other people use the trail, too. Be kind to them.",
+              "Say hello. Step aside so others can pass.",
+              "Keep your voice low so everyone can enjoy nature.",
+              "Shouting, loud music, and blocking the trail are not kind.",
+              "Then talk with your den about more ways to be kind."
+            ]
+          },
+          "notes": "Identifying kind choices is the intent, so this stays digital. The den talk is a nice extra on the walk."
+        },
+        {
+          "id": "bear.bear-habitat.9",
+          "number": "9",
+          "adultText": "Take the one-mile walk, following the Leave No Trace Principles for Kids along the way.",
+          "kidText": "Take your one-mile walk. Follow the Leave No Trace rules. They keep nature just as you found it.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Take your walk",
+              "kidSteps": [
+                "Wear your gear and bring your pack.",
+                "Walk one mile with your den and buddy.",
+                "Follow all seven Leave No Trace rules.",
+                "Take your trash home."
+              ],
+              "parentNote": "Adults supervise closely and use the buddy system. The seven rules: know before you go, choose the right path, trash your trash, leave what you find, be careful with fire, respect wildlife, be kind to other visitors. Approve after the walk.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put your hike day in order.",
+              "steps": [
+                "Check the weather and your map.",
+                "Pack your Six Essentials.",
+                "Meet your buddy and your den.",
+                "Walk your mile on the trail.",
+                "Take your trash home."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Hike day! First check the weather and your map.",
+              "Pack your Six Essentials, your six hiking helpers. Meet your buddy and your den.",
+              "Walk your mile. Follow Leave No Trace: leave nature as you found it.",
+              "At the end, take your trash home."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "bear.paws-for-action",
+      "name": "Paws for Action",
+      "category": "citizenship",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/paws-for-action/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn about the flag and symbols of America. Learn how groups help. Do a service project.",
+      "requirements": [
+        {
+          "id": "bear.paws-for-action.1",
+          "number": "1",
+          "adultText": "Learn about the American flag, including its history, how to raise and lower it, how to fold and display it, and flag manners.",
+          "kidText": "Learn about the American flag. Learn to raise it, lower it, and fold it. Show it the right way.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Flag care",
+              "kidSteps": [
+                "Learn a fact about the flag's history.",
+                "Learn how to raise and lower the flag.",
+                "Practice folding it with help.",
+                "Learn how to show the flag the right way."
+              ],
+              "parentNote": "A leader or adult guides flag care: keep it off the ground, raise it briskly and lower it slowly, fold it into a triangle, and display it properly. Approve after your Scout has practiced.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the flag folding steps in order.",
+              "steps": [
+                "Two people hold the flag flat and off the ground.",
+                "Fold it in half the long way.",
+                "Fold it in half the long way again.",
+                "Fold a triangle at the striped end.",
+                "Keep folding triangles to the end.",
+                "Tuck in the end so only stars show."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Treat the flag with respect. Never let it touch the ground.",
+              "To fold it, two people hold it flat and off the ground.",
+              "Fold it in half the long way, two times.",
+              "Then fold triangles, starting at the striped end.",
+              "Tuck in the end so only the stars show."
+            ]
+          }
+        },
+        {
+          "id": "bear.paws-for-action.2",
+          "number": "2",
+          "adultText": "Name three symbols of the United States, pick a favorite, and make a model, artwork, or craft of it.",
+          "kidText": "Name three symbols of America. Pick your favorite. Make a model or art of it.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Symbol art",
+              "kidSteps": [
+                "Name three American symbols.",
+                "Pick your favorite one.",
+                "Make a model or art of it."
+              ],
+              "parentNote": "Symbols include the bald eagle, the Statue of Liberty, the Liberty Bell, and the flag. Any model, drawing, or craft works. Approve once it is done.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which ones are symbols of America?",
+              "bins": [
+                {
+                  "id": "symbol",
+                  "label": "American symbol"
+                },
+                {
+                  "id": "not",
+                  "label": "Not American"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Bald eagle",
+                  "bin": "symbol"
+                },
+                {
+                  "label": "Statue of Liberty",
+                  "bin": "symbol"
+                },
+                {
+                  "label": "Liberty Bell",
+                  "bin": "symbol"
+                },
+                {
+                  "label": "Eiffel Tower",
+                  "bin": "not"
+                },
+                {
+                  "label": "Maple leaf",
+                  "bin": "not"
+                },
+                {
+                  "label": "Big Ben",
+                  "bin": "not"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A symbol is a thing that stands for a big idea.",
+              "The bald eagle stands for freedom and strength.",
+              "The Statue of Liberty stands for freedom. The Liberty Bell does, too.",
+              "Other places have symbols, too. The Eiffel Tower is for France.",
+              "A maple leaf is for Canada. Big Ben is for London."
+            ]
+          }
+        },
+        {
+          "id": "bear.paws-for-action.3",
+          "number": "3",
+          "adultText": "Learn about the mission of a non-profit group, how it pays for its work, and how volunteers help.",
+          "kidText": "Learn about a group that helps people. Find its big goal. See how it gets money and uses volunteers.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Learn about a helping group",
+              "kidSteps": [
+                "Pick a group near you that helps people.",
+                "Ask a grown-up to help you look it up.",
+                "Find the group's big goal.",
+                "Find how it gets money.",
+                "Find how volunteers help."
+              ],
+              "parentNote": "Any nonprofit works, such as a food bank or animal shelter. Look at its website or visit. Your Scout should be able to say its mission, how it gets funds, and how volunteers help. Approve afterward.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What is a nonprofit group?",
+                  "choices": [
+                    "A store that sells toys",
+                    "A group that helps people",
+                    "A team that wins prizes"
+                  ],
+                  "answer": 1,
+                  "explain": "A nonprofit works to help, not to make money."
+                },
+                {
+                  "prompt": "How do many nonprofits get money?",
+                  "choices": [
+                    "Selling pets",
+                    "Winning games",
+                    "Gifts called donations"
+                  ],
+                  "answer": 2,
+                  "explain": "People give donations. Some groups also hold sales."
+                },
+                {
+                  "prompt": "What is a volunteer?",
+                  "choices": [
+                    "Someone who helps for free",
+                    "Someone who is paid",
+                    "A group leader"
+                  ],
+                  "answer": 0,
+                  "explain": "A volunteer gives time to help, without pay."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A nonprofit is a group that works to help people.",
+              "Its mission is its big goal, like feeding hungry families.",
+              "Many nonprofits get money from gifts called donations.",
+              "Volunteers help for free. They give their time and skills."
+            ]
+          }
+        },
+        {
+          "id": "bear.paws-for-action.4",
+          "number": "4",
+          "adultText": "Take part in a service project.",
+          "kidText": "Join a service project with your den or pack. Help make your town a better place.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Service project",
+              "kidSteps": [
+                "Look for a place that needs help.",
+                "Pick a project with your den.",
+                "Do the work together.",
+                "Tell how it helped."
+              ],
+              "parentNote": "Adults plan the project, teach safe tool use, and supervise the whole time. Approve once your Scout has helped.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the service project steps in order.",
+              "steps": [
+                "Look around for a need.",
+                "Pick a project and make a plan.",
+                "Gather what you need.",
+                "Do the project with your den.",
+                "Tell how it helped."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A service project is work you do to help other people.",
+              "First look around for something that needs help.",
+              "Then pick a project and make a plan. Gather what you need.",
+              "Do the work together. Then tell how it helped."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "bear.fellowship",
+      "name": "Fellowship",
+      "category": "family-reverence",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/fellowship/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn about your family's faith. Do a kind act. Learn about another faith.",
+      "requirements": [
+        {
+          "id": "bear.fellowship.1",
+          "number": "1",
+          "adultText": "Chat with a parent about the faith customs your family follows. Choose three holidays or celebrations from them, then make a craft, art, or food connected to your favorite.",
+          "kidText": "Talk with your parent about your family's faith. Name three special days. Make something for your favorite.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Family faith and art",
+              "kidSteps": [
+                "Talk with your parent about your family's faith.",
+                "Name three special days.",
+                "Make art, a craft, or a food for your favorite."
+              ],
+              "parentNote": "Any faith or belief tradition your family follows counts. The game never asks which. Approve after the talk and the project.",
+              "evidence": "checklist"
+            }
+          },
+          "notes": "Stay neutral about any faith. The official page says this adventure may instead be earned with a religious emblem of the family's choosing."
+        },
+        {
+          "id": "bear.fellowship.2",
+          "number": "2",
+          "adultText": "Attend a faith service, or another family gathering that reflects how your family shows reverence.",
+          "kidText": "Go to a service or gathering with your family. Notice how your family shows respect.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Family gathering",
+              "kidSteps": [
+                "Go to a service or gathering with your family.",
+                "Notice how your family shows respect."
+              ],
+              "parentNote": "A religious service or any gathering that shows how your family honors what it holds dear counts. Approve afterward.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "bear.fellowship.3",
+          "number": "3",
+          "adultText": "Do something kind for another person.",
+          "kidText": "Do one kind thing for someone. Big or small, it counts!",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Act of kindness",
+              "kidSteps": [
+                "Think of a kind thing to do.",
+                "Do it for someone.",
+                "Tell your parent how it felt."
+              ],
+              "parentNote": "Any real act of kindness counts. Approve once your Scout has done it.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which ones are kind?",
+              "bins": [
+                {
+                  "id": "kind",
+                  "label": "Kind"
+                },
+                {
+                  "id": "unkind",
+                  "label": "Not kind"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Hold the door for someone",
+                  "bin": "kind"
+                },
+                {
+                  "label": "Share your snack",
+                  "bin": "kind"
+                },
+                {
+                  "label": "Cheer up a friend with a note",
+                  "bin": "kind"
+                },
+                {
+                  "label": "Ignore a sad kid",
+                  "bin": "unkind"
+                },
+                {
+                  "label": "Say mean words",
+                  "bin": "unkind"
+                },
+                {
+                  "label": "Take a toy without asking",
+                  "bin": "unkind"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Kindness means doing something that makes someone feel good.",
+              "You can share, hold a door, or cheer up a friend.",
+              "Kind acts can be big or small.",
+              "Think of someone who needs a hand. Then do one kind thing."
+            ]
+          }
+        },
+        {
+          "id": "bear.fellowship.4",
+          "number": "4",
+          "adultText": "With a parent, pick a faith different from your own and find two things it shares with your family's beliefs.",
+          "kidText": "Learn about a faith that is not yours. Find two things it shares with your family's beliefs.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Learn about another faith",
+              "kidSteps": [
+                "Pick a faith to learn about with your parent.",
+                "Read or ask about it with respect.",
+                "Find two things you both share."
+              ],
+              "parentNote": "Choose a faith with your Scout and look for shared ideas, such as kindness or helping others. Stay respectful. Approve after the talk.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Your friend has a different faith. What is a kind thing to do?",
+                  "choices": [
+                    "Say it is wrong",
+                    "Laugh at it",
+                    "Ask kind questions and listen"
+                  ],
+                  "answer": 2,
+                  "explain": "Be kind and listen. We can learn from each other."
+                },
+                {
+                  "prompt": "Different faiths can share ideas. Which one could be shared?",
+                  "choices": [
+                    "Hair color",
+                    "Kindness and helping",
+                    "Favorite snack"
+                  ],
+                  "answer": 1,
+                  "explain": "Many faiths teach kindness and helping others."
+                },
+                {
+                  "prompt": "Can families have different faiths?",
+                  "choices": [
+                    "Yes, that is okay",
+                    "No, never"
+                  ],
+                  "answer": 0,
+                  "explain": "Yes! People have many faiths, and that is okay."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Faith means trust in someone or something you believe in.",
+              "Families have many different faiths. Different is okay.",
+              "Be kind and respectful when you learn about another faith.",
+              "Look for ideas you share, like kindness and helping others."
+            ]
+          },
+          "notes": "Stay neutral about every faith. Never ask which faith the family follows."
+        }
+      ]
+    },
+    {
+      "id": "bear.standing-tall",
+      "name": "Standing Tall",
+      "category": "personal-safety",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/standing-tall/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn safety rules to protect yourself. Use screens safely. Wear the right safety gear.",
+      "requirements": [
+        {
+          "id": "bear.standing-tall.1",
+          "number": "1",
+          "adultText": "With a parent's or guardian's permission, watch the Bear-level Protect Yourself Rules video.",
+          "kidText": "Ask your parent if you can watch a safety video. Watch it together.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Protect Yourself video",
+              "kidSteps": [
+                "Ask your parent to watch with you.",
+                "Watch the Protect Yourself video.",
+                "Tell your parent what you learned."
+              ],
+              "parentNote": "Preview and watch the Bear-level 'Protect Yourself Rules' video from Scouting America with your Scout. You decide whether to watch it. Approve once it has been watched.",
+              "evidence": "checklist"
+            }
+          },
+          "notes": "Keep this gentle. Do not add game content beyond the official video."
+        },
+        {
+          "id": "bear.standing-tall.2",
+          "number": "2",
+          "adultText": "Fill out the Personal Space Bubble worksheet that comes with the Protect Yourself Rules resources.",
+          "kidText": "Fill out the Personal Space Bubble page with your parent or leader.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Personal space bubble",
+              "kidSteps": [
+                "Get the Personal Space Bubble page.",
+                "Fill it out with your parent or leader.",
+                "Tell what you learned."
+              ],
+              "parentNote": "The worksheet is part of the Protect Yourself Rules resources on scouting.org. Keep the talk calm and open. Approve once it is done.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What is your personal space bubble?",
+                  "choices": [
+                    "A kind of toy",
+                    "The space around you",
+                    "A game board"
+                  ],
+                  "answer": 1,
+                  "explain": "It is the space around your body."
+                },
+                {
+                  "prompt": "Someone stands too close and you feel unsure. What can you say?",
+                  "choices": [
+                    "Nothing at all",
+                    "Come even closer",
+                    "Please give me some space"
+                  ],
+                  "answer": 2,
+                  "explain": "You can say it in a calm, strong voice."
+                },
+                {
+                  "prompt": "Do other people have space bubbles, too?",
+                  "choices": [
+                    "Yes, everyone does",
+                    "No, only kids"
+                  ],
+                  "answer": 0,
+                  "explain": "Everyone does. Respect each other's space."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Your personal space bubble is the space around your body.",
+              "It is your space. You get to say who comes in.",
+              "If someone is too close, say: Please give me some space.",
+              "Other people have bubbles, too. Ask first, and respect their space.",
+              "If it ever feels wrong, tell a grown-up you trust."
+            ]
+          },
+          "notes": "Practice stays general and gentle. Do not add detail beyond the official Protect Yourself Rules materials."
+        },
+        {
+          "id": "bear.standing-tall.3",
+          "number": "3",
+          "adultText": "Work with a parent or guardian to agree on family rules for using phones, tablets, and other devices.",
+          "kidText": "Make a family plan for screens with your parent. Pick rules that keep you safe.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Family screen plan",
+              "kidSteps": [
+                "Sit down with your parent.",
+                "Talk about when and where to use devices.",
+                "Pick the rules everyone agrees on.",
+                "Write them down."
+              ],
+              "parentNote": "Agree on your family's rules for devices, such as time limits, places to use them, and what to do if something online feels wrong. Approve once the plan is made.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Sort the screen habits.",
+              "bins": [
+                {
+                  "id": "good",
+                  "label": "Good screen rule"
+                },
+                {
+                  "id": "bad",
+                  "label": "Not a good rule"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Ask before you download",
+                  "bin": "good"
+                },
+                {
+                  "label": "Use screens in shared rooms",
+                  "bin": "good"
+                },
+                {
+                  "label": "Tell a grown-up if something feels wrong",
+                  "bin": "good"
+                },
+                {
+                  "label": "Share your password with friends",
+                  "bin": "bad"
+                },
+                {
+                  "label": "Talk to strangers online",
+                  "bin": "bad"
+                },
+                {
+                  "label": "Stay on screens all night",
+                  "bin": "bad"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Screens are fun and useful. Families make rules to keep them safe.",
+              "Good rules: ask before you download. Use devices where adults can see.",
+              "If something online feels wrong, tell a grown-up right away.",
+              "Keep passwords private. Share them only with your parent.",
+              "Do not chat with strangers online. Take breaks from screens."
+            ]
+          }
+        },
+        {
+          "id": "bear.standing-tall.4",
+          "number": "4",
+          "adultText": "Learn the usual safety gear that protects the head, eyes, mouth, hands, and feet, explain how each helps, and show the right gear in use for an activity.",
+          "kidText": "Learn safety gear for your head, eyes, mouth, hands, and feet. Show how to use it right.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Safety gear",
+              "kidSteps": [
+                "Name safety gear for head, eyes, mouth, hands, and feet.",
+                "Say how each one protects you.",
+                "Pick a sport or craft and pick the right gear.",
+                "Show how to wear it the right way."
+              ],
+              "parentNote": "Examples: helmet, safety glasses or goggles, mouth guard, gloves, and sturdy shoes. Your Scout shows proper use for a real activity, such as biking or a craft. Approve afterward.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Match each gear to the body part it protects.",
+              "bins": [
+                {
+                  "id": "head",
+                  "label": "Head"
+                },
+                {
+                  "id": "eyes",
+                  "label": "Eyes"
+                },
+                {
+                  "id": "mouth",
+                  "label": "Mouth"
+                },
+                {
+                  "id": "handsfeet",
+                  "label": "Hands or feet"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Bike helmet",
+                  "bin": "head"
+                },
+                {
+                  "label": "Safety glasses",
+                  "bin": "eyes"
+                },
+                {
+                  "label": "Goggles",
+                  "bin": "eyes"
+                },
+                {
+                  "label": "Mouth guard",
+                  "bin": "mouth"
+                },
+                {
+                  "label": "Work gloves",
+                  "bin": "handsfeet"
+                },
+                {
+                  "label": "Sturdy shoes",
+                  "bin": "handsfeet"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Safety gear is gear that protects your body.",
+              "A helmet protects your head. Goggles and safety glasses protect your eyes.",
+              "A mouth guard protects your teeth. Gloves protect your hands.",
+              "Sturdy shoes protect your feet. Pick gear to match what you do."
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "electives": [
+    {
+      "id": "bear.a-bear-goes-fishing",
+      "name": "A Bear Goes Fishing",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/a-bear-goes-fishing/",
+      "summary": "Learn about fish near you and the fishing rules. Learn your gear. Go fishing for 30 minutes."
+    },
+    {
+      "id": "bear.balancing-bears",
+      "name": "Balancing Bears",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/balancing-bears/",
+      "summary": "Make trail mix with math. Find animal patterns. Look for matching shapes in nature."
+    },
+    {
+      "id": "bear.baloo-the-builder",
+      "name": "Baloo the Builder",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/baloo-the-builder/",
+      "summary": "Learn to use tools safely. Pick a project. Build it yourself."
+    },
+    {
+      "id": "bear.bears-afloat",
+      "name": "Bears Afloat",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bears-afloat/",
+      "summary": "Pass the swim test first. Learn paddle safety. Paddle a canoe, kayak, or paddleboard."
+    },
+    {
+      "id": "bear.bears-on-bikes",
+      "name": "Bears on Bikes",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bears-on-bikes/",
+      "summary": "Wear your helmet right. Learn hand signals and bike checks. Go on a bike ride."
+    },
+    {
+      "id": "bear.champions-for-nature",
+      "name": "Champions for Nature Bear",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/champions-for-nature-bear/",
+      "summary": "Study water, soil, and air. Find out how to keep them clean. Do a project."
+    },
+    {
+      "id": "bear.chef-tech",
+      "name": "Chef Tech",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/chef-tech/",
+      "summary": "Use a kitchen tool and a recipe. Cook with a grown-up. Dream up a better tool."
+    },
+    {
+      "id": "bear.critter-care",
+      "name": "Critter Care",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/critter-care/",
+      "summary": "Pick a good pet for your family. Learn how to care for it. See how pets help people."
+    },
+    {
+      "id": "bear.forensics",
+      "name": "Forensics",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/forensics/",
+      "summary": "Be a lab scientist! Study fingerprints and shoe prints. Test four mystery powders."
+    },
+    {
+      "id": "bear.lets-camp",
+      "name": "Let's Camp Bear",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/lets-camp-bear/",
+      "summary": "Pack your camp gear. Help set up a tent. Sleep out on a campout."
+    },
+    {
+      "id": "bear.marble-madness",
+      "name": "Marble Madness",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/marble-madness/",
+      "summary": "Make a marble bag. Learn marble words. Play games. Build a race track and a maze."
+    },
+    {
+      "id": "bear.race-time",
+      "name": "Race Time Bear",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/race-time-bear/",
+      "summary": "Build a car or a boat. Learn the race rules. Race it and be a good sport."
+    },
+    {
+      "id": "bear.roaring-laughter",
+      "name": "Roaring Laughter",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/roaring-laughter/",
+      "summary": "Laugh with your den! Try tongue twisters, charades, and a joke contest."
+    },
+    {
+      "id": "bear.salmon-run",
+      "name": "Salmon Run",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/salmon-run/",
+      "summary": "Learn swim safety. Swim with a buddy. Try the beginner swim test and a rescue."
+    },
+    {
+      "id": "bear.summertime-fun",
+      "name": "Summertime Fun Bear",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/summertime-fun-bear/",
+      "summary": "Go to three Cub Scout events from May to August."
+    },
+    {
+      "id": "bear.super-science",
+      "name": "Super Science",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/super-science/",
+      "summary": "Try four fun science tests: static, sink or float, and color tricks."
+    },
+    {
+      "id": "bear.whittling",
+      "name": "Whittling",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/whittling/",
+      "summary": "Learn pocketknife safety rules and the knife safety circle. Carve two things."
+    },
+    {
+      "id": "bear.archery",
+      "name": "Archery Bear",
+      "sourceUrl": "https://www.scouting.org/wp-content/uploads/2024/05/2024_Cub-Scout_Archery-Adventure-Lesson-Plan_051624.pdf",
+      "summary": "Shoot arrows at a target. Learn range rules. Done at a council camp with trained helpers."
+    },
+    {
+      "id": "bear.slingshot",
+      "name": "Slingshot",
+      "sourceUrl": "https://www.scouting.org/wp-content/uploads/2024/05/2024_Cub-Scout_Slingshot-Adventure-Lesson-Plan_051624.pdf",
+      "summary": "Learn slingshot safety. Shoot at a target. Done at a council camp with trained helpers."
+    }
+  ]
+}

@@ -44,7 +44,7 @@
           "id": "wolf.bobcat.2",
           "number": "2",
           "adultText": "Say the Oath and the Law out loud, alongside the den and den leader.",
-          "kidText": "Say the Scout Oath and Law out loud. Say them with your den. Your leader says them too. Practice here first!",
+          "kidText": "Say the Scout Oath and Law out loud. Say them with your den. Your leader says them too. Try it here first!",
           "digital": false,
           "activity": {
             "type": "fieldMission",
@@ -73,13 +73,21 @@
               ]
             }
           },
+          "lesson": {
+            "lines": [
+              "The Oath is a promise. First, do your best.",
+              "Then comes duty, the Law, and helping other people.",
+              "Last are three big things. Physically strong: a strong body.",
+              "Mentally awake: a ready mind. Morally straight: doing right."
+            ]
+          },
           "notes": "Practice is the Oath by line. The Law points are taught in requirement 3."
         },
         {
           "id": "wolf.bobcat.3",
           "number": "3",
           "adultText": "Get to know the twelve points of the Scout Law and what each one asks of a Scout.",
-          "kidText": "The Scout Law has 12 points. Each point is a way to act. Let us learn what some mean!",
+          "kidText": "The Scout Law has 12 points. Each point is a way to be good. Let's learn what some mean!",
           "digital": true,
           "activity": {
             "type": "quiz",
@@ -93,7 +101,7 @@
                     "Six"
                   ],
                   "answer": 1,
-                  "explain": "There are 12 points. A Scout tries to live each one."
+                  "explain": "There are 12 points. Scouts try to do all 12."
                 },
                 {
                   "prompt": "Which point means people can believe you?",
@@ -103,7 +111,7 @@
                     "Trustworthy"
                   ],
                   "answer": 2,
-                  "explain": "Trustworthy. You tell the truth and keep your word."
+                  "explain": "Trustworthy. You tell the truth and do what you say."
                 },
                 {
                   "prompt": "What does brave mean?",
@@ -116,17 +124,25 @@
                   "explain": "Brave people may feel scared. They still do right."
                 },
                 {
-                  "prompt": "Which point means you do not waste?",
+                  "prompt": "Which point means you do not waste things?",
                   "choices": [
                     "Cheerful",
                     "Thrifty",
                     "Brave"
                   ],
                   "answer": 1,
-                  "explain": "Thrifty means you use things with care."
+                  "explain": "Thrifty means you save and use things well."
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Law has 12 points.",
+              "Trustworthy means people can trust you.",
+              "Brave means you do right when you are scared.",
+              "Thrifty means you save things and do not waste."
+            ]
           },
           "notes": "Quiz teaches meanings; the 12 points are not asked in order. Any later Law question can reuse this style."
         },
@@ -134,7 +150,7 @@
           "id": "wolf.bobcat.4",
           "number": "4",
           "adultText": "Work with the den to write a short set of behavior rules that everyone agrees to follow.",
-          "kidText": "Help your den write its Code of Conduct. Share one good rule. Pick the best rules together.",
+          "kidText": "Your den makes a list of rules. It is called a Code of Conduct. Share one good rule. Pick the best ones together.",
           "digital": false,
           "activity": {
             "type": "fieldMission",
@@ -191,6 +207,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "A den makes rules so everyone can have fun.",
+              "Good rules: take turns, listen, be kind, help clean up.",
+              "Pushing to be first is not a good rule.",
+              "Laughing at mistakes is not a good rule."
+            ]
           }
         },
         {
@@ -240,25 +264,33 @@
                 {
                   "prompt": "When do you give the Cub Scout salute?",
                   "choices": [
-                    "Eating lunch",
-                    "Honor the flag",
-                    "Crossing the street"
+                    "While you eat lunch",
+                    "To show respect to the flag",
+                    "While you cross the street"
                   ],
                   "answer": 1,
-                  "explain": "You salute to honor the flag."
+                  "explain": "You salute to show respect to the flag."
                 },
                 {
                   "prompt": "The Cub Scout handshake is a way to...",
                   "choices": [
-                    "Greet a fellow Scout",
+                    "Say hi to a Scout",
                     "Pay for things",
                     "Say bye to pets"
                   ],
                   "answer": 0,
-                  "explain": "It shows friendship with other Scouts."
+                  "explain": "It is a friendly hello to other Scouts."
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "The Cub Scout sign has two fingers up.",
+              "The salute holds those two fingers together, near your head.",
+              "You salute to show respect to the flag.",
+              "The handshake is a friendly hello to other Scouts."
+            ]
           },
           "notes": "Demonstrating is physical, so this is a field mission. The quiz is the in-game rehearsal."
         },
@@ -295,7 +327,7 @@
                   "explain": "The motto is Do Your Best."
                 },
                 {
-                  "prompt": "You try hard but miss. Did you do your best?",
+                  "prompt": "You try hard but you lose. Did you do your best?",
                   "choices": [
                     "No, you lost",
                     "Yes, you tried hard"
@@ -315,6 +347,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "The Cub Scout motto is Do Your Best.",
+              "A motto is a short saying to follow.",
+              "Doing your best means trying hard.",
+              "You can lose and still do your best!"
+            ]
           }
         },
         {
@@ -346,20 +386,20 @@
       "required": true,
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/paws-on-the-path/",
       "fetchedOn": "2026-10-03",
-      "summary": "Go on a nature walk! Pack your Six Essentials. Spot animals on the trail.",
+      "summary": "Go on a nature walk! Pack six hiking things. Spot animals on the trail.",
       "requirements": [
         {
           "id": "wolf.paws-on-the-path.1",
           "number": "1",
           "adultText": "Know the six hiking items every Cub Scout carries, and show how each one is used.",
-          "kidText": "Meet the Six Essentials. They are your hiking helpers. Show what each one does.",
+          "kidText": "Meet the Six Essentials. They are six things for a hike. Show what each one does.",
           "digital": false,
           "activity": {
             "type": "fieldMission",
             "params": {
               "title": "Six Essentials show-and-tell",
               "kidSteps": [
-                "Gather your Six Essentials.",
+                "Get your Six Essentials.",
                 "Hold up each one.",
                 "Tell what you do with it."
               ],
@@ -370,7 +410,7 @@
           "practice": {
             "type": "craft",
             "params": {
-              "prompt": "Pack your hiking pack with the Six Essentials.",
+              "prompt": "Fill your hiking pack with the Six Essentials.",
               "result": "Hiking pack",
               "ingredients": [
                 {
@@ -391,7 +431,7 @@
                 },
                 {
                   "id": "sun-protection",
-                  "label": "Sun protection"
+                  "label": "Sunscreen"
                 },
                 {
                   "id": "whistle",
@@ -413,6 +453,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "The Six Essentials keep you safe on a hike.",
+              "Pack a first-aid kit, full water bottle, and flashlight.",
+              "Add trail food, sunscreen, and a whistle.",
+              "Video games, skateboards, and pillows stay home."
+            ]
           }
         },
         {
@@ -448,15 +496,23 @@
                 {
                   "prompt": "You cannot see your group. What do you do?",
                   "choices": [
-                    "Stay put and use your whistle",
+                    "Stay here and blow your whistle",
                     "Run off to find them",
                     "Hide"
                   ],
                   "answer": 0,
-                  "explain": "Stay put. Blow your whistle so they can find you."
+                  "explain": "Stay where you are. Blow your whistle. They will find you."
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "A buddy hikes with you to keep you safe.",
+              "Stay close. You can always see your buddy.",
+              "Feel lost? Stay where you are.",
+              "Blow your whistle. Your group will find you."
+            ]
           },
           "notes": "Picking the buddy is trivial, so this stays digital. The buddy is used in the requirement 5 walk."
         },
@@ -482,7 +538,7 @@
           "practice": {
             "type": "sort",
             "params": {
-              "prompt": "Pick the gear for a hike.",
+              "prompt": "Which clothes are good for a hike? Sort them.",
               "bins": [
                 {
                   "id": "good",
@@ -495,7 +551,7 @@
               ],
               "items": [
                 {
-                  "label": "Sturdy shoes",
+                  "label": "Strong shoes",
                   "bin": "good"
                 },
                 {
@@ -520,18 +576,26 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "Check the weather before you go.",
+              "Wear strong shoes that cover your feet.",
+              "Sun? Wear a hat. Rain? Wear a rain coat.",
+              "Cold? Wear warm clothes. No flip-flops or dress shoes."
+            ]
           }
         },
         {
           "id": "wolf.paws-on-the-path.4",
           "number": "4",
           "adultText": "Study the Outdoor Code and the Leave No Trace Principles for Kids, both about taking care of nature.",
-          "kidText": "Learn to treat nature well. Leave No Trace means leave nature as you found it. Sort the good and bad choices.",
+          "kidText": "Learn to be kind to nature. Leave No Trace means leave nature as you found it. Sort the good and bad choices.",
           "digital": true,
           "activity": {
             "type": "sort",
             "params": {
-              "prompt": "Sort what to do outdoors.",
+              "prompt": "What should you do outdoors? Sort them.",
               "bins": [
                 {
                   "id": "do",
@@ -577,6 +641,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "Leave No Trace means leave nature as you found it.",
+              "Stay on trails. Take trash home. Be kind to hikers.",
+              "Watch animals from far away. Do not feed them.",
+              "Leave rocks and flowers. Never leave a fire burning."
+            ]
           },
           "notes": "Items follow the Leave No Trace Principles for Kids (know before you go, choose the right path, trash your trash, leave what you find, be careful with fire, respect wildlife, be kind to other visitors)."
         },
@@ -634,6 +706,14 @@
               ]
             }
           },
+          "lesson": {
+            "lines": [
+              "Animals live all along the trail. Let's spot four!",
+              "Birds sit in the trees. Squirrels have bushy tails.",
+              "Rabbits hide in grass and bushes.",
+              "Frogs stay near the water."
+            ]
+          },
           "notes": "Schema allows one practice, so the in-game rehearsal is animal spotting. A navigate walk could be added later."
         }
       ]
@@ -645,7 +725,7 @@
       "required": true,
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/running-with-the-pack/",
       "fetchedOn": "2026-10-03",
-      "summary": "Taste colorful foods. Brush your teeth. Move your body and rest, too.",
+      "summary": "Taste foods of every color. Brush your teeth. Move your body, and rest too.",
       "requirements": [
         {
           "id": "wolf.running-with-the-pack.1",
@@ -669,7 +749,7 @@
           "practice": {
             "type": "sort",
             "params": {
-              "prompt": "Sort the foods by their natural color.",
+              "prompt": "Which color is each food? Sort them.",
               "bins": [
                 {
                   "id": "red",
@@ -711,6 +791,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "Foods come in many colors. Let's sort some!",
+              "Strawberries and tomatoes are red.",
+              "Broccoli and peas are green.",
+              "Carrots and sweet potatoes are orange."
+            ]
           }
         },
         {
@@ -725,7 +813,7 @@
               "title": "Brush like a pro",
               "kidSteps": [
                 "Get your brush and toothpaste.",
-                "Use a pea-size dab of toothpaste.",
+                "Squeeze out a bit the size of a pea.",
                 "Brush the fronts, backs, and tops.",
                 "Brush for two minutes."
               ],
@@ -752,22 +840,30 @@
                   "choices": [
                     "A whole tube",
                     "None",
-                    "A pea-size dab"
+                    "A bit the size of a pea"
                   ],
                   "answer": 2,
-                  "explain": "A pea-size dab is enough."
+                  "explain": "A bit the size of a pea is enough."
                 },
                 {
-                  "prompt": "Which teeth do you brush?",
+                  "prompt": "Which parts of your teeth do you brush?",
                   "choices": [
                     "Fronts, backs, and tops",
-                    "Only the front ones"
+                    "Only the fronts"
                   ],
                   "answer": 0,
                   "explain": "Brush every side of every tooth."
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "Brush your teeth for two minutes.",
+              "Use a bit of toothpaste the size of a pea.",
+              "Brush the fronts, the backs, and the tops.",
+              "Every side of every tooth gets a turn."
+            ]
           }
         },
         {
@@ -798,6 +894,14 @@
               "reps": 10,
               "bpm": 80
             }
+          },
+          "lesson": {
+            "lines": [
+              "Stretch first, so your body is ready.",
+              "Then move for 30 minutes with friends.",
+              "Let's warm up with jumping jacks!",
+              "Tap to the beat, like a drum."
+            ]
           }
         },
         {
@@ -827,6 +931,14 @@
               "reps": 10,
               "bpm": 70
             }
+          },
+          "lesson": {
+            "lines": [
+              "Pick exercises you like. Squats are a good one.",
+              "Bend your knees low, then stand up tall.",
+              "Tap to the beat as you squat.",
+              "Do them for 10 minutes. Rest when you need to."
+            ]
           }
         },
         {
@@ -885,15 +997,15 @@
           "id": "wolf.council-fire.1",
           "number": "1",
           "adultText": "Find out how to treat the American flag with respect, practice folding it, and join a flag ceremony with the den or pack.",
-          "kidText": "Learn to fold the flag. Treat it with respect. Join a flag ceremony with your den.",
+          "kidText": "Learn to fold the flag. Treat it with care. Join a flag ceremony. That is when your den shows respect for the flag.",
           "digital": false,
           "activity": {
             "type": "fieldMission",
             "params": {
-              "title": "Flag care and ceremony",
+              "title": "Care for the flag",
               "kidSteps": [
                 "Learn how to care for the flag.",
-                "Practice folding it with help.",
+                "Try folding it with help.",
                 "Join a flag ceremony with your den or pack."
               ],
               "parentNote": "A leader or adult shows flag care, such as keeping it off the ground, and your Scout practices the triangle fold with help. Approve after your Scout joins the ceremony.",
@@ -908,18 +1020,26 @@
                 "Hold the flag flat and off the ground.",
                 "Fold it in half the long way.",
                 "Fold it in half the long way again.",
-                "Start at the striped end and fold a triangle.",
-                "Keep folding triangles to the end.",
+                "Start at the striped end. Fold the corner over.",
+                "Keep folding the corner over to the end.",
                 "Tuck in the end so only stars show."
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "Hold the flag flat and off the ground.",
+              "Fold it in half the long way. Do it twice.",
+              "Fold the striped corner over. Keep folding to the end.",
+              "Tuck in the end so only stars show."
+            ]
           }
         },
         {
           "id": "wolf.council-fire.2",
           "number": "2",
           "adultText": "Pick out three Scout Law points that show how to be a good neighbor.",
-          "kidText": "Good neighbors are kind and helpful. Which Scout Law points fit? Let us find out!",
+          "kidText": "Good neighbors are kind and helpful. Which Scout Law points fit? Let's find out!",
           "digital": true,
           "activity": {
             "type": "quiz",
@@ -933,7 +1053,7 @@
                     "Clean"
                   ],
                   "answer": 1,
-                  "explain": "Helpful. You lend a hand."
+                  "explain": "Helpful. You help them carry the bags."
                 },
                 {
                   "prompt": "A new family moves in. You say hello. Which point?",
@@ -953,10 +1073,18 @@
                     "Courteous"
                   ],
                   "answer": 2,
-                  "explain": "Courteous. Good manners show respect."
+                  "explain": "Courteous. That means you are polite."
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Law has points for good neighbors.",
+              "Helpful means you help out, like with heavy bags.",
+              "Friendly means you say hi and welcome new people.",
+              "Courteous means you are polite, like saying please."
+            ]
           },
           "notes": "Any three fitting Scout Law points satisfy the requirement; the quiz covers helpful, friendly, and courteous."
         },
@@ -982,7 +1110,7 @@
           "practice": {
             "type": "craft",
             "params": {
-              "prompt": "Pick the tools to build a model house.",
+              "prompt": "Pick what you need to build a model house.",
               "result": "Model house",
               "ingredients": [
                 {
@@ -1013,6 +1141,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "A model is a small copy of something real.",
+              "A cardboard box can be your house.",
+              "Use tape, scissors, and markers to build it.",
+              "A banana or a rubber duck will not help."
+            ]
           }
         },
         {
@@ -1058,6 +1194,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "Your town has places you visit.",
+              "Follow the tall markers in order.",
+              "Stop at the library, school, fire station, and store.",
+              "Think: which one would you build?"
+            ]
           }
         },
         {
@@ -1113,13 +1257,21 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "A neighborhood is homes and buildings close together.",
+              "Use your home model and your town building.",
+              "Add paper roads and trees too.",
+              "Chips and toy dinosaurs do not fit."
+            ]
           }
         },
         {
           "id": "wolf.council-fire.6",
           "number": "6",
           "adultText": "Join in a service project, then explain how helping out benefits the neighborhood.",
-          "kidText": "Help your town with a service project. Then tell how it helps.",
+          "kidText": "Do a service project. That is a job that helps others. Then tell how it helps.",
           "digital": false,
           "activity": {
             "type": "fieldMission",
@@ -1152,13 +1304,21 @@
                   "prompt": "How does a clean park help?",
                   "choices": [
                     "It gets louder",
-                    "Everyone enjoys it"
+                    "Everyone can enjoy it"
                   ],
                   "answer": 1,
                   "explain": "A clean park is nicer for everyone."
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "A service project is a job that helps others.",
+              "Picking up trash at a park is service.",
+              "Games and TV are fun, but not service.",
+              "A clean park is nicer for everyone."
+            ]
           }
         }
       ]
@@ -1170,7 +1330,7 @@
       "required": true,
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/safety-in-numbers/",
       "fetchedOn": "2026-10-03",
-      "summary": "Learn the Protect Yourself Rules. Use the buddy system. Play safely.",
+      "summary": "Learn the Protect Yourself Rules. Stay with a buddy. Play it safe.",
       "requirements": [
         {
           "id": "wolf.safety-in-numbers.1",
@@ -1246,18 +1406,26 @@
               ]
             }
           },
+          "lesson": {
+            "lines": [
+              "A trusted adult is a grown-up you know and trust.",
+              "If something feels wrong, tell a trusted adult.",
+              "Keep telling until you get help.",
+              "Your body is yours. Say no to unsafe touch."
+            ]
+          },
           "notes": "Practice stays general and gentle. Do not add detail beyond the official Protect Yourself Rules video."
         },
         {
           "id": "wolf.safety-in-numbers.3",
           "number": "3",
           "adultText": "Find out about the buddy system, then show how buddies stay together.",
-          "kidText": "Learn the buddy system. Show how buddies stay together.",
+          "kidText": "Learn the buddy system. That means you stay with a buddy. Show how buddies stay together.",
           "digital": false,
           "activity": {
             "type": "fieldMission",
             "params": {
-              "title": "Show the buddy system",
+              "title": "Stay with your buddy",
               "kidSteps": [
                 "Pick a buddy.",
                 "Stay close together.",
@@ -1283,7 +1451,7 @@
               ],
               "items": [
                 {
-                  "label": "Keep your buddy in sight",
+                  "label": "Stay where you can see your buddy",
                   "bin": "buddy"
                 },
                 {
@@ -1308,6 +1476,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "The buddy system means you stay with a buddy.",
+              "Stay where you can see your buddy.",
+              "Tell your buddy where you go. Check on them.",
+              "Never leave your buddy. Never walk off or swim alone."
+            ]
           }
         },
         {
@@ -1333,7 +1509,7 @@
           "practice": {
             "type": "sort",
             "params": {
-              "prompt": "Sort the playground choices.",
+              "prompt": "Which ones are safe at the playground? Sort them.",
               "bins": [
                 {
                   "id": "safe",
@@ -1371,6 +1547,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "Wait your turn on the slide and swings.",
+              "Slide down feet first.",
+              "Sit on the swing seat. Never stand on it.",
+              "Never climb up the slide or push anyone."
+            ]
           }
         }
       ]
@@ -1382,7 +1566,7 @@
       "required": true,
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/footsteps/",
       "fetchedOn": "2026-10-03",
-      "summary": "Talk about your family's faith. Do a kind act. Learn why telling the truth matters.",
+      "summary": "Talk about your family's faith. Do something kind. Learn why the truth matters.",
       "requirements": [
         {
           "id": "wolf.footsteps.1",
@@ -1409,12 +1593,12 @@
           "id": "wolf.footsteps.2",
           "number": "2",
           "adultText": "Go with family to a religious service or a similar gathering where the family shows respect for what it holds dear.",
-          "kidText": "Go to a service or gathering with your family. Notice how your family shows respect.",
+          "kidText": "Go to a service or get-together with your family. Notice how your family shows respect.",
           "digital": false,
           "activity": {
             "type": "fieldMission",
             "params": {
-              "title": "Family gathering",
+              "title": "Family get-together",
               "kidSteps": [
                 "Go to a service or get-together with your family.",
                 "Notice how your family shows respect."
@@ -1433,7 +1617,7 @@
           "activity": {
             "type": "fieldMission",
             "params": {
-              "title": "Act of kindness",
+              "title": "Do a kind thing",
               "kidSteps": [
                 "Think of a kind thing to do.",
                 "Do it for someone.",
@@ -1484,6 +1668,14 @@
                 }
               ]
             }
+          },
+          "lesson": {
+            "lines": [
+              "Being kind means caring how others feel.",
+              "Share your toy. Help carry bags. Say thank you.",
+              "Make a card for a sad friend.",
+              "Laughing at friends or leaving them out is not kind."
+            ]
           }
         },
         {
@@ -1519,6 +1711,14 @@
               ]
             }
           },
+          "lesson": {
+            "lines": [
+              "A boy watches sheep on a hill.",
+              "He yells wolf as a joke. People run to help.",
+              "No wolf! He laughs. Later, a real wolf comes!",
+              "He yells for help, but no one believes him."
+            ]
+          },
           "notes": "The fable is public domain; the retelling here is original wording."
         }
       ]
@@ -1535,7 +1735,7 @@
       "id": "wolf.adventures-in-coins",
       "name": "Adventures in Coins",
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/adventures-in-coins/",
-      "summary": "Look at coins up close. Find the mint mark. Play a coin game and make a rubbing."
+      "summary": "Look at coins up close. Find the tiny letter that shows where each was made. Play a coin game. Make a rubbing."
     },
     {
       "id": "wolf.air-of-the-wolf",
@@ -1547,19 +1747,19 @@
       "id": "wolf.champions-for-nature",
       "name": "Champions for Nature",
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/champions-for-nature-wolf/",
-      "summary": "Learn what nature gives us. Reduce, reuse, and recycle! Help nature with a project."
+      "summary": "Learn what nature gives us. Use less, use things again, and recycle! Help nature with a project."
     },
     {
       "id": "wolf.code-of-the-wolf",
       "name": "Code of the Wolf",
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/code-of-the-wolf/",
-      "summary": "Make a secret code and send messages. Spot shapes and colors all around you."
+      "summary": "Make a secret code and send notes. Spot shapes and colors all around you."
     },
     {
       "id": "wolf.computing-wolves",
       "name": "Computing Wolves",
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/computing-wolves/",
-      "summary": "Learn what is inside a computer. Make a story on a device. Make safe screen rules."
+      "summary": "Learn what is inside a computer. Make a story on a computer or tablet. Make safe screen rules."
     },
     {
       "id": "wolf.cubs-who-care",
@@ -1571,7 +1771,7 @@
       "id": "wolf.digging-in-the-past",
       "name": "Digging in the Past",
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/digging-in-the-past/",
-      "summary": "Be a dinosaur scientist! Dig for fossils. Make up your own dinosaur."
+      "summary": "Learn about dinosaurs! Dig for fossils. Make up your own dinosaur."
     },
     {
       "id": "wolf.finding-your-way",
@@ -1613,7 +1813,7 @@
       "id": "wolf.race-time",
       "name": "Race Time",
       "sourceUrl": "https://www.scouting.org/cub-scout-adventures/race-time-wolf/",
-      "summary": "Build a Pinewood Derby car or a boat. Learn the race rules. Race and be a good sport."
+      "summary": "Build a small wood race car or a boat. Learn the race rules. Race and be a good sport."
     },
     {
       "id": "wolf.spirit-of-the-water",
@@ -1631,19 +1831,19 @@
       "id": "wolf.archery",
       "name": "Archery",
       "sourceUrl": "https://www.scouting.org/wp-content/uploads/2024/05/2024_Cub-Scout_Archery-Adventure-Lesson-Plan_051624.pdf",
-      "summary": "Shoot arrows at a target. Learn range rules. Done at a council camp with trained helpers."
+      "summary": "Shoot arrows at a target. Learn the safety rules. You do it at a Scout camp with trained helpers."
     },
     {
       "id": "wolf.bb-guns",
       "name": "BB Guns",
       "sourceUrl": "https://www.scouting.org/wp-content/uploads/2024/05/2024_Cub-Scout_BB-Adventure-Lesson-Plan_051724.pdf",
-      "summary": "Learn gun safety rules. Shoot at a target. Done at a council camp with trained helpers."
+      "summary": "Learn gun safety rules. Shoot at a target. You do it at a Scout camp with trained helpers."
     },
     {
       "id": "wolf.slingshot",
       "name": "Slingshot",
       "sourceUrl": "https://www.scouting.org/wp-content/uploads/2024/05/2024_Cub-Scout_Slingshot-Adventure-Lesson-Plan_051624.pdf",
-      "summary": "Learn slingshot safety. Shoot at a target. Done at a council camp with trained helpers."
+      "summary": "Learn how to stay safe. Shoot at a target. You do it at a Scout camp with trained helpers."
     }
   ]
 }

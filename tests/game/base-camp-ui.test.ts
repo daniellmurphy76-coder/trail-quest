@@ -22,10 +22,10 @@ beforeEach(() => {
 });
 
 describe('Start button rules', () => {
-  it('offers the trail while it has stops, a bonus when done with one waiting, and nothing otherwise', () => {
+  it('offers the trail while it has stops, "Keep going!" when done with more waiting, and nothing otherwise', () => {
     expect(startMode('ready', false)).toBe('trail');
-    expect(startMode('ready', true)).toBe('trail'); // a bonus never replaces an unfinished trail
-    expect(startMode('done-today', true)).toBe('bonus');
+    expect(startMode('ready', true)).toBe('trail'); // keeping going never replaces an unfinished trail
+    expect(startMode('done-today', true)).toBe('keep-going');
     expect(startMode('done-today', false)).toBe('hidden');
     expect(startMode('empty', false)).toBe('hidden');
     expect(startMode('empty', true)).toBe('hidden');
@@ -33,7 +33,8 @@ describe('Start button rules', () => {
 
   it('is on screen only with nothing open and nothing running', () => {
     expect(startVisible('trail', { overlayOpen: false, busy: false })).toBe(true);
-    expect(startVisible('bonus', { overlayOpen: false, busy: false })).toBe(true);
+    expect(startVisible('keep-going', { overlayOpen: false, busy: false })).toBe(true);
+    expect(startVisible('keep-going', { overlayOpen: false, busy: true })).toBe(false);
     expect(startVisible('trail', { overlayOpen: true, busy: false })).toBe(false);
     expect(startVisible('trail', { overlayOpen: false, busy: true })).toBe(false);
     expect(startVisible('hidden', { overlayOpen: false, busy: false })).toBe(false);
@@ -42,7 +43,7 @@ describe('Start button rules', () => {
   it('words the button the way the brief does, at both reading levels', () => {
     for (const level of ['grade2', 'grade5'] as const) {
       expect(startLabel('trail', level)).toBe("Start today's trail");
-      expect(startLabel('bonus', level)).toBe('Bonus stop');
+      expect(startLabel('keep-going', level)).toBe('Keep going!');
     }
   });
 
@@ -58,11 +59,11 @@ describe('Start button rules', () => {
     start.root.click();
     expect(onStart).toHaveBeenCalledTimes(1);
 
-    start.set('bonus', true, 'grade2');
-    expect(start.root.textContent).toContain('Bonus stop');
+    start.set('keep-going', true, 'grade2');
+    expect(start.root.textContent).toContain('Keep going!');
     expect(start.root.textContent).not.toContain('trail');
 
-    start.set('bonus', false, 'grade2');
+    start.set('keep-going', false, 'grade2');
     expect(start.root.hidden).toBe(true);
     start.set('hidden', true, 'grade2');
     expect(start.root.hidden).toBe(true);
@@ -292,6 +293,24 @@ describe('HUD progress dots', () => {
     expect(trailProgress({ state: 'done-today', items: [] })).toEqual({ done: 3, total: 3, complete: true });
   });
 
+  it('follows the current trail, whatever its length: a one-stop keep-going trail has one dot', () => {
+    expect(trailProgress({ state: 'ready', items: [item('next')] })).toEqual({ done: 0, total: 1, complete: false });
+    expect(trailProgress({ state: 'done-today', items: [item('done')] })).toEqual({ done: 1, total: 1, complete: true });
+    expect(trailProgress({ state: 'done-today', items: [item('done'), item('done')] })).toEqual({
+      done: 2,
+      total: 2,
+      complete: true,
+    });
+  });
+
+  it('does not claim a finished trail when a stop was skipped', () => {
+    expect(trailProgress({ state: 'done-today', items: [item('done'), item('later'), item('done')] })).toEqual({
+      done: 2,
+      total: 3,
+      complete: false,
+    });
+  });
+
   const info = { name: 'Rowan', rankLabel: 'Wolf', xp: 10, streak: 2 };
 
   it('draws three dots with a word beside them, and a check mark when done', () => {
@@ -354,10 +373,10 @@ describe('trail panel Start button', () => {
   });
 
   it('makes Start the default for Enter and Space', async () => {
-    const result = showTrailPanel(host, { view, level: 'grade2', start: { label: 'Bonus stop' } });
+    const result = showTrailPanel(host, { view, level: 'grade2', start: { label: 'Keep going!' } });
     await flush();
-    expect(document.activeElement?.textContent).toContain('Bonus stop');
-    buttonByText(host, 'Bonus stop').click();
+    expect(document.activeElement?.textContent).toContain('Keep going!');
+    buttonByText(host, 'Keep going!').click();
     await expect(result).resolves.toBe('start');
   });
 

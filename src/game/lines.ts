@@ -1,21 +1,36 @@
 /**
  * Every line the Den Chief says, in two reading levels.
  *
- *   grade2  Wolf profile: sentences of 10 words or fewer.
- *   grade5  Arrow of Light profile: sentences of 15 words or fewer.
+ *   grade2  Lion, Tiger, Wolf and Bear profiles (reading level grade1 to grade3): sentences of
+ *           10 words or fewer, one- and two-syllable everyday words.
+ *   grade5  Webelos and Arrow of Light profiles (grade4 and grade5): sentences of 15 words or
+ *           fewer, everyday words a 10-year-old says.
  *
  * A placeholder such as {name} counts as one word. tests/game/lines.test.ts checks both limits
  * and that every placeholder is one of LINE_VARS. Game code asks for a line by key, never writes
  * its own kid-facing sentence, and never hard-codes rank text.
  */
-import type { ReadingLevel } from '../activities/types';
+import type { RankId, ReadingLevel } from '../activities/types';
 import { ZONE_LABELS } from '../world/zone-ids';
 
 export type LineLevel = 'grade2' | 'grade5';
 
-/** Reading levels below grade 4 use the grade2 wording; grade 4 and up use grade5. */
+/**
+ * Which Den Chief wording each content reading level gets. Grade 1 (Lion, kindergarten) and
+ * grade 3 use the younger wording; grade 4 (Webelos) and grade 5 (Arrow of Light) use the
+ * older one. A Record, so a new ReadingLevel will not compile until it is placed here.
+ */
+export const LINE_LEVEL_BY_READING_LEVEL: Record<ReadingLevel, LineLevel> = {
+  grade1: 'grade2',
+  grade2: 'grade2',
+  grade3: 'grade2',
+  grade4: 'grade5',
+  grade5: 'grade5',
+};
+
+/** The wording for a reading level. Anything unexpected (a grade 0 file, say) gets the younger wording. */
 export function lineLevelOf(level: ReadingLevel): LineLevel {
-  return level === 'grade4' || level === 'grade5' ? 'grade5' : 'grade2';
+  return LINE_LEVEL_BY_READING_LEVEL[level] ?? 'grade2';
 }
 
 /** Values a line may mention. All optional; a missing one leaves the placeholder visible. */
@@ -63,13 +78,15 @@ export const LINES = {
     grade2: 'Welcome back, {name}! Ready for your trail?',
     grade5: "Welcome back, {name}! Ready for today's trail?",
   },
+  // Today's trail is already done: offer to keep going.
   greetDone: {
-    grade2: 'Your trail is done today. Want a bonus stop?',
-    grade5: "You finished today's trail. Want to try a bonus stop?",
+    grade2: 'Your trail is done today. Want to keep going?',
+    grade5: "You finished today's trail. Want to keep going?",
   },
-  greetDoneNoBonus: {
-    grade2: 'Your trail is done today. Great job! See you soon.',
-    grade5: "You finished today's trail. Great work today, {name}! See you next time.",
+  // Nothing is left to play right now (also the last thing said at the end of a keep-going run).
+  allDone: {
+    grade2: 'All done for now! You did so well, {name}. See you soon!',
+    grade5: 'Everything is done for now. Great work today, {name}! See you next time.',
   },
   greetNothing: {
     grade2: 'Hi {name}! I have no new stops today. Explore camp!',
@@ -79,10 +96,13 @@ export const LINES = {
   // ---- the two choices on a greeting ----
   choiceGo: same("Let's go!"),
   choiceLook: same('Look around first'),
+  // The same two choices once today's trail is done.
+  choiceKeepGoing: same('Keep going!'),
+  choiceLookAround: same('Look around'),
 
   // ---- the Start button at Base Camp and at the top of the trail panel ----
   startTrail: same("Start today's trail"),
-  startBonus: same('Bonus stop'),
+  startKeepGoing: same('Keep going!'),
 
   // ---- the controls hint card. [X] is drawn as a key cap. ----
   hintWalkKeys: same('Walk: arrow keys or [W] [A] [S] [D].'),
@@ -102,7 +122,7 @@ export const LINES = {
 
   // ---- the trail panel when there is no list to show ----
   panelDone: {
-    grade2: 'All done for today! Great job!',
+    grade2: 'Your trail is done! Great job!',
     grade5: "Today's trail is done. Great job!",
   },
   panelEmpty: {
@@ -128,13 +148,23 @@ export const LINES = {
     grade5: 'Field check! Did you finish your mission?',
   },
   stopFieldApproval: {
-    grade2: 'Field check! Time for your parent to approve.',
-    grade5: 'Field check! Your mission is ready for parent approval.',
+    grade2: 'Field check! Your grown-up can say yes now.',
+    grade5: 'Field check! Your grown-up can say yes to your mission now.',
   },
   stopBonus: {
     grade2: 'Bonus stop! Just for fun.',
     grade5: 'Bonus stop! One more, just for fun.',
   },
+
+  // ---- teaching before a stop (the lesson pages come from the content) ----
+  lessonIntro: same('Let me show you something first.'),
+  /** Before a review: does the Scout want the lesson again? */
+  remindAsk: {
+    grade2: 'Do you remember this one?',
+    grade5: 'Do you remember this one, or want a quick reminder?',
+  },
+  remindMe: same('Remind me'),
+  iRemember: same('I remember!'),
 
   // ---- travel sign shown when a stop belongs to another zone ----
   travel: same('Walking to the {zone}…'),
@@ -189,17 +219,22 @@ export const LINES = {
     grade2: 'Thanks for the help. See you soon!',
     grade5: 'Thanks for your help today, {name}. See you next time!',
   },
-  bonusMore: {
-    grade2: 'Great job! Want one more?',
-    grade5: 'Nice! Want to try one more bonus stop?',
-  },
-  bonusNone: {
-    grade2: 'That was the last one. Great job!',
-    grade5: 'That was the last bonus stop. Great job today!',
-  },
 } as const satisfies Record<string, Pair>;
 
 export type LineKey = keyof typeof LINES;
+
+/**
+ * A plain name for each rank, used only when a rank's content file is missing (the label itself
+ * comes from content). A Record over RankId, so all six ranks are always covered.
+ */
+export const RANK_FALLBACK_LABELS: Record<RankId, string> = {
+  lion: 'Lion',
+  tiger: 'Tiger',
+  wolf: 'Wolf',
+  bear: 'Bear',
+  webelos: 'Webelos',
+  'arrow-of-light': 'Arrow of Light',
+};
 
 /** Words for the zones, used by the travel sign and the Places buttons. Defined with the zone ids. */
 export { ZONE_LABELS };

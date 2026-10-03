@@ -4,88 +4,301 @@
   "title": "Trail Quest rank content file",
   "type": "object",
   "additionalProperties": false,
-  "required": ["rank", "label", "grade", "ageRange", "readingLevel", "program", "adventures"],
+  "required": [
+    "rank",
+    "label",
+    "grade",
+    "ageRange",
+    "readingLevel",
+    "program",
+    "adventures"
+  ],
   "properties": {
-    "rank": { "enum": ["lion", "tiger", "wolf", "bear", "webelos", "arrow-of-light"] },
-    "label": { "type": "string", "minLength": 1 },
-    "grade": { "type": "integer", "minimum": 0, "maximum": 5 },
-    "ageRange": { "type": "string", "description": "e.g. \"7-8\"" },
-    "readingLevel": { "enum": ["grade1", "grade2", "grade3", "grade4", "grade5"] },
+    "rank": {
+      "enum": [
+        "lion",
+        "tiger",
+        "wolf",
+        "bear",
+        "webelos",
+        "arrow-of-light"
+      ]
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "grade": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "ageRange": {
+      "type": "string",
+      "description": "e.g. \"7-8\""
+    },
+    "readingLevel": {
+      "enum": [
+        "grade1",
+        "grade2",
+        "grade3",
+        "grade4",
+        "grade5"
+      ]
+    },
     "program": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "year", "indexUrl", "fetchedOn"],
+      "required": [
+        "name",
+        "year",
+        "indexUrl",
+        "fetchedOn"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "year": { "type": "integer", "minimum": 2024 },
-        "indexUrl": { "type": "string", "format": "uri" },
-        "fetchedOn": { "type": "string", "format": "date" }
+        "name": {
+          "type": "string"
+        },
+        "year": {
+          "type": "integer",
+          "minimum": 2024
+        },
+        "indexUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "fetchedOn": {
+          "type": "string",
+          "format": "date"
+        }
       }
     },
-    "adventures": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/adventure" } },
-    "electives": { "type": "array", "items": { "$ref": "#/definitions/electiveSummary" } }
+    "adventures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/adventure"
+      }
+    },
+    "electives": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/electiveSummary"
+      }
+    }
   },
   "definitions": {
     "adventure": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "category", "required", "sourceUrl", "fetchedOn", "summary", "requirements"],
+      "required": [
+        "id",
+        "name",
+        "category",
+        "required",
+        "sourceUrl",
+        "fetchedOn",
+        "summary",
+        "requirements"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z-]+\\.[a-z0-9-]+$", "description": "<rank>.<adventure-slug>" },
-        "name": { "type": "string", "minLength": 1 },
-        "category": { "enum": ["bobcat", "fitness", "outdoors", "citizenship", "family-reverence", "personal-safety", "elective"] },
-        "required": { "type": "boolean" },
-        "sourceUrl": { "type": "string", "format": "uri" },
-        "fetchedOn": { "type": "string", "format": "date" },
-        "summary": { "type": "string", "maxLength": 160, "description": "Kid-level one-liner at the rank's reading level" },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z-]+\\.[a-z0-9-]+$",
+          "description": "<rank>.<adventure-slug>"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "enum": [
+            "bobcat",
+            "fitness",
+            "outdoors",
+            "citizenship",
+            "family-reverence",
+            "personal-safety",
+            "elective"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "fetchedOn": {
+          "type": "string",
+          "format": "date"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Kid-level one-liner at the rank's reading level"
+        },
         "choose": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["count", "from"],
+          "required": [
+            "count",
+            "from"
+          ],
           "properties": {
-            "count": { "type": "integer", "minimum": 1 },
-            "from": { "type": "array", "minItems": 2, "items": { "type": "string" }, "description": "requirement ids the player picks from" }
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "from": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "string"
+              },
+              "description": "requirement ids the player picks from"
+            }
           }
         },
-        "requirements": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/requirement" } },
-        "unverified": { "type": "boolean" }
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/requirement"
+          }
+        },
+        "unverified": {
+          "type": "boolean"
+        }
       }
     },
     "requirement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "number", "adultText", "kidText", "digital", "activity"],
+      "required": [
+        "id",
+        "number",
+        "adultText",
+        "kidText",
+        "digital",
+        "activity"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z-]+\\.[a-z0-9-]+\\.[0-9]+[a-z]?$", "description": "<adventure id>.<number>" },
-        "number": { "type": "string", "minLength": 1 },
-        "adultText": { "type": "string", "maxLength": 240, "description": "Accurate paraphrase for parents. Never verbatim." },
-        "kidText": { "type": "string", "maxLength": 200, "description": "What the NPC says, at the rank's reading level" },
-        "digital": { "type": "boolean", "description": "true if the requirement can be fully completed in-game" },
-        "optional": { "type": "boolean", "description": "true if this requirement is one of a 'choose N' set" },
-        "activity": { "$ref": "#/definitions/activity" },
-        "practice": { "$ref": "#/definitions/activity", "description": "Optional in-game practice for a fieldMission" },
-        "notes": { "type": "string", "maxLength": 400, "description": "Design notes for the implementer" },
-        "unverified": { "type": "boolean" }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z-]+\\.[a-z0-9-]+\\.[0-9]+[a-z]?$",
+          "description": "<adventure id>.<number>"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adultText": {
+          "type": "string",
+          "maxLength": 240,
+          "description": "Accurate paraphrase for parents. Never verbatim."
+        },
+        "kidText": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "What the NPC says, at the rank's reading level"
+        },
+        "digital": {
+          "type": "boolean",
+          "description": "true if the requirement can be fully completed in-game"
+        },
+        "optional": {
+          "type": "boolean",
+          "description": "true if this requirement is one of a 'choose N' set"
+        },
+        "activity": {
+          "$ref": "#/definitions/activity"
+        },
+        "practice": {
+          "$ref": "#/definitions/activity",
+          "description": "Optional in-game practice for a fieldMission"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "Design notes for the implementer"
+        },
+        "unverified": {
+          "type": "boolean"
+        },
+        "lesson": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lines"
+          ],
+          "description": "Den Chief teaching shown as dialogue pages before the learn activity. Kid reading level.",
+          "properties": {
+            "lines": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 6,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              }
+            }
+          }
+        }
       }
     },
     "activity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "params"],
+      "required": [
+        "type",
+        "params"
+      ],
       "properties": {
-        "type": { "enum": ["quiz", "sequence", "sort", "collect", "navigate", "rhythm", "craft", "fieldMission"] },
-        "params": { "type": "object", "description": "Shape per type is defined in src/activities/types.ts" }
+        "type": {
+          "enum": [
+            "quiz",
+            "sequence",
+            "sort",
+            "collect",
+            "navigate",
+            "rhythm",
+            "craft",
+            "fieldMission"
+          ]
+        },
+        "params": {
+          "type": "object",
+          "description": "Shape per type is defined in src/activities/types.ts"
+        }
       }
     },
     "electiveSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "sourceUrl", "summary"],
+      "required": [
+        "id",
+        "name",
+        "sourceUrl",
+        "summary"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z-]+\\.[a-z0-9-]+$" },
-        "name": { "type": "string" },
-        "sourceUrl": { "type": "string", "format": "uri" },
-        "summary": { "type": "string", "maxLength": 160 }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z-]+\\.[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 160
+        }
       }
     }
   }

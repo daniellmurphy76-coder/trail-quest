@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ActivityResult, ActivityType } from '../../src/activities/types';
-import type { RankContent } from '../../src/content/types';
+import type { RankContent, Requirement } from '../../src/content/types';
 import {
   chooseGreeting,
   createSession,
@@ -8,6 +8,7 @@ import {
   TRAVEL_SIGN_MS,
   type ActivityStage,
   type SessionDeps,
+  type SummaryChoice,
   type SummaryInfo,
 } from '../../src/game/session';
 import { activeStreak } from '../../src/game/streak';
@@ -15,6 +16,7 @@ import type { TrailStop } from '../../src/quests/types';
 import type { Profile } from '../../src/save/types';
 import { card, doneReq, makeProfile, TODAY } from '../fixtures/profile.fixture';
 import { fixtureRank, ID } from '../fixtures/rank.fixture';
+import { LION_ID, lionRank } from './lion-fixture';
 
 const IMPLEMENTED: ReadonlySet<ActivityType> = new Set(['quiz', 'sequence', 'fieldMission']);
 
@@ -35,6 +37,37 @@ function errandOnly(): RankContent {
   return { ...fixtureRank, adventures: [{ ...camp, requirements: camp.requirements.filter((r) => r.id === ID.campErrand) }] };
 }
 
+/** Content with one collect requirement and nothing else: with it done there is nothing left to plan. */
+function onlyCollect(): RankContent {
+  const trek = fixtureRank.adventures[0]!;
+  return { ...fixtureRank, adventures: [{ ...trek, requirements: [trek.requirements[0]!] }] };
+}
+
+/** Content reduced to the first `count` quiz requirements of Test Camp: every one a new step in turn. */
+function quizzes(count: number): RankContent {
+  const camp = fixtureRank.adventures.find((a) => a.id === 'wolf.test-camp')!;
+  const template = camp.requirements[0]!;
+  const requirements: Requirement[] = Array.from({ length: count }, (_, i) => ({
+    ...template,
+    id: `wolf.test-camp.${i + 1}`,
+    number: String(i + 1),
+  }));
+  return { ...fixtureRank, adventures: [{ ...camp, requirements }] };
+}
+
+/** The fixture with a lesson on one requirement. */
+function withLesson(id: string, lines: string[]): RankContent {
+  return {
+    ...fixtureRank,
+    adventures: fixtureRank.adventures.map((adventure) => ({
+      ...adventure,
+      requirements: adventure.requirements.map((r) => (r.id === id ? { ...r, lesson: { lines } } : r)),
+    })),
+  };
+}
+
+const litToday = { current: 3, best: 3, lastTrailDate: TODAY, embers: 0 };
+
 interface Harness {
   deps: SessionDeps;
   profile: () => Profile;
@@ -42,6 +75,7 @@ interface Harness {
   dialogs: { text: string; choices?: string[] }[];
   summaries: SummaryInfo[];
   clock: { ms: number };
+  /** A timeline: run:<kind>, persist, dialog:<text>, sign, approval-screen, badge, ... */
   order: string[];
 }
 
@@ -56,8 +90,10 @@ interface HarnessOptions {
   proceed?: boolean;
   /** Which dialog choice to pick; the greeting's first choice starts the trail. */
   choose?: (text: string, choices?: string[]) => number;
-  summaryChoice?: 'bonus' | 'explore';
+  /** What to pick on each summary; a function gets the summary and its position (0 for the first). */
+  summaryChoice?: SummaryChoice | ((info: SummaryInfo, index: number) => SummaryChoice);
   today?: string;
+  implemented?: ReadonlySet<ActivityType>;
 }
 
 function harness(options: HarnessOptions = {}): Harness {
@@ -71,7 +107,7 @@ function harness(options: HarnessOptions = {}): Harness {
 
   const deps: SessionDeps = {
     content: options.content ?? fixtureRank,
-    implemented: IMPLEMENTED,
+    implemented: options.implemented ?? IMPLEMENTED,
     getProfile: () => profile,
     persist: vi.fn((next: Profile) => {
       order.push('persist');
@@ -82,8 +118,9 @@ function harness(options: HarnessOptions = {}): Harness {
     wait: vi.fn(async () => {}),
     showDialog: vi.fn(async (dialog) => {
       dialogs.push(dialog);
-      // A long pause at the greeting proves the clock starts at the first stop, not before.
-      if (dialog.choices) clock.ms += 100_000;
+      order.push(`dialog:${dialog.text}`);
+      // A long pause at a greeting proves the clock starts at the first stop, not before.
+      if (dialog.choices && !dialog.choices.includes('Remind me')) clock.ms += 100_000;
       return options.choose ? options.choose(dialog.text, dialog.choices) : 0;
     }),
     runActivity: vi.fn(async (stop, stage) => {
@@ -93,7 +130,10 @@ function harness(options: HarnessOptions = {}): Harness {
       if (options.result) return options.result(stop, stage);
       return stage === 'handout' ? { completed: false, attempts: 1 } : { completed: true, attempts: 1, score: 1 };
     }),
-    showTrailSign: vi.fn(() => () => {}),
+    showTrailSign: vi.fn(() => {
+      order.push('sign');
+      return () => {};
+    }),
     showApproval: vi.fn(async () => {
       order.push('approval-screen');
       return options.proceed ?? true;
@@ -115,14 +155,21 @@ function harness(options: HarnessOptions = {}): Harness {
       order.push('badge');
     }),
     showSummary: vi.fn(async (info) => {
+      const index = summaries.length;
       summaries.push(info);
-      return options.summaryChoice ?? 'explore';
+      const pick = options.summaryChoice ?? 'explore';
+      return typeof pick === 'function' ? pick(info, index) : pick;
     }),
   };
   return { deps, profile: () => profile, stages, dialogs, summaries, clock, order };
 }
 
 const kindsLogged = (profile: Profile) => profile.sessions.at(-1)!.stops.map((s) => `${s.kind}:${s.completed}`);
+
+/** Everything the Den Chief said, in order. */
+const said = (h: Harness): string[] => h.order.filter((o) => o.startsWith('dialog:')).map((o) => o.slice(7));
+const LESSON_INTRO = 'Let me show you something first.';
+const REMIND_ASK = 'Do you remember this one?';
 
 describe('session: running the trail', () => {
   it('runs the stops in order with the right stage for each', async () => {
@@ -220,7 +267,7 @@ describe('session: backing out', () => {
     expect(summary.stopsTotal).toBe(3);
     expect(summary.xpEarned).toBe(10); // only the warm-up
     expect(summary.streakLit).toBe(false);
-    expect(summary.bonusAvailable).toBe(false);
+    expect(summary.keepGoingAvailable).toBe(false); // keeping going is for a finished trail
     expect(h.dialogs.some((d) => d.text.startsWith('That is okay!'))).toBe(true);
 
     const after = h.profile();
@@ -503,32 +550,31 @@ describe('session: greetings', () => {
     expect(h.dialogs[0]!.text).toContain('A trail is three quick stops: warm-up, new step, field check.');
   });
 
-  it('offers a bonus stop when the trail is already done today', async () => {
+  it('offers to keep going when the trail is already done today, with Keep going! and Look around', async () => {
     const h = harness({ profile: lit() });
     await createSession(h.deps).talk();
-    expect(h.dialogs[0]!.text).toBe('Your trail is done today. Want a bonus stop?');
-    expect(h.dialogs[0]!.choices).toEqual(['Bonus stop', 'Not now']);
-    expect(h.stages).toEqual(['review']);
-    expect(vi.mocked(h.deps.runActivity).mock.calls[0]![0].kind).toBe('bonus');
+    expect(h.dialogs[0]!.text).toBe('Your trail is done today. Want to keep going?');
+    expect(h.dialogs[0]!.choices).toEqual(['Keep going!', 'Look around']);
+    // Keep going plans a fresh trail from the profile: the same three kinds of stop.
+    expect(h.stages).toEqual(['review', 'new', 'handout']);
+    expect(vi.mocked(h.deps.runActivity).mock.calls[0]![0].kind).toBe('warm-up');
   });
 
-  it('says goodbye when the trail is done and there is no bonus to offer', async () => {
+  it('says everything is done for now when the trail is done and there is nothing left', async () => {
     const h = harness({
-      profile: { streak: { current: 1, best: 1, lastTrailDate: TODAY, embers: 0 } },
+      content: onlyCollect(),
+      profile: { name: 'Rowan', requirements: { [ID.trekCollect]: doneReq() }, streak: litToday },
     });
     await createSession(h.deps).talk();
     expect(h.dialogs).toHaveLength(1);
-    expect(h.dialogs[0]!.text).toContain('Your trail is done today. Great job!');
+    expect(h.dialogs[0]!.text).toContain('All done for now!');
+    expect(h.dialogs[0]!.text).toContain('Rowan');
     expect(h.dialogs[0]!.choices).toBeUndefined();
     expect(h.deps.runActivity).not.toHaveBeenCalled();
   });
 
   it('says there is nothing to do when the plan is empty', async () => {
-    const onlyCollect: RankContent = {
-      ...fixtureRank,
-      adventures: [{ ...fixtureRank.adventures[0]!, requirements: [fixtureRank.adventures[0]!.requirements[0]!] }],
-    };
-    const h = harness({ profile: { name: 'Rowan', requirements: { [ID.trekCollect]: doneReq() } }, content: onlyCollect });
+    const h = harness({ profile: { name: 'Rowan', requirements: { [ID.trekCollect]: doneReq() } }, content: onlyCollect() });
     await createSession(h.deps).talk();
     expect(h.dialogs).toHaveLength(1);
     expect(h.dialogs[0]!.text).toContain('I have no new stops today');
@@ -548,26 +594,32 @@ describe('session: greetings', () => {
     const played = harness({ profile: threeStops() });
     await expect(createSession(played.deps).talk()).resolves.toBe('trail');
 
-    // Nothing to do today, or a trail that is done with no bonus left: nothing started.
-    const done = harness({ profile: { streak: { current: 1, best: 1, lastTrailDate: TODAY, embers: 0 } } });
+    // A trail that is done with nothing left: nothing started.
+    const done = harness({
+      content: onlyCollect(),
+      profile: { requirements: { [ID.trekCollect]: doneReq() }, streak: litToday },
+    });
     await expect(createSession(done.deps).talk()).resolves.toBe('none');
 
-    // A bonus offered and taken, then turned down.
-    const lit = { ...threeStops(), streak: { current: 3, best: 3, lastTrailDate: TODAY, embers: 0 } };
+    // Keeping going offered and taken, then turned down with Look around.
+    const lit = { ...threeStops(), streak: litToday };
     const taken = harness({ profile: lit });
-    await expect(createSession(taken.deps).talk()).resolves.toBe('bonus');
+    await expect(createSession(taken.deps).talk()).resolves.toBe('keep-going');
     const declined = harness({ profile: lit, choose: () => 1 });
     await expect(createSession(declined.deps).talk()).resolves.toBe('none');
   });
 
-  it('reports whether a bonus stop is waiting, for the Start button', () => {
-    const lit = { ...threeStops(), streak: { current: 3, best: 3, lastTrailDate: TODAY, embers: 0 } };
-    expect(createSession(harness({ profile: lit }).deps).bonusAvailable()).toBe(true);
-    // Not done yet: the Start button says "Start today's trail", never "Bonus stop".
-    expect(createSession(harness({ profile: threeStops() }).deps).bonusAvailable()).toBe(false);
-    // Done, but nothing learned to review.
-    const bare = harness({ profile: { streak: { current: 1, best: 1, lastTrailDate: TODAY, embers: 0 } } });
-    expect(createSession(bare.deps).bonusAvailable()).toBe(false);
+  it('reports whether more is waiting, for the Start button', () => {
+    const lit = { ...threeStops(), streak: litToday };
+    expect(createSession(harness({ profile: lit }).deps).keepGoingAvailable()).toBe(true);
+    // Not done yet: the Start button says "Start today's trail", never "Keep going!".
+    expect(createSession(harness({ profile: threeStops() }).deps).keepGoingAvailable()).toBe(false);
+    // Done, and nothing new and nothing learned to review.
+    const bare = harness({
+      content: onlyCollect(),
+      profile: { requirements: { [ID.trekCollect]: doneReq() }, streak: litToday },
+    });
+    expect(createSession(bare.deps).keepGoingAvailable()).toBe(false);
   });
 
   it('never plans a type the game cannot run', async () => {
@@ -579,59 +631,387 @@ describe('session: greetings', () => {
   });
 });
 
-describe('session: bonus stop and the summary', () => {
-  it('offers a bonus stop that skips what today already used, and logs it', async () => {
-    const h = harness({
-      profile: {
-        requirements: { [ID.campQuiz]: doneReq(), [ID.campSort]: doneReq('2026-09-25'), [ID.campChore]: doneReq() },
-        review: { [ID.campQuiz]: card(0, '2026-10-02') },
-      },
-      summaryChoice: 'bonus',
-    });
-    // The trail: warm-up quiz, new step (none left that is learnable?), field-check.
+describe('session: teaching before the activity', () => {
+  const CHORE_LINES = ['Chore line one.', 'Chore line two.', 'Chore line three.'];
+  const KID_TEXT_CHORE = 'Test step 2 of wolf.test-camp. This second sentence is extra.';
+  const KID_TEXT_QUIZ = 'Test step 1 of wolf.test-camp. This second sentence is extra.';
+
+  it('shows a new step\'s lesson, one line per page with a Next button, before the activity', async () => {
+    // The new step is Test Camp's chore: a field mission whose practice (a sequence) is what runs.
+    const h = harness({ profile: threeStops(), content: withLesson(ID.campChore, CHORE_LINES) });
     await createSession(h.deps).talk();
-    expect(h.summaries[0]!.bonusAvailable).toBe(true);
 
-    const calls = vi.mocked(h.deps.runActivity).mock.calls;
-    const bonus = calls.at(-1)![0];
-    expect(bonus.kind).toBe('bonus');
-    const used = calls.slice(0, -1).map(([stop]) => stop.requirementId);
-    expect(used).not.toContain(bonus.requirementId);
-    expect(calls.at(-1)![1]).toBe('review');
-
-    const after = h.profile();
-    expect(after.sessions).toHaveLength(2);
-    expect(after.sessions.at(-1)!.stops).toEqual([{ kind: 'bonus', requirementId: bonus.requirementId, completed: true }]);
-    expect(after.sessions.at(-1)!.xpEarned).toBe(10);
-    expect(after.streak.current).toBe(1); // a bonus never moves the streak twice
+    const run = h.order.indexOf('run:new-step');
+    expect(h.order.slice(run - 5, run)).toEqual([
+      expect.stringMatching(/^dialog:A new step! /),
+      `dialog:${LESSON_INTRO}`,
+      'dialog:Chore line one.',
+      'dialog:Chore line two.',
+      'dialog:Chore line three.',
+    ]);
+    // Plain pages: no choices, so the dialogue box draws its single Next button.
+    for (const dialog of h.dialogs.filter((d) => d.text.startsWith('Chore line') || d.text === LESSON_INTRO)) {
+      expect(dialog.choices).toBeUndefined();
+    }
+    // The practice still runs once, as a new step.
+    expect(h.stages).toEqual(['review', 'new', 'handout']);
   });
 
-  it('offers a bonus only after the whole trail was done', async () => {
+  it('falls back to one page made from the kidText when the content has no lesson yet', async () => {
+    const h = harness({ profile: threeStops() });
+    await createSession(h.deps).talk();
+    const run = h.order.indexOf('run:new-step');
+    expect(h.order.slice(run - 2, run)).toEqual([expect.stringMatching(/^dialog:A new step! /), `dialog:${KID_TEXT_CHORE}`]);
+    expect(said(h)).not.toContain(LESSON_INTRO);
+  });
+
+  it('asks a warm-up "Remind me" or "I remember!" and shows the lesson after "Remind me"', async () => {
+    const h = harness({ profile: threeStops(), content: withLesson(ID.campQuiz, ['Quiz line one.', 'Quiz line two.']) });
+    await createSession(h.deps).talk();
+    const run = h.order.indexOf('run:warm-up');
+    expect(h.order.slice(run - 5, run)).toEqual([
+      expect.stringMatching(/^dialog:Warm-up time! /),
+      `dialog:${REMIND_ASK}`,
+      `dialog:${LESSON_INTRO}`,
+      'dialog:Quiz line one.',
+      'dialog:Quiz line two.',
+    ]);
+    const ask = h.dialogs.find((d) => d.text === REMIND_ASK)!;
+    expect(ask.choices).toEqual(['Remind me', 'I remember!']);
+  });
+
+  it('skips the lesson on a review when the Scout says "I remember!"', async () => {
+    const h = harness({
+      profile: threeStops(),
+      content: withLesson(ID.campQuiz, ['Quiz line one.', 'Quiz line two.']),
+      choose: (text) => (text === REMIND_ASK ? 1 : 0),
+    });
+    await createSession(h.deps).talk();
+    const run = h.order.indexOf('run:warm-up');
+    expect(h.order.slice(run - 2, run)).toEqual([expect.stringMatching(/^dialog:Warm-up time! /), `dialog:${REMIND_ASK}`]);
+    expect(said(h)).not.toContain(LESSON_INTRO);
+    expect(said(h)).not.toContain('Quiz line one.');
+    // The review itself still runs and counts.
+    expect(h.stages[0]).toBe('review');
+    expect(h.summaries[0]).toMatchObject({ stopsDone: 3, stopsTotal: 3 });
+  });
+
+  it('reminds a review with no lesson from the kidText', async () => {
+    const h = harness({ profile: threeStops() });
+    await createSession(h.deps).talk();
+    const run = h.order.indexOf('run:warm-up');
+    expect(h.order.slice(run - 3, run)).toEqual([
+      expect.stringMatching(/^dialog:Warm-up time! /),
+      `dialog:${REMIND_ASK}`,
+      `dialog:${KID_TEXT_QUIZ}`,
+    ]);
+  });
+
+  it('asks about a review only the first time it runs that day', async () => {
+    let backOut = true;
+    const h = harness({
+      profile: threeStops(),
+      result: (stop, stage) => {
+        if (stop.kind === 'new-step' && backOut) return { completed: false, attempts: 1 };
+        return stage === 'handout' ? { completed: false, attempts: 1 } : { completed: true, attempts: 1, score: 1 };
+      },
+    });
+    const session = createSession(h.deps);
+    await session.talk(); // the new step is skipped, so the campfire is not lit
+    backOut = false;
+    await session.talk(); // the same warm-up comes round again
+
+    const warmUps = vi.mocked(h.deps.runActivity).mock.calls.filter(([stop]) => stop.kind === 'warm-up');
+    expect(warmUps).toHaveLength(2);
+    expect(warmUps[0]![0].requirementId).toBe(warmUps[1]![0].requirementId);
+    expect(said(h).filter((text) => text === REMIND_ASK)).toHaveLength(1);
+  });
+
+  it('always shows a new step\'s lesson, even when it is tried again after backing out', async () => {
+    let backOut = true;
+    const h = harness({
+      profile: threeStops(),
+      content: withLesson(ID.campChore, CHORE_LINES),
+      result: (stop, stage) => {
+        if (stop.kind === 'new-step' && backOut) return { completed: false, attempts: 1 };
+        return stage === 'handout' ? { completed: false, attempts: 1 } : { completed: true, attempts: 1, score: 1 };
+      },
+    });
+    const session = createSession(h.deps);
+    await session.talk();
+    backOut = false;
+    await session.talk();
+    expect(said(h).filter((text) => text === LESSON_INTRO)).toHaveLength(2);
+  });
+
+  it('has nothing to teach on a field mission handout, check-in or approval', async () => {
+    const h = harness({ profile: threeStops(), content: withLesson(ID.campErrand, ['Never shown.']) });
+    await createSession(h.deps).talk();
+    const run = h.order.indexOf('run:field-check');
+    expect(h.order[run - 1]).toMatch(/^dialog:Field check! /);
+    expect(said(h)).not.toContain('Never shown.');
+  });
+
+  it('teaches at Base Camp, before the trail sign for another zone', async () => {
+    const h = harness({
+      profile: {
+        requirements: {
+          [ID.campQuiz]: doneReq(),
+          [ID.campChore]: doneReq(),
+          [ID.campSort]: doneReq(),
+          [ID.campErrand]: doneReq(),
+        },
+      },
+    });
+    await createSession(h.deps).talk();
+    const kidText = 'Test step 4 of wolf.test-trek. This second sentence is extra.';
+    const page = h.order.indexOf(`dialog:${kidText}`);
+    expect(page).toBeGreaterThan(-1);
+    expect(h.order.indexOf('sign')).toBeGreaterThan(page);
+    expect(h.order.indexOf('run:new-step')).toBeGreaterThan(h.order.indexOf('sign'));
+  });
+});
+
+describe('session: keep going', () => {
+  const keepGoingOnce = (_info: SummaryInfo, index: number): SummaryChoice => (index === 0 ? 'keep-going' : 'explore');
+
+  it('plans a second trail from the updated profile and plays it the same way', async () => {
+    const h = harness({ profile: threeStops(), summaryChoice: keepGoingOnce });
+    await createSession(h.deps).talk();
+
+    expect(h.summaries).toHaveLength(2);
+    expect(h.summaries[0]).toMatchObject({ stopsDone: 3, stopsTotal: 3, keepGoingAvailable: true });
+    const calls = vi.mocked(h.deps.runActivity).mock.calls;
+    // The first trail as before. The second is planned after it: the camp's chore is learned, so the
+    // next new step is the one in the Trek. The mission cards and the warm-up are not repeated.
+    expect(calls.map(([stop]) => `${stop.kind}:${stop.requirementId}`)).toEqual([
+      `warm-up:${ID.campQuiz}`,
+      `new-step:${ID.campChore}`,
+      `field-check:${ID.campErrand}`,
+      `new-step:${ID.trekChore}`,
+    ]);
+    expect(h.stages).toEqual(['review', 'new', 'handout', 'new']);
+    // The same flow: intro, lesson, sign (a Trek step), activity, cheer, then its own summary.
+    const intro = h.order.findIndex((o, i) => i > h.order.indexOf('run:field-check') && o.startsWith('dialog:A new step!'));
+    expect(intro).toBeGreaterThan(-1);
+    expect(h.order.slice(intro).filter((o) => o === 'sign' || o.startsWith('run:'))).toEqual(['sign', 'run:new-step']);
+    expect(h.summaries[1]).toMatchObject({ stopsDone: 1, stopsTotal: 1, xpEarned: 20 });
+  });
+
+  it('logs each trail as its own session and moves the streak once for the day', async () => {
+    const h = harness({
+      profile: { ...threeStops(), streak: { current: 4, best: 4, lastTrailDate: '2026-10-02', embers: 0 } },
+      summaryChoice: keepGoingOnce,
+    });
+    await createSession(h.deps).talk();
+    const after = h.profile();
+
+    expect(after.sessions).toHaveLength(2);
+    expect(after.sessions.map((log) => log.stops.map((s) => `${s.kind}:${s.completed}`))).toEqual([
+      ['warm-up:true', 'new-step:true', 'field-check:true'],
+      ['new-step:true'],
+    ]);
+    expect(after.sessions.map((log) => log.date)).toEqual([TODAY, TODAY]);
+    expect(after.sessions[1]!.xpEarned).toBe(20);
+    // 4 became 5 for today's first trail; the extra trail does not make it 6.
+    expect(after.streak).toEqual({ current: 5, best: 5, lastTrailDate: TODAY, embers: 0 });
+    // The first summary said so; the second still shows the lit campfire.
+    expect(h.summaries.map((info) => [info.streak, info.streakLit])).toEqual([[5, true], [5, true]]);
+  });
+
+  it('keeps XP, learnedAt, review cards and adventure progress accruing', async () => {
+    const h = harness({ profile: threeStops(), summaryChoice: keepGoingOnce });
+    await createSession(h.deps).talk();
+    const after = h.profile();
+    // warm-up 10 + new step 20, then another new step 20; the handout earns nothing.
+    expect(after.xp).toBe(50);
+    expect(after.requirements[ID.campChore]!.learnedAt).toBe(TODAY);
+    expect(after.requirements[ID.trekChore]!.learnedAt).toBe(TODAY);
+    expect(after.review[ID.trekChore]).toBeDefined();
+    expect(after.requirements[ID.campErrand]!.status).toBe('in-progress');
+  });
+
+  it('shows the dots of the trail being played, and the finished one afterwards', async () => {
+    const h = harness({ profile: threeStops(), summaryChoice: keepGoingOnce });
+    const session = createSession(h.deps);
+    const seen: { text: string; state: string; statuses: string[] }[] = [];
+    const showDialog = h.deps.showDialog;
+    h.deps.showDialog = vi.fn(async (dialog) => {
+      const view = session.view();
+      seen.push({ text: dialog.text, state: view.state, statuses: view.items.map((i) => i.status) });
+      return showDialog(dialog);
+    });
+    await session.talk();
+
+    const secondIntro = seen.filter((entry) => entry.text.startsWith('A new step!')).at(-1)!;
+    expect(secondIntro.state).toBe('ready');
+    expect(secondIntro.statuses).toEqual(['next']); // one stop on this trail
+    const view = session.view();
+    expect(view.state).toBe('done-today');
+    expect(view.items.map((i) => [i.kind, i.status])).toEqual([['new-step', 'done']]);
+  });
+
+  it('does not give the same mission card a second time in one day', async () => {
+    const h = harness({ profile: threeStops(), summaryChoice: keepGoingOnce });
+    await createSession(h.deps).talk();
+    // The handout from the first trail is not turned into a check-in a minute later.
+    expect(h.stages).not.toContain('check-in');
+    expect(h.stages.filter((stage) => stage === 'handout')).toHaveLength(1);
+  });
+
+  it('keeps going until the planner has nothing left, then says everything is done for now', async () => {
+    const h = harness({
+      profile: { name: 'Rowan' },
+      content: quizzes(3),
+      summaryChoice: (info) => (info.keepGoingAvailable ? 'keep-going' : 'explore'),
+    });
+    await expect(createSession(h.deps).talk()).resolves.toBe('trail');
+
+    const ran = vi.mocked(h.deps.runActivity).mock.calls.map(([stop]) => stop.requirementId);
+    expect(ran).toEqual(['wolf.test-camp.1', 'wolf.test-camp.2', 'wolf.test-camp.3']);
+    expect(h.summaries.map((info) => info.keepGoingAvailable)).toEqual([true, true, false]);
+    expect(h.summaries.map((info) => info.xpEarned)).toEqual([20, 20, 20]);
+    expect(h.summaries[2]!.badges).toEqual(['Test Camp']);
+
+    const after = h.profile();
+    expect(after.sessions).toHaveLength(3);
+    expect(after.xp).toBe(60);
+    expect(after.streak).toMatchObject({ current: 1, lastTrailDate: TODAY });
+    expect(Object.keys(after.review)).toHaveLength(3);
+    expect(after.adventures['wolf.test-camp']).toBeDefined();
+  });
+
+  it('says everything is done for now when "Keep going!" is picked and the planner is empty', async () => {
+    const h = harness({
+      profile: { name: 'Rowan' },
+      content: quizzes(1),
+      summaryChoice: 'keep-going', // no button would be offered, but suppose it is picked
+    });
+    await createSession(h.deps).talk();
+    expect(h.summaries).toHaveLength(1);
+    expect(h.summaries[0]!.keepGoingAvailable).toBe(false);
+    expect(vi.mocked(h.deps.runActivity)).toHaveBeenCalledTimes(1);
+    expect(h.dialogs.at(-1)!.text).toContain('All done for now!');
+    expect(h.dialogs.at(-1)!.text).toContain('Rowan');
+  });
+
+  it('offers keep going only after the whole trail was done', async () => {
     const h = harness({
       profile: threeStops(),
       result: (_stop, stage) => (stage === 'review' ? { completed: false, attempts: 1 } : { completed: true, attempts: 1 }),
     });
     await createSession(h.deps).talk();
-    expect(h.summaries[0]!.bonusAvailable).toBe(false);
+    expect(h.summaries[0]!.keepGoingAvailable).toBe(false);
   });
 
-  it('does not log a bonus stop the kid backed out of', async () => {
+  it('offers it from the greeting once the trail is done, leaving out what today already used', async () => {
+    // A reload: the campfire is lit and the logs show what was played earlier today.
+    const played = [ID.campQuiz, ID.campChore, ID.campErrand].map((requirementId) => ({
+      kind: 'warm-up' as const,
+      requirementId,
+      completed: true,
+    }));
     const h = harness({
       profile: {
-        requirements: { [ID.campQuiz]: doneReq(), [ID.campSort]: doneReq('2026-09-25') },
-        review: { [ID.campQuiz]: card(0, '2026-10-02') },
+        ...threeStops(),
+        streak: litToday,
+        sessions: [{ date: TODAY, stops: played, xpEarned: 30, durationSec: 80 }],
       },
-      summaryChoice: 'bonus',
-      result: (stop) => (stop.kind === 'bonus' ? { completed: false, attempts: 1 } : { completed: true, attempts: 1 }),
     });
-    await createSession(h.deps).talk();
-    expect(h.profile().sessions).toHaveLength(1);
+    await expect(createSession(h.deps).talk()).resolves.toBe('keep-going');
+    expect(h.dialogs[0]!.choices).toEqual(['Keep going!', 'Look around']);
+    expect(vi.mocked(h.deps.runActivity).mock.calls.map(([stop]) => stop.requirementId)).toEqual([ID.trekChore]);
+
+    const after = h.profile();
+    expect(after.sessions).toHaveLength(2); // its own log
+    expect(after.streak.current).toBe(3); // already counted today
+    expect(after.xp).toBe(20);
+  });
+
+  it('starts nothing when the Scout picks Look around', async () => {
+    const h = harness({ profile: { ...threeStops(), streak: litToday }, choose: () => 1 });
+    await expect(createSession(h.deps).talk()).resolves.toBe('none');
+    expect(h.deps.runActivity).not.toHaveBeenCalled();
+    expect(h.profile().sessions).toHaveLength(0);
   });
 
   it('returns to the camp when the kid picks Explore camp', async () => {
     const h = harness({ profile: threeStops(), summaryChoice: 'explore' });
     await createSession(h.deps).talk();
     expect(vi.mocked(h.deps.runActivity)).toHaveBeenCalledTimes(3);
+    expect(h.summaries).toHaveLength(1);
+  });
+
+  it('keeps the log honest when a keep-going stop is backed out of', async () => {
+    const h = harness({
+      profile: threeStops(),
+      summaryChoice: keepGoingOnce,
+      result: (stop, stage) => {
+        if (stop.requirementId === ID.trekChore) return { completed: false, attempts: 1 };
+        return stage === 'handout' ? { completed: false, attempts: 1 } : { completed: true, attempts: 1, score: 1 };
+      },
+    });
+    await createSession(h.deps).talk();
+    const after = h.profile();
+    expect(after.sessions.at(-1)!.stops).toEqual([{ kind: 'new-step', requirementId: ID.trekChore, completed: false }]);
+    expect(after.sessions.at(-1)!.xpEarned).toBe(0);
+    expect(after.requirements[ID.trekChore]?.learnedAt).toBeUndefined();
+    expect(h.summaries[1]).toMatchObject({ stopsDone: 0, stopsTotal: 1, keepGoingAvailable: false });
+    expect(after.streak.current).toBe(1);
+  });
+});
+
+describe('session: a Lion-style rank (grade1)', () => {
+  const lion = (extra: Partial<Profile> = {}): Partial<Profile> => ({ rank: 'lion', name: 'Rowan', ...extra });
+
+  it('reads the content as grade1 and uses the younger wording', async () => {
+    expect(lionRank.readingLevel).toBe('grade1');
+    const h = harness({ profile: lion(), content: lionRank });
+    await createSession(h.deps).talk();
+    const greeting = h.dialogs[0]!;
+    expect(greeting.text).toContain('A trail is three quick stops.');
+    expect(greeting.text).not.toContain('warm-up, new step, field check'); // the grade5 wording
+    expect(h.dialogs.some((d) => d.text.startsWith("A new step! Let's learn it."))).toBe(true);
+  });
+
+  it('plans and plays a trail, then keeps going through the whole rank', async () => {
+    const h = harness({
+      profile: lion(),
+      content: lionRank,
+      summaryChoice: (info) => (info.keepGoingAvailable ? 'keep-going' : 'explore'),
+    });
+    await createSession(h.deps).talk();
+
+    const ran = vi.mocked(h.deps.runActivity).mock.calls.map(([stop]) => `${stop.kind}:${stop.requirementId}`);
+    expect(ran).toEqual([
+      `new-step:${LION_ID.roarQuiz}`,
+      `field-check:${LION_ID.roarErrand}`,
+      `new-step:${LION_ID.roarChore}`,
+      `field-check:${LION_ID.roarChore}`,
+      `new-step:${LION_ID.pawsQuiz}`,
+    ]);
+    expect(h.stages).toEqual(['new', 'handout', 'new', 'handout', 'new']);
+    expect(h.summaries.map((info) => info.keepGoingAvailable)).toEqual([true, true, false]);
+
+    // Each learn stop had its lesson first: the intro, then one page per line.
+    const run = h.order.indexOf('run:new-step');
+    expect(h.order.slice(run - 4, run)).toEqual([
+      `dialog:${LESSON_INTRO}`,
+      'dialog:A lion is a big cat.',
+      'dialog:Lions live in groups.',
+      'dialog:The group is a pride.',
+    ]);
+    expect(said(h)).toContain('Do the chore in three steps.'); // a field mission's practice has a lesson too
+    expect(said(h)).toContain('Lions have big paws.');
+
+    const after = h.profile();
+    expect(after.rank).toBe('lion');
+    expect(after.xp).toBe(60);
+    expect(after.streak).toMatchObject({ current: 1, lastTrailDate: TODAY });
+    expect(after.sessions).toHaveLength(3);
+    expect(after.adventures['lion.test-paws']).toBeDefined(); // a badge for any rank
+    expect(h.summaries[2]!.badges).toEqual(['Test Paws']);
+    expect(vi.mocked(h.deps.showBadge)).toHaveBeenCalledWith({ adventureId: 'lion.test-paws', adventureName: 'Test Paws' });
   });
 });
 

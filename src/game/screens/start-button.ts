@@ -4,16 +4,16 @@ import { line, type LineLevel } from '../lines';
 import type { TrailView } from '../session';
 
 /** What the big Start button offers right now. */
-export type StartMode = 'trail' | 'bonus' | 'hidden';
+export type StartMode = 'trail' | 'keep-going' | 'hidden';
 
 /**
  * The Start button rule. Today's trail with stops left to play: "Start today's trail". Trail done
- * and a bonus stop waiting: "Bonus stop". Anything else (nothing to play today, or done with no
- * bonus left): no button, because pressing it could only say there is nothing to do.
+ * and more waiting: "Keep going!". Anything else (nothing to play today, or done with nothing
+ * left): no button, because pressing it could only say there is nothing to do.
  */
-export function startMode(state: TrailView['state'], bonusAvailable: boolean): StartMode {
+export function startMode(state: TrailView['state'], keepGoingAvailable: boolean): StartMode {
   if (state === 'ready') return 'trail';
-  if (state === 'done-today' && bonusAvailable) return 'bonus';
+  if (state === 'done-today' && keepGoingAvailable) return 'keep-going';
   return 'hidden';
 }
 
@@ -31,7 +31,7 @@ export function startVisible(mode: StartMode, { overlayOpen, busy }: StartContex
 
 /** The words on the button for a mode that is not hidden. */
 export function startLabel(mode: Exclude<StartMode, 'hidden'>, level: LineLevel): string {
-  return line(mode === 'trail' ? 'startTrail' : 'startBonus', level);
+  return line(mode === 'trail' ? 'startTrail' : 'startKeepGoing', level);
 }
 
 export interface StartButton {

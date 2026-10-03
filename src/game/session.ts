@@ -5,6 +5,12 @@
  * the clock, timers) comes in through `SessionDeps`, so this file never touches the DOM and the
  * tests drive it with mocks. The app wires the real versions in src/game/app.ts.
  *
+ * Before a learn activity the Den Chief teaches (see screens/lesson.ts): a new step always shows
+ * its lesson; a warm-up or bonus review offers "Remind me" or "I remember!" once per requirement
+ * per day. After a finished trail the summary offers "Keep going!", which plans a fresh trail from
+ * the updated profile (leaving out what today already used) and plays it the same way, as many
+ * times as the Scout likes. Each trail is its own session log; the streak moves once per day.
+ *
  * What counts as a completed stop on the trail:
  *   - a finished activity (completed: true), including a check-in the kid confirmed;
  *   - a field mission handout (the card was shown, which is all a handout does).
@@ -12,8 +18,9 @@
  * earns nothing and costs nothing: the Den Chief says something kind and the trail moves on.
  */
 import type { ActivityContext, ActivityResult, ActivityType, FieldMissionParams, ZoneId } from '../activities/types';
+import { getRequirement } from '../content/load';
 import type { RankContent } from '../content/types';
-import { planBonusStop, planTrail, stageForStop } from '../quests/planner';
+import { planTrail, stageForStop, type StopStage } from '../quests/planner';
 import {
   approveFieldMission,
   completeAdventuresIfDone,
@@ -23,6 +30,7 @@ import {
 import type { TodaysTrail, TrailStop } from '../quests/types';
 import type { Profile, StopKind } from '../save/types';
 import { line, lineLevelOf, PARENT_TEXT, ZONE_LABELS, type LineKey, type LineVars } from './lines';
+import { lessonPlan, playLesson } from './screens/lesson';
 import { activeStreak, isTrailDoneToday } from './streak';
 
 /** How long the "walking to the Nature Trail" card stays up. */
@@ -48,19 +56,19 @@ export interface ApprovalInfo {
 export interface SummaryInfo {
   stopsDone: number;
   stopsTotal: number;
-  /** XP gained since the session began. */
+  /** XP gained during this trail. */
   xpEarned: number;
   /** The saved streak after the session. */
   streak: number;
-  /** True when this session lit today's campfire. */
+  /** True when the campfire is lit for today. */
   streakLit: boolean;
-  /** Names of adventures completed during the session. */
+  /** Names of adventures completed during the trail. */
   badges: string[];
-  /** True when a bonus stop can be offered. */
-  bonusAvailable: boolean;
+  /** True when there is another trail to keep going with. */
+  keepGoingAvailable: boolean;
 }
 
-export type SummaryChoice = 'bonus' | 'explore';
+export type SummaryChoice = 'keep-going' | 'explore';
 
 export interface SessionDeps {
   content: RankContent;
@@ -104,28 +112,31 @@ export interface SessionDeps {
 export type TrailItemStatus = 'done' | 'next' | 'later';
 
 export interface TrailView {
-  /** 'done-today': the campfire is lit; 'empty': nothing to do; 'ready': the stops are listed. */
+  /**
+   * 'done-today': the campfire is lit and no trail is running; 'empty': nothing to do;
+   * 'ready': the stops of the trail being played (or about to be) are listed.
+   */
   state: 'ready' | 'done-today' | 'empty';
   items: { kind: StopKind; title: string; status: TrailItemStatus }[];
 }
 
 /**
  * How a conversation with the Den Chief ended:
- *   'trail'       the Scout played today's trail;
- *   'bonus'       the Scout took a bonus stop;
+ *   'trail'       the Scout played today's trail (and maybe kept going after it);
+ *   'keep-going'  the trail was already done and the Scout kept going with more;
  *   'look-around' the Scout chose "Look around first" and is free to explore;
- *   'none'        nothing was started (nothing to do today, or a bonus was turned down), or the
- *                 Den Chief was already busy.
+ *   'none'        nothing was started (nothing to do right now, or keeping going was turned down),
+ *                 or the Den Chief was already busy.
  */
-export type TalkOutcome = 'trail' | 'bonus' | 'look-around' | 'none';
+export type TalkOutcome = 'trail' | 'keep-going' | 'look-around' | 'none';
 
 export interface Session {
   /** What happens when the player talks to the Den Chief. Ignored while one is already running. */
   talk(): Promise<TalkOutcome>;
-  /** Today's stops with their status, for the trail panel. */
+  /** The stops of the current trail with their status, for the trail panel and the HUD dots. */
   view(): TrailView;
-  /** True when today's trail is done and a bonus stop is waiting (the Start button says "Bonus stop"). */
-  bonusAvailable(): boolean;
+  /** True when today's trail is done and more is waiting (the Start button says "Keep going!"). */
+  keepGoingAvailable(): boolean;
   readonly busy: boolean;
 }
 
@@ -144,8 +155,8 @@ export function isFirstSession(profile: Profile): boolean {
 }
 
 /**
- * Which greeting the Den Chief gives: the trail is already done today (offer a bonus), there is
- * nothing to do, the very first session, a returning Scout with a streak, or just returning.
+ * Which greeting the Den Chief gives: the trail is already done today (offer to keep going), there
+ * is nothing to do, the very first session, a returning Scout with a streak, or just returning.
  */
 export function chooseGreeting({ profile, today, stopCount }: GreetingInput): GreetingKind {
   if (isTrailDoneToday(profile, today)) return 'done';
@@ -184,11 +195,14 @@ export function createSession(deps: SessionDeps): Session {
   const level = lineLevelOf(deps.content.readingLevel);
   const planOptions = { implemented: deps.implemented };
 
+  /** The trail in memory: today's first one, or the one the Scout is keeping going with. */
   let trail: TodaysTrail | undefined;
   let outcomes: ('done' | 'skipped' | undefined)[] = [];
   /** True once the trail in memory has been played to the end and logged. */
   let finished = false;
   let busy = false;
+  /** `date:requirementId` of every review already offered "Remind me" today. */
+  const reminded = new Set<string>();
 
   const vars = (extra: LineVars = {}): LineVars => {
     const profile = deps.getProfile();
@@ -219,9 +233,17 @@ export function createSession(deps: SessionDeps): Session {
     return trail as TodaysTrail;
   }
 
-  function nextBonus(date: string): TrailStop | undefined {
+  /**
+   * The trail to keep going with: planned fresh from the profile as it is now, leaving out every
+   * requirement today already used. Undefined when there is nothing left for today.
+   */
+  function planMore(date: string): TodaysTrail | undefined {
     const profile = deps.getProfile();
-    return planBonusStop(profile, deps.content, date, usedToday(profile, date, trail), planOptions);
+    const plan = planTrail(profile, deps.content, date, {
+      ...planOptions,
+      excludeRequirementIds: usedToday(profile, date, trail),
+    });
+    return plan.stops.length > 0 ? plan : undefined;
   }
 
   /** Ask a parent to approve a mission. True only when the PIN was right (or has just been set). */
@@ -251,10 +273,30 @@ export function createSession(deps: SessionDeps): Session {
     return deps.askPin({ title: PARENT_TEXT.enterPinTitle, subtitle: PARENT_TEXT.approvePinSubtitle });
   }
 
+  /**
+   * Teach before the activity. A new step always gets its lesson. A review offers "Remind me" or
+   * "I remember!" the first time it runs that day, and shows the lesson only for "Remind me".
+   * Field missions have nothing to teach here: their practice is taught as its own new step.
+   */
+  async function teach(stop: TrailStop, stage: StopStage, date: string): Promise<void> {
+    if (stage !== 'new' && stage !== 'review') return;
+    const review = stage === 'review';
+    if (review) {
+      const key = `${date}:${stop.requirementId}`;
+      if (reminded.has(key)) return;
+      reminded.add(key);
+    }
+    const requirement = getRequirement(deps.content, stop.requirementId)?.requirement;
+    const plan = lessonPlan({ lesson: requirement?.lesson, kidText: requirement?.kidText ?? stop.title }, level, review);
+    await playLesson((page) => deps.showDialog(page), plan);
+  }
+
   /** Play one stop from intro to cheer, record it and save. */
   async function playStop(stop: TrailStop, date: string): Promise<StopOutcome> {
     const stage = stageForStop(deps.getProfile(), stop);
     await deps.showDialog({ text: `${say(introKey(stop.kind, stage))} ${stop.title}` });
+    // The Den Chief teaches at Base Camp, before any walk to another zone.
+    await teach(stop, stage, date);
 
     if (stop.zone !== 'base-camp') {
       const closeSign = deps.showTrailSign(say('travel', { zone: ZONE_LABELS[stop.zone] }));
@@ -318,35 +360,15 @@ export function createSession(deps: SessionDeps): Session {
     return { counted, completed };
   }
 
-  /** Bonus stops, one after another for as long as the Scout wants them. */
-  async function bonusLoop(first: TrailStop, date: string): Promise<void> {
-    let stop: TrailStop | undefined = first;
-    while (stop) {
-      const startedAt = deps.now();
-      const outcome = await playStop(stop, date);
-      if (!outcome.counted) return;
-      const seconds = Math.max(0, Math.round((deps.now() - startedAt) / 1000));
-      const log: TodaysTrail = { date, profileId: deps.getProfile().id, stops: [stop], completedStops: 1 };
-      deps.persist(finishSession(deps.getProfile(), log, seconds, date));
-
-      stop = nextBonus(date);
-      if (!stop) {
-        await deps.showDialog({ text: say('bonusNone') });
-        return;
-      }
-      const choice = await deps.showDialog({
-        text: say('bonusMore'),
-        choices: ['Another bonus stop', 'Explore camp'],
-      });
-      if (choice !== 0) return;
-    }
-  }
-
-  async function runTrail(): Promise<void> {
-    const plan = currentTrail();
+  /**
+   * Play every stop of `plan`, log it as its own session and show the summary. Resolves with the
+   * next trail when the Scout picks "Keep going!", else undefined.
+   */
+  async function playTrail(plan: TodaysTrail): Promise<TodaysTrail | undefined> {
     const date = plan.date;
     const startXp = deps.getProfile().xp;
     const earned: string[] = [];
+    trail = plan;
     finished = false;
     outcomes = [];
 
@@ -374,8 +396,8 @@ export function createSession(deps: SessionDeps): Session {
     deps.persist(after);
     finished = true;
 
-    // A bonus stop is for a Scout who finished the whole trail.
-    const bonus = doneStops.length === plan.stops.length ? nextBonus(date) : undefined;
+    // Keeping going is for a Scout who finished the whole trail.
+    const more = doneStops.length === plan.stops.length ? planMore(date) : undefined;
     const choice = await deps.showSummary({
       stopsDone: doneStops.length,
       stopsTotal: plan.stops.length,
@@ -383,43 +405,53 @@ export function createSession(deps: SessionDeps): Session {
       streak: after.streak.current,
       streakLit: after.streak.lastTrailDate === date,
       badges: earned,
-      bonusAvailable: bonus !== undefined,
+      keepGoingAvailable: more !== undefined,
     });
-    if (choice === 'bonus' && bonus) await bonusLoop(bonus, date);
+    if (choice !== 'keep-going') return undefined;
+    if (!more) {
+      await deps.showDialog({ text: say('allDone') });
+      return undefined;
+    }
+    return more;
   }
 
-  async function offerBonus(): Promise<TalkOutcome> {
-    const date = deps.today();
-    const bonus = nextBonus(date);
-    if (!bonus) {
-      await deps.showDialog({ text: say('greetDoneNoBonus') });
+  /** A trail, then another for as long as the Scout keeps going and the planner has stops. */
+  async function trailLoop(first: TodaysTrail): Promise<void> {
+    let plan: TodaysTrail | undefined = first;
+    while (plan) plan = await playTrail(plan);
+  }
+
+  /** Today's trail is already done: offer to keep going, or say everything is done for now. */
+  async function offerKeepGoing(): Promise<TalkOutcome> {
+    const more = planMore(deps.today());
+    if (!more) {
+      await deps.showDialog({ text: say('allDone') });
       return 'none';
     }
     const choice = await deps.showDialog({
       text: say('greetDone'),
-      choices: [say('startBonus'), 'Not now'],
+      choices: [say('choiceKeepGoing'), say('choiceLookAround')],
     });
     if (choice !== 0) return 'none';
-    await bonusLoop(bonus, date);
-    return 'bonus';
+    await trailLoop(more);
+    return 'keep-going';
   }
 
   async function talk(): Promise<TalkOutcome> {
     const date = deps.today();
     const profile = deps.getProfile();
-    const done = isTrailDoneToday(profile, date);
-    const stopCount = done ? 0 : currentTrail().stops.length;
-    const kind = chooseGreeting({ profile, today: date, stopCount });
+    const plan = isTrailDoneToday(profile, date) ? undefined : currentTrail();
+    const kind = chooseGreeting({ profile, today: date, stopCount: plan?.stops.length ?? 0 });
 
-    if (kind === 'done') return offerBonus();
-    if (kind === 'nothing') {
+    if (kind === 'done') return offerKeepGoing();
+    if (kind === 'nothing' || !plan) {
       await deps.showDialog({ text: say('greetNothing') });
       return 'none';
     }
     const key: LineKey = kind === 'first' ? 'greetFirst' : kind === 'streak' ? 'greetStreak' : 'greetReturning';
     const choice = await deps.showDialog({ text: say(key), choices: [say('choiceGo'), say('choiceLook')] });
     if (choice !== 0) return 'look-around';
-    await runTrail();
+    await trailLoop(plan);
     return 'trail';
   }
 
@@ -436,9 +468,9 @@ export function createSession(deps: SessionDeps): Session {
         busy = false;
       }
     },
-    bonusAvailable() {
+    keepGoingAvailable() {
       const date = deps.today();
-      return isTrailDoneToday(deps.getProfile(), date) && nextBonus(date) !== undefined;
+      return isTrailDoneToday(deps.getProfile(), date) && planMore(date) !== undefined;
     },
     view(): TrailView {
       const date = deps.today();

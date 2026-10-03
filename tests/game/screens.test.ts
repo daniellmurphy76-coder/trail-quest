@@ -6,7 +6,6 @@ import { badgeSvg, showBadgeCard } from '../../src/game/screens/badge';
 import { createHud } from '../../src/game/screens/hud';
 import { showParentMode } from '../../src/game/screens/parent';
 import { showProfilePicker } from '../../src/game/screens/profile-picker';
-import { showProfileSetup } from '../../src/game/screens/profile-setup';
 import { showSummary } from '../../src/game/screens/summary';
 import { showTrailPanel } from '../../src/game/screens/trail-panel';
 import { showTrailSign } from '../../src/game/screens/trail-sign';
@@ -18,66 +17,6 @@ import { fixtureRank, ID } from '../fixtures/rank.fixture';
 let host: HTMLElement;
 beforeEach(() => {
   host = makeHost();
-});
-
-const RANKS = [
-  { rank: 'wolf' as const, label: 'Test Wolf', grade: 2 },
-  { rank: 'arrow-of-light' as const, label: 'Test Arrow', grade: 5 },
-];
-
-function typeInto(input: HTMLInputElement, value: string): void {
-  input.value = value;
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
-describe('profile setup', () => {
-  it('asks who is playing, with a big name field and the rank cards from the content', () => {
-    void showProfileSetup(host, { ranks: RANKS, allowCancel: false });
-    expect(host.textContent).toContain('Who is playing?');
-    expect(host.textContent).toContain('Test Wolf · grade 2');
-    expect(host.textContent).toContain('Test Arrow · grade 5');
-    expect(host.querySelector('input.tq-input')).not.toBeNull();
-    // The guide name defaults to Den Chief and can be edited.
-    const guide = host.querySelector<HTMLInputElement>('input[name="guide-name"]')!;
-    expect(guide.value).toBe('Den Chief');
-    // First run: nowhere to go back to.
-    expect(host.textContent).not.toContain('Back');
-  });
-
-  it('resolves the new profile options, with no read-aloud setting anywhere', async () => {
-    const result = showProfileSetup(host, { ranks: RANKS, allowCancel: false });
-    typeInto(host.querySelector<HTMLInputElement>('input[name="scout-name"]')!, '  Rowan ');
-    expect(host.querySelector('input[type="checkbox"]')).toBeNull();
-    expect(host.textContent).not.toContain('Read to me');
-
-    buttonByText(host, 'Test Arrow').click();
-    buttonByText(host, 'Test Wolf').click();
-    expect(buttonByText(host, 'Test Wolf').getAttribute('aria-pressed')).toBe('true');
-    expect(buttonByText(host, 'Test Wolf').textContent).toContain('Picked');
-
-    buttonByText(host, "Let's start").click();
-    await expect(result).resolves.toEqual({ name: 'Rowan', rank: 'wolf', guideName: 'Den Chief' });
-    expect(host.querySelector('.tq-overlay')).toBeNull();
-  });
-
-  it('asks for a name and a rank before it lets the kid start', async () => {
-    const result = showProfileSetup(host, { ranks: RANKS, allowCancel: false });
-    buttonByText(host, "Let's start").click();
-    expect(host.querySelector('[role="alert"]')!.textContent).toContain('Type your name');
-    typeInto(host.querySelector<HTMLInputElement>('input[name="scout-name"]')!, 'Rowan');
-    buttonByText(host, "Let's start").click();
-    expect(host.querySelector('[role="alert"]')!.textContent).toContain('Pick your rank');
-    expect(host.querySelector('.tq-overlay')).not.toBeNull();
-    buttonByText(host, 'Test Wolf').click();
-    buttonByText(host, "Let's start").click();
-    await expect(result).resolves.toMatchObject({ name: 'Rowan', rank: 'wolf' });
-  });
-
-  it('has a Back button when there are other Scouts, which resolves null', async () => {
-    const result = showProfileSetup(host, { ranks: RANKS, allowCancel: true });
-    buttonByText(host, 'Back').click();
-    await expect(result).resolves.toBeNull();
-  });
 });
 
 describe('profile picker', () => {
@@ -95,6 +34,16 @@ describe('profile picker', () => {
     expect(host.textContent).toContain('\u{1F525} 1 day');
     expect(host.textContent).not.toContain('1 days');
     expect(host.querySelectorAll('.tq-profile .tq-btn--primary')).toHaveLength(2);
+  });
+
+  it('shows the rank label it is given for every rank, Lion to Arrow of Light', () => {
+    const labels = ['Lion', 'Tiger', 'Wolf', 'Bear', 'Webelos', 'Arrow of Light'];
+    void showProfilePicker(host, {
+      profiles: labels.map((rankLabel, i) => ({ id: `p${i}`, name: `Scout ${i}`, rankLabel, streakDays: i })),
+    });
+    const shown = Array.from(host.querySelectorAll('.tq-profile__rank')).map((el) => el.textContent);
+    expect(shown).toEqual(labels);
+    expect(host.querySelectorAll('.tq-profile .tq-btn--primary')).toHaveLength(6);
   });
 
   it('resolves play, add and parent choices', async () => {
@@ -131,6 +80,16 @@ describe('HUD', () => {
   });
 });
 
+describe('HUD rank label', () => {
+  it('shows whatever rank label the content gave, for all six ranks', () => {
+    const hud = createHud(host, () => {});
+    for (const rankLabel of ['Lion', 'Tiger', 'Wolf', 'Bear', 'Webelos', 'Arrow of Light']) {
+      hud.update({ name: 'Rowan', rankLabel, xp: 0, streak: 0 });
+      expect(hud.root.textContent).toContain(`Rowan · ${rankLabel}`);
+    }
+  });
+});
+
 describe('trail panel', () => {
   it('lists the stops with an icon and a word for each status, plus Switch Scout and Parent', async () => {
     const result = showTrailPanel(host, {
@@ -159,7 +118,7 @@ describe('trail panel', () => {
 
   it('says so when the trail is done or empty', () => {
     void showTrailPanel(host, { level: 'grade2', view: { state: 'done-today', items: [] } });
-    expect(host.textContent).toContain('All done for today!');
+    expect(host.textContent).toContain('Your trail is done! Great job!');
     expect(host.querySelectorAll('.tq-trail-item')).toHaveLength(0);
   });
 
@@ -230,10 +189,10 @@ describe('summary', () => {
     streak: 4,
     streakLit: true,
     badges: ['Test Camp'],
-    bonusAvailable: true,
+    keepGoingAvailable: true,
   };
 
-  it('shows stops, XP, the lit campfire, badges and the goodbye', async () => {
+  it('shows stops, XP, the lit campfire, badges and the goodbye, and offers Keep going!', async () => {
     const result = showSummary(host, { info, level: 'grade2', vars: { name: 'Rowan' } });
     const text = host.textContent ?? '';
     expect(text).toContain('3 of 3');
@@ -241,21 +200,59 @@ describe('summary', () => {
     expect(text).toContain('Your campfire is lit: Day 4.');
     expect(text).toContain('Badge: Test Camp');
     expect(text).toContain('See you soon!');
-    buttonByText(host, 'Bonus stop').click();
-    await expect(result).resolves.toBe('bonus');
+    // Keep going! is the big primary button next to Explore camp.
+    const labels = Array.from(host.querySelectorAll('.tq-actions button')).map((b) => b.textContent);
+    expect(labels).toEqual(['▶Keep going!', 'Explore camp']);
+    expect(buttonByText(host, 'Keep going!').classList.contains('tq-btn--primary')).toBe(true);
+    expect(buttonByText(host, 'Explore camp').classList.contains('tq-btn--primary')).toBe(false);
+    expect(host.textContent).not.toContain('Bonus stop');
+    buttonByText(host, 'Keep going!').click();
+    await expect(result).resolves.toBe('keep-going');
   });
 
-  it('offers only Explore camp when there is no bonus, and is honest when the fire is not lit', async () => {
-    const result = showSummary(host, {
-      info: { ...info, streakLit: false, bonusAvailable: false, badges: [] },
-      level: 'grade5',
-      vars: {},
-    });
-    expect(host.textContent).not.toContain('Bonus stop');
-    expect(host.textContent).not.toContain('Your campfire is lit');
-    expect(host.textContent).toContain('Finish every stop to light your campfire.');
+  it('resolves explore for Explore camp', async () => {
+    const result = showSummary(host, { info, level: 'grade5', vars: { name: 'Rowan' } });
     buttonByText(host, 'Explore camp').click();
     await expect(result).resolves.toBe('explore');
+  });
+
+  it('offers only Explore camp when nothing is left, and the Den Chief says everything is done for now', async () => {
+    const result = showSummary(host, { info: { ...info, keepGoingAvailable: false }, level: 'grade2', vars: { name: 'Rowan' } });
+    expect(host.textContent).not.toContain('Keep going!');
+    expect(host.textContent).toContain('All done for now!');
+    expect(host.textContent).toContain('Rowan');
+    expect(host.textContent).not.toContain('Thanks for the help'); // one goodbye, not two
+    expect(buttonByText(host, 'Explore camp').classList.contains('tq-btn--primary')).toBe(true);
+    buttonByText(host, 'Explore camp').click();
+    await expect(result).resolves.toBe('explore');
+  });
+
+  it('is honest when the fire is not lit, and says the ordinary goodbye when a stop was skipped', async () => {
+    const result = showSummary(host, {
+      info: { ...info, stopsDone: 2, streakLit: false, keepGoingAvailable: false, badges: [] },
+      level: 'grade5',
+      vars: { name: 'Rowan' },
+    });
+    expect(host.textContent).not.toContain('Keep going!');
+    expect(host.textContent).not.toContain('Your campfire is lit');
+    expect(host.textContent).toContain('Finish every stop to light your campfire.');
+    expect(host.textContent).toContain('See you next time!');
+    expect(host.textContent).not.toContain('Everything is done for now');
+    buttonByText(host, 'Explore camp').click();
+    await expect(result).resolves.toBe('explore');
+  });
+
+  it('works for a trail of any length and for any reading level', async () => {
+    const result = showSummary(host, {
+      info: { ...info, stopsDone: 1, stopsTotal: 1, xpEarned: 10, badges: [] },
+      level: 'grade2',
+      vars: { name: 'Rowan' },
+    });
+    expect(host.textContent).toContain('1 of 1');
+    expect(host.textContent).toContain('10 XP');
+    expect(host.querySelector('.tq-summary__badges')).toBeNull();
+    buttonByText(host, 'Explore camp').click();
+    await result;
   });
 });
 

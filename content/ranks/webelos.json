@@ -1,0 +1,1984 @@
+{
+  "rank": "webelos",
+  "label": "Webelos",
+  "grade": 4,
+  "ageRange": "9-10",
+  "readingLevel": "grade4",
+  "program": {
+    "name": "Scouting America Cub Scouts",
+    "year": 2024,
+    "indexUrl": "https://www.scouting.org/programs/cub-scouts/adventures/webelos/",
+    "fetchedOn": "2026-10-03"
+  },
+  "adventures": [
+    {
+      "id": "webelos.bobcat",
+      "name": "Bobcat Webelos",
+      "category": "bobcat",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/bobcat-webelos/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Start your Webelos trail! Meet your den, learn the Oath and Law, and learn about staying safe.",
+      "requirements": [
+        {
+          "id": "webelos.bobcat.1",
+          "number": "1",
+          "adultText": "Do something with your den that helps everyone get to know each other, such as a den flag, a den doodle, a teamwork game, or a quiet line-up game.",
+          "kidText": "Your den is your group of Webelos. Play a game or make a flag to learn about each other.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Get to Know Your Den",
+              "kidSteps": [
+                "Pick one: a den flag, a den doodle, or a team game.",
+                "Do it with your den.",
+                "Learn one new thing about each den mate."
+              ],
+              "parentNote": "Look for your Scout joining in and being able to share one new thing they learned about each den member. The den leader usually runs this at a meeting.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "webelos.bobcat.2a",
+          "number": "2a",
+          "adultText": "Know the Scout Oath well enough to say it together with the den and its leader. In the game your Scout puts the Oath in order; saying it aloud happens in person.",
+          "kidText": "Every Scout says the Scout Oath. It is a promise. Put the lines in order, then say it out loud!",
+          "digital": true,
+          "activity": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the Scout Oath in order.",
+              "steps": [
+                "On my honor I will do my best",
+                "to do my duty to God and my country",
+                "and to obey the Scout Law;",
+                "to help other people at all times;",
+                "to keep myself physically strong,",
+                "mentally awake, and morally straight."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Oath is a promise every Scout makes.",
+              "It has three parts. First, do your duty to God and your country.",
+              "Second, help other people at all times.",
+              "Third, take care of yourself in body, mind, and character.",
+              "Put the lines in order. Then say the whole Oath out loud."
+            ]
+          },
+          "notes": "Part of official requirement 2 (recite the Oath and Law with the den and den leader, and talk about the three points of the Oath). Split into 2a Oath, 2b Law, 2c the three points. Steps are the Oath split at its natural pauses."
+        },
+        {
+          "id": "webelos.bobcat.2b",
+          "number": "2b",
+          "adultText": "Know the twelve points of the Scout Law in order so your Scout can say it together with the den and its leader. The game practices the order; reciting aloud happens in person.",
+          "kidText": "The Scout Law has 12 points. Each one tells how a Scout acts. Put them in order, then say them out loud.",
+          "digital": true,
+          "activity": {
+            "type": "sequence",
+            "params": {
+              "prompt": "Put the Scout Law in order.",
+              "steps": [
+                "A Scout is trustworthy, loyal, helpful,",
+                "friendly, courteous, kind,",
+                "obedient, cheerful, thrifty,",
+                "brave, clean, and reverent."
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Law has 12 points. Learn them in four groups of three.",
+              "Group one: trustworthy, loyal, helpful.",
+              "Group two: friendly, courteous, kind.",
+              "Group three: obedient, cheerful, thrifty.",
+              "Group four: brave, clean, reverent.",
+              "Now put the four groups in order."
+            ]
+          },
+          "notes": "Part of official requirement 2. The twelve points are grouped in threes so the order is easy to rehearse."
+        },
+        {
+          "id": "webelos.bobcat.2c",
+          "number": "2c",
+          "adultText": "Understand the three parts of the Scout Oath: duty to God and country, duty to other people, and duty to self. The game sorts everyday actions into those three duties.",
+          "kidText": "The Scout Oath has three parts. Show which part each action fits.",
+          "digital": true,
+          "activity": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which part of the Oath fits each action?",
+              "bins": [
+                {
+                  "id": "god-country",
+                  "label": "Duty to God and country"
+                },
+                {
+                  "id": "others",
+                  "label": "Duty to other people"
+                },
+                {
+                  "id": "self",
+                  "label": "Duty to myself"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Obey the laws of my country",
+                  "bin": "god-country"
+                },
+                {
+                  "label": "Live by what my faith teaches",
+                  "bin": "god-country"
+                },
+                {
+                  "label": "Do a Good Turn every day",
+                  "bin": "others"
+                },
+                {
+                  "label": "Help a neighbor who needs a hand",
+                  "bin": "others"
+                },
+                {
+                  "label": "Eat healthy food and stay strong",
+                  "bin": "self"
+                },
+                {
+                  "label": "Keep learning and ask questions",
+                  "bin": "self"
+                },
+                {
+                  "label": "Tell the truth, even when it is hard",
+                  "bin": "self"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Scout Oath has three parts. Each part is a duty, something you promise to do.",
+              "Duty to God and country: live by your faith. Be a good citizen. Obey laws.",
+              "Duty to other people: do a Good Turn every day. A Good Turn is a kind act.",
+              "Duty to yourself: stay physically strong, mentally awake, and morally straight.",
+              "Morally straight means you are honest and have strong character.",
+              "Now sort each action under the right part."
+            ]
+          },
+          "notes": "Part of official requirement 2. The three duties follow the official activity: duty to God and country, to other people, and to self."
+        },
+        {
+          "id": "webelos.bobcat.3",
+          "number": "3",
+          "adultText": "Learn what the points of the Scout Law mean in everyday life. The Scout practices by matching points of the Law to real-life examples.",
+          "kidText": "Each point of the Scout Law is a way to act. Match the points to real-life moments.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "A friend drops his books. You pick them up. Which Scout Law point is that?",
+                  "choices": [
+                    "Helpful",
+                    "Thrifty",
+                    "Brave"
+                  ],
+                  "answer": 0,
+                  "explain": "Helpful means you pitch in without being asked."
+                },
+                {
+                  "prompt": "You tell the truth, even when it is hard. Which point is that?",
+                  "choices": [
+                    "Cheerful",
+                    "Trustworthy",
+                    "Thrifty"
+                  ],
+                  "answer": 1,
+                  "explain": "Trustworthy means people can count on you."
+                },
+                {
+                  "prompt": "You feel scared but do the right thing anyway. Which point is that?",
+                  "choices": [
+                    "Brave",
+                    "Loyal",
+                    "Kind"
+                  ],
+                  "answer": 0,
+                  "explain": "Brave does not mean no fear. It means doing right anyway."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Each point of the Scout Law is a way to act.",
+              "Trustworthy means you tell the truth and keep your promises.",
+              "Helpful means you pitch in when someone needs a hand.",
+              "Brave means doing what is right, even when you feel afraid.",
+              "There are 12 points in all. Today you will use three of them."
+            ]
+          },
+          "notes": "Official requirement 3. The quiz samples three of the 12 points; implementers may add more questions later."
+        },
+        {
+          "id": "webelos.bobcat.4",
+          "number": "4",
+          "adultText": "Together with your den, write a short list of rules everyone agrees on for how to act at meetings and outings. This list is your den Code of Conduct.",
+          "kidText": "A Code of Conduct is a list of rules your den agrees on. Make one together so it feels fair.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Write Your Den Code of Conduct",
+              "kidSteps": [
+                "Sit together as a den.",
+                "Talk about how friends treat each other.",
+                "Suggest a few rules, like keep hands to yourself.",
+                "Pick the rules everyone agrees on and write them down.",
+                "Everyone signs or says yes."
+              ],
+              "parentNote": "Look for rules the Scouts came up with themselves, and for every Scout agreeing. A few rules are enough to start. The den leader guides this at a meeting.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which is a good den rule?",
+                  "choices": [
+                    "Take turns talking",
+                    "The loudest voice wins",
+                    "Ignore the leader"
+                  ],
+                  "answer": 0,
+                  "explain": "Good rules are fair and help everyone feel welcome."
+                },
+                {
+                  "prompt": "Why does the den write the rules together?",
+                  "choices": [
+                    "So everyone helps and agrees",
+                    "So one person is the boss",
+                    "So nobody has to follow them"
+                  ],
+                  "answer": 0,
+                  "explain": "Rules work best when everyone helps make them."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A Code of Conduct is a list of rules your den agrees on.",
+              "It tells everyone how to act at meetings and on trips.",
+              "Good rules are fair and short. They keep everyone safe.",
+              "The best rules come from the Scouts. Everyone helps write them.",
+              "Try the quiz, then write your own with your den."
+            ]
+          }
+        },
+        {
+          "id": "webelos.bobcat.5",
+          "number": "5",
+          "adultText": "Learn what a denner is: a den helper who assists the den leader and sets a good example. Each Scout gets a turn, and the den leader decides the jobs.",
+          "kidText": "A denner is a Cub Scout who helps the den leader at a meeting. Learn what a denner does.",
+          "digital": true,
+          "activity": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which jobs belong to a denner?",
+              "bins": [
+                {
+                  "id": "denner",
+                  "label": "A denner does this"
+                },
+                {
+                  "id": "not",
+                  "label": "A denner does not do this"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Help set up the meeting",
+                  "bin": "denner"
+                },
+                {
+                  "label": "Welcome everyone at the door",
+                  "bin": "denner"
+                },
+                {
+                  "label": "Lead the Oath and Law",
+                  "bin": "denner"
+                },
+                {
+                  "label": "Carry the flag",
+                  "bin": "denner"
+                },
+                {
+                  "label": "Hand out supplies",
+                  "bin": "denner"
+                },
+                {
+                  "label": "Be the boss of the other Scouts",
+                  "bin": "not"
+                },
+                {
+                  "label": "Choose who is denner next",
+                  "bin": "not"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A denner is a Cub Scout who helps the den leader at a meeting.",
+              "Every Scout in the den gets a turn. The den leader decides who is next.",
+              "A denner might set up, welcome everyone, carry the flag, or hand out supplies.",
+              "The biggest job is to set a good example. Act by the Oath and Law.",
+              "A denner is a helper, never the boss of other Scouts.",
+              "Sort the jobs into what a denner does and does not do."
+            ]
+          },
+          "notes": "Official requirement 5. The den leader decides how denners are chosen and what they help with; the official activities include making a list of denner jobs, a denner calendar, or leading opening and closing ceremonies."
+        },
+        {
+          "id": "webelos.bobcat.6",
+          "number": "6",
+          "adultText": "Your Scout makes the Cub Scout sign, salute, and handshake and explains what each is for: the sign with a Scout promise, the salute for the flag, the handshake to greet fellow Scouts.",
+          "kidText": "Cub Scouts have a sign, a salute, and a handshake. Learn them in the game, then show your leader.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Show Your Scout Signs",
+              "kidSteps": [
+                "Sign: hold your right hand up with two fingers in a V.",
+                "Salute: put two fingers together and touch your cap or eyebrow.",
+                "Handshake: shake right hands and lay two fingers along their wrist.",
+                "Tell your leader when you use each one."
+              ],
+              "parentNote": "Check the sign (right hand up, two fingers in a V, thumb holding down the other two), the salute (the same two fingers held together, touching the cap or right eyebrow), and the handshake (right hands, two fingers along the other wrist). Ask when each is used. The Webelos handbook has pictures.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which one shows respect for the flag?",
+                  "choices": [
+                    "The salute",
+                    "The handshake",
+                    "The sign"
+                  ],
+                  "answer": 0,
+                  "explain": "You salute the flag to show respect."
+                },
+                {
+                  "prompt": "Which one do you use to greet another Scout?",
+                  "choices": [
+                    "The sign",
+                    "The handshake",
+                    "The salute"
+                  ],
+                  "answer": 1,
+                  "explain": "The Cub Scout handshake is a friendly hello."
+                },
+                {
+                  "prompt": "How many fingers do you hold up in the Cub Scout sign?",
+                  "choices": [
+                    "1",
+                    "2",
+                    "3"
+                  ],
+                  "answer": 1,
+                  "explain": "Two fingers go up in a V."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Cub Scout sign, salute, and handshake are ways Scouts greet and show respect.",
+              "Sign: hold your right hand up with two fingers in a V. Use it when you say a Scout promise.",
+              "Salute: put two fingers together and touch your cap or eyebrow. It shows respect for the flag.",
+              "Handshake: shake right hands and lay two fingers along their wrist. It says hello to a fellow Scout.",
+              "Try the quiz, then show your leader."
+            ]
+          },
+          "notes": "Official requirement 6 uses the Cub Scout versions of the sign, salute, and handshake (not the Scouts BSA versions). The Webelos Bobcat requirements do not include a motto or slogan."
+        },
+        {
+          "id": "webelos.bobcat.7",
+          "number": "7",
+          "adultText": "At home, work through the youth protection booklet with your Scout, one activity at a time. This is a calm talk between you and your child.",
+          "kidText": "Do the safety booklet in your handbook with a parent. It helps you stay safe and know who to tell.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Safety Talk at Home",
+              "kidSteps": [
+                "Pick a calm time at home with your parent.",
+                "Open the safety booklet in your handbook.",
+                "Do the pages together, one at a time.",
+                "Ask any question you have. You can always tell a trusted grown-up."
+              ],
+              "parentNote": "The booklet is \"How to Protect Your Children from Child Abuse: A Parent's Guide,\" found at the front of the Cub Scout handbook (online and Spanish versions exist). Read it first, then go through the exercises together at your child's pace. Keep it a calm conversation, not a quiz.",
+              "evidence": "checklist"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "webelos.stronger-faster-higher",
+      "name": "Stronger, Faster, Higher",
+      "category": "fitness",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/stronger-faster-higher/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Eat well, move your body, and rest. Fitness is a mix of all three.",
+      "requirements": [
+        {
+          "id": "webelos.stronger-faster-higher.1",
+          "number": "1",
+          "adultText": "Your Scout helps plan a balanced meal, cook it, and eat it with the den or family. They choose foods from the different food groups and join in the cooking.",
+          "kidText": "Plan a balanced meal with your family or den. Then help cook it and eat it!",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Cook a Balanced Meal",
+              "kidSteps": [
+                "Pick foods from each food group for one meal.",
+                "Write down your menu.",
+                "Help cook the meal with your family or den.",
+                "Eat it together!"
+              ],
+              "parentNote": "Look for foods from most food groups (fruits, vegetables, grains, protein, dairy; allergy-safe swaps are fine) and your Scout doing real cooking jobs. Check food allergies and diet needs first. Using a knife requires the Chef's Knife adventure first.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "craft",
+            "params": {
+              "prompt": "Build a balanced dinner plate.",
+              "result": "A balanced meal",
+              "ingredients": [
+                {
+                  "id": "veg",
+                  "label": "Vegetables"
+                },
+                {
+                  "id": "fruit",
+                  "label": "Fruit"
+                },
+                {
+                  "id": "grain",
+                  "label": "Rice or bread"
+                },
+                {
+                  "id": "protein",
+                  "label": "Chicken or beans"
+                },
+                {
+                  "id": "dairy",
+                  "label": "Milk or yogurt"
+                }
+              ],
+              "distractors": [
+                {
+                  "id": "candy",
+                  "label": "Candy bar"
+                },
+                {
+                  "id": "soda",
+                  "label": "Soda"
+                },
+                {
+                  "id": "chips",
+                  "label": "Potato chips"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A balanced meal has foods from different food groups.",
+              "The groups are fruits, vegetables, grains, protein, and dairy.",
+              "Grains are foods like rice and bread. Protein is foods like chicken and beans.",
+              "Dairy is milk, cheese, and yogurt.",
+              "Candy and soda are only treats. They do not make a balanced plate.",
+              "Build a plate with one food from each group."
+            ]
+          },
+          "notes": "Food groups follow the common five-group plate model. The official adventure leaves the exact groups to the leader or family."
+        },
+        {
+          "id": "webelos.stronger-faster-higher.2",
+          "number": "2",
+          "adultText": "Your Scout spends half an hour being active with the den, or with a friend or family member, mixing stretching with running or other movement, such as soccer, volleyball, or ultimate frisbee.",
+          "kidText": "Move for 30 minutes with a friend or your den. Mix stretching and moving.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "30 Minutes of Active Play",
+              "kidSteps": [
+                "Pick a game, like soccer, volleyball, or ultimate frisbee.",
+                "Ask your den or a friend to play.",
+                "Stretch before you start.",
+                "Keep moving for 30 minutes.",
+                "Stretch again when you are done."
+              ],
+              "parentNote": "Look for a full 30 minutes with the den or a partner, with both stretching and running or other movement. Water breaks are good. Check any health limits on the Annual Health and Medical Record first.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Is each one stretching or moving?",
+              "bins": [
+                {
+                  "id": "stretch",
+                  "label": "Stretching"
+                },
+                {
+                  "id": "move",
+                  "label": "Moving"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Touch your toes",
+                  "bin": "stretch"
+                },
+                {
+                  "label": "Reach for the sky",
+                  "bin": "stretch"
+                },
+                {
+                  "label": "Hold a calf stretch",
+                  "bin": "stretch"
+                },
+                {
+                  "label": "Run in place",
+                  "bin": "move"
+                },
+                {
+                  "label": "Kick a ball",
+                  "bin": "move"
+                },
+                {
+                  "label": "Jumping jacks",
+                  "bin": "move"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Fun fitness mixes two things: stretching and moving.",
+              "Stretching makes your body loose. Reach, bend, and hold still.",
+              "Moving makes your heart beat faster. Run, jump, kick, and play.",
+              "Stretch before and after, and play for 30 minutes in between.",
+              "Sort each move into stretching or moving."
+            ]
+          }
+        },
+        {
+          "id": "webelos.stronger-faster-higher.3",
+          "number": "3",
+          "adultText": "Spend 15 minutes on exercises that raise your heart rate, work your muscles, and build flexibility. A short workout, a climbing outing, or a trainer-led session all count.",
+          "kidText": "Do 15 minutes of exercise. Get your heart pumping, use your muscles, and bend and stretch.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Make a 15-Minute Workout",
+              "kidSteps": [
+                "Pick an exercise that makes your heart pump, like jumping jacks.",
+                "Pick one that works your muscles, like push-ups or squats.",
+                "Pick one that bends and stretches you, like touching your toes.",
+                "Do your workout for 15 minutes.",
+                "Take a water break."
+              ],
+              "parentNote": "Look for a mix of three kinds of exercise (heart, muscle, stretch) for the full 15 minutes at a safe pace. If your Scout chooses climbing, an adult must follow Scouting America's climbing guidelines.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "rhythm",
+            "params": {
+              "prompt": "Warm up with jumping jacks. Tap to the beat!",
+              "exercise": "jumping jacks",
+              "reps": 12,
+              "bpm": 80
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Good exercise has three jobs.",
+              "Job one: make your heart pump. Jumping jacks and running do this.",
+              "Job two: work your muscles. Push-ups and squats do this.",
+              "Job three: bend and stretch. Touching your toes does this.",
+              "Warm up with jumping jacks. Tap to the beat for 12 reps.",
+              "A rep is one time through the move."
+            ]
+          }
+        },
+        {
+          "id": "webelos.stronger-faster-higher.4",
+          "number": "4",
+          "adultText": "Spend 10 minutes doing something calming, such as reading, listening to quiet music, or taking an easy walk.",
+          "kidText": "Rest your body and your mind. Do something calm for 10 minutes.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "10 Minutes to Relax",
+              "kidSteps": [
+                "Pick something calm: read, listen to quiet music, or take a slow walk.",
+                "Find a quiet spot.",
+                "Relax for 10 minutes."
+              ],
+              "parentNote": "Look for a full 10 minutes of something calm and screen-free. Reading, quiet music, or an easy walk are all good.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which one helps you relax?",
+                  "choices": [
+                    "Reading a book quietly",
+                    "Racing your friends",
+                    "Playing a loud game"
+                  ],
+                  "answer": 0,
+                  "explain": "Quiet, calm things help your body and mind rest."
+                },
+                {
+                  "prompt": "Why does your body need rest?",
+                  "choices": [
+                    "It helps your body and mind work well",
+                    "Rest does nothing",
+                    "Only grown-ups need it"
+                  ],
+                  "answer": 0,
+                  "explain": "Everyone needs rest to stay healthy."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Fitness is food, exercise, and rest. Rest is just as important.",
+              "Your body needs rest, and so does your mind.",
+              "Calm things help you rest: reading, quiet music, or a slow walk.",
+              "Loud, fast games get you pumped up. Save them for another time.",
+              "Try the quiz, then take 10 calm minutes."
+            ]
+          }
+        },
+        {
+          "id": "webelos.stronger-faster-higher.5",
+          "number": "5",
+          "adultText": "Together, look over your Scout's Annual Health and Medical Record and talk about what it means for joining in at den and pack events.",
+          "kidText": "Look at your health form with a parent. Talk about anything that could change what you do at meetings.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Check Your Health Form",
+              "kidSteps": [
+                "Find your health form with your parent.",
+                "Read it together.",
+                "Talk about allergies, medicine, or anything your leaders should know."
+              ],
+              "parentNote": "The form is the Scouting America Annual Health and Medical Record (scouting.org/health-and-safety/ahmr). Make sure it is current and signed, and that your leaders know about allergies, medicines, or limits that affect activities.",
+              "evidence": "checklist"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "webelos.webelos-walkabout",
+      "name": "Webelos Walkabout",
+      "category": "outdoors",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/webelos-walkabout/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Plan and take a 2-mile walk. Learn what to pack, how to stay safe, and how to help.",
+      "requirements": [
+        {
+          "id": "webelos.webelos-walkabout.1",
+          "number": "1",
+          "adultText": "Get ready for a 2-mile walk by gathering the Cub Scout Six Essentials, plus clothing and shoes that suit the weather.",
+          "kidText": "Get ready for your 2-mile walk. Pack your Six Essentials and wear the right clothes and shoes.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Pack for the Walk",
+              "kidSteps": [
+                "Get a backpack.",
+                "Pack your Six Essentials.",
+                "Pick clothes for the weather.",
+                "Put on shoes with closed toes."
+              ],
+              "parentNote": "Check the pack for a first-aid kit, a filled water bottle, a flashlight, trail food, sun protection, and a whistle. Look for sturdy closed-toe shoes and clothes that suit the weather.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "collect",
+            "params": {
+              "prompt": "Pack for the trail! Find five of your Six Essentials.",
+              "zone": "nature-trail",
+              "targets": [
+                {
+                  "id": "first-aid-kit",
+                  "label": "First-aid kit",
+                  "count": 1
+                },
+                {
+                  "id": "water-bottle",
+                  "label": "Water bottle",
+                  "count": 1
+                },
+                {
+                  "id": "flashlight",
+                  "label": "Flashlight",
+                  "count": 1
+                },
+                {
+                  "id": "trail-food",
+                  "label": "Trail food",
+                  "count": 1
+                },
+                {
+                  "id": "sun-protection",
+                  "label": "Sun protection",
+                  "count": 1,
+                  "hint": "Sunscreen, a hat, or sunglasses"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "The Six Essentials are things to bring on every outdoor trip.",
+              "They are a first-aid kit, a full water bottle, and a flashlight.",
+              "Then trail food, sun protection, and a whistle.",
+              "A whistle calls for help if you get lost from your group.",
+              "Sun protection can be sunscreen, a hat, or sunglasses.",
+              "In the game, find five of them. Bring the whistle from home."
+            ]
+          },
+          "notes": "The sixth essential, a whistle, has no 3D prop, so the practice collects five and the lesson names the whistle."
+        },
+        {
+          "id": "webelos.webelos-walkabout.2",
+          "number": "2",
+          "adultText": "Plan a 2-mile walking route using the five W questions of trip planning (where, when, who, why, what) and a map with its scale.",
+          "kidText": "Plan your 2-mile route on a map. A good plan answers five questions that start with W.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "You pick the trail and where to turn around. Which W is that?",
+                  "choices": [
+                    "Where",
+                    "Why",
+                    "Who"
+                  ],
+                  "answer": 0,
+                  "explain": "Where means your route there and back."
+                },
+                {
+                  "prompt": "You write down the names of the people walking with you. Which W is that?",
+                  "choices": [
+                    "What",
+                    "Who",
+                    "When"
+                  ],
+                  "answer": 1,
+                  "explain": "Who means the people in your group."
+                },
+                {
+                  "prompt": "A map says 1 inch is 1 mile. Two inches on the map is how far?",
+                  "choices": [
+                    "1 mile",
+                    "2 miles",
+                    "4 miles"
+                  ],
+                  "answer": 1,
+                  "explain": "The scale tells you how far things are in real life."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A good walk plan answers five questions. Each starts with W.",
+              "Where are you going? Pick a route there and back.",
+              "When will you be back? Tell your family the time.",
+              "Who is going, why are you going, and what will you bring?",
+              "A map has a scale. It tells how far things are in real life.",
+              "If 1 inch is 1 mile, then 2 inches is 2 miles."
+            ]
+          },
+          "notes": "Official requirement 2. Planning ideas can be learned on a screen; your family or den still picks a real 2-mile route on a real map."
+        },
+        {
+          "id": "webelos.webelos-walkabout.3",
+          "number": "3",
+          "adultText": "Look up what the weather is expected to be when your walk is planned, and think about which clothes and gear match it.",
+          "kidText": "Check the weather for the day of your walk. Then decide what to wear and bring.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Check the Forecast",
+              "kidSteps": [
+                "Ask a parent to help you open a weather app or website.",
+                "Look at the day and time of your walk.",
+                "Write down the weather and how hot or cold it will be.",
+                "Decide what to wear and bring."
+              ],
+              "parentNote": "Help your Scout read the real forecast for the walk day and time (rain, wind, heat, cold) and talk about what clothes and gear to change.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "The forecast says hot and sunny. What should you add?",
+                  "choices": [
+                    "Sun protection and extra water",
+                    "A winter coat",
+                    "Nothing"
+                  ],
+                  "answer": 0,
+                  "explain": "Sun and heat mean you need sun protection and more water."
+                },
+                {
+                  "prompt": "The forecast says rain. What should you wear?",
+                  "choices": [
+                    "A rain jacket",
+                    "Sandals",
+                    "A tank top"
+                  ],
+                  "answer": 0,
+                  "explain": "A rain jacket keeps you dry and warm."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A forecast tells you what the weather will do.",
+              "Check it before every trip. Look at the day and the time.",
+              "Hot and sunny? Bring sun protection and extra water.",
+              "Rainy or cold? Wear a jacket and warm layers.",
+              "Try the quiz, then check a real forecast with a parent."
+            ]
+          }
+        },
+        {
+          "id": "webelos.webelos-walkabout.4",
+          "number": "4",
+          "adultText": "Go over the four SAFE Checklist points (Supervision, Assessment, Fitness and Skill, Equipment and Environment) and think about how each fits your walk.",
+          "kidText": "SAFE is a checklist that keeps Scouts safe. Learn its four points and how they fit your walk.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "A trusted adult watches over the group. Which SAFE point is that?",
+                  "choices": [
+                    "Supervise",
+                    "Equipment",
+                    "Check risks"
+                  ],
+                  "answer": 0,
+                  "explain": "S means a trusted adult watches over everyone."
+                },
+                {
+                  "prompt": "Adults look for storms and steep spots before you go. Which point is that?",
+                  "choices": [
+                    "Check risks",
+                    "Supervise",
+                    "Equipment"
+                  ],
+                  "answer": 0,
+                  "explain": "The A point is about looking for risks before you go."
+                },
+                {
+                  "prompt": "Your health form says you are ready for a 2-mile walk. Which point is that?",
+                  "choices": [
+                    "Fitness and skill",
+                    "Equipment",
+                    "Supervise"
+                  ],
+                  "answer": 0,
+                  "explain": "F means everyone is fit and skilled enough to do it."
+                },
+                {
+                  "prompt": "Your shoes fit and your pack is the right size. Which point is that?",
+                  "choices": [
+                    "Equipment",
+                    "Fitness and skill",
+                    "Check risks"
+                  ],
+                  "answer": 0,
+                  "explain": "E means the right gear, used in a safe place."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "SAFE is a Scouting checklist. It keeps every outing safe.",
+              "S is for Supervise. A trusted adult watches over the group.",
+              "A is for Assessment. That means look for risks before you go.",
+              "F is for Fitness and skill. Everyone is healthy and skilled enough.",
+              "E is for Equipment and environment. Use the right gear in a safe place.",
+              "Match each SAFE point to what it means."
+            ]
+          },
+          "notes": "Official requirement 4. SAFE stands for Supervision, Assessment, Fitness and Skill, Equipment and Environment."
+        },
+        {
+          "id": "webelos.webelos-walkabout.5",
+          "number": "5",
+          "adultText": "Show first aid for five things that could happen on a walk: heat-related illness, too little water, sunburn, a sprained ankle, and a blister.",
+          "kidText": "Show what to do for five trail problems. Learn them in the game, then show an adult.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Trail First Aid",
+              "kidSteps": [
+                "Blister: show how to cover it with a bandage or moleskin.",
+                "Sprained ankle: show how to rest it and wrap it.",
+                "Sunburn: show how to cover up and use aloe.",
+                "Too little water: show how to sip slowly in the shade.",
+                "Heat illness: show how to cool off and rest.",
+                "Say when to tell an adult. The answer is right away!"
+              ],
+              "parentNote": "Have your Scout act out first aid for each problem on a partner, using simple supplies such as moleskin, a bandage, an elastic wrap, aloe, and water. Make sure they say to tell an adult, and to call for help fast if someone is confused, faints, or has hot, dry skin.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which first-aid tip goes with which problem?",
+              "bins": [
+                {
+                  "id": "blister",
+                  "label": "Blister"
+                },
+                {
+                  "id": "ankle",
+                  "label": "Sprained ankle"
+                },
+                {
+                  "id": "sunburn",
+                  "label": "Sunburn"
+                },
+                {
+                  "id": "heat",
+                  "label": "Too hot or too thirsty"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Cover it with moleskin",
+                  "bin": "blister"
+                },
+                {
+                  "label": "Do not pop it",
+                  "bin": "blister"
+                },
+                {
+                  "label": "Rest it and wrap it",
+                  "bin": "ankle"
+                },
+                {
+                  "label": "Keep weight off it",
+                  "bin": "ankle"
+                },
+                {
+                  "label": "Put aloe on red skin",
+                  "bin": "sunburn"
+                },
+                {
+                  "label": "Cover up with a hat and long sleeves",
+                  "bin": "sunburn"
+                },
+                {
+                  "label": "Sip water slowly",
+                  "bin": "heat"
+                },
+                {
+                  "label": "Rest in the shade",
+                  "bin": "heat"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Five problems can happen on a walk. Let us learn what to do.",
+              "Blister: cover it with moleskin, a soft sticky pad, or a bandage.",
+              "Sprained ankle: rest it and wrap it with an elastic bandage. Keep weight off it.",
+              "Sunburn: put aloe on the red skin, then cover up from the sun.",
+              "Dehydration means your body has too little water. Heat illness means you got too hot.",
+              "For both: rest in shade, sip water slowly, and tell an adult."
+            ]
+          },
+          "notes": "Official requirement 5. Practice supplies in the official activity: moleskin, bandage, elastic bandage, aloe vera, sunscreen, water."
+        },
+        {
+          "id": "webelos.webelos-walkabout.6a",
+          "number": "6a",
+          "adultText": "Know the Leave No Trace Principles for Kids and the Outdoor Code before the walk so your Scout can follow them on the trail.",
+          "kidText": "Leave No Trace means leaving nature as you found it. Sort trail habits into do and do not.",
+          "digital": true,
+          "activity": {
+            "type": "sort",
+            "params": {
+              "prompt": "Does each habit follow Leave No Trace?",
+              "bins": [
+                {
+                  "id": "yes",
+                  "label": "Leave No Trace habit"
+                },
+                {
+                  "id": "no",
+                  "label": "Not a Leave No Trace habit"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Pack out all your trash",
+                  "bin": "yes"
+                },
+                {
+                  "label": "Stay on the trail",
+                  "bin": "yes"
+                },
+                {
+                  "label": "Leave rocks and plants where you found them",
+                  "bin": "yes"
+                },
+                {
+                  "label": "Watch wild animals from far away",
+                  "bin": "yes"
+                },
+                {
+                  "label": "Feed the squirrels your snack",
+                  "bin": "no"
+                },
+                {
+                  "label": "Pick flowers to take home",
+                  "bin": "no"
+                },
+                {
+                  "label": "Leave your wrapper in the bushes",
+                  "bin": "no"
+                },
+                {
+                  "label": "Play loud music on the trail",
+                  "bin": "no"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Leave No Trace means leaving nature as you found it.",
+              "Pack out your trash. Stay on the trail. Leave rocks and plants alone.",
+              "Watch wild animals from far away. Never feed them.",
+              "Be kind to other people on the trail. Keep the noise down.",
+              "The Outdoor Code is a Scout promise about the outdoors. Be clean, careful with fire, kind to others, and protect nature.",
+              "Sort each habit: does it follow Leave No Trace?"
+            ]
+          },
+          "notes": "Learning half of official requirement 6; 6b is the walk itself. Official reference sheet: Outdoor Code and Leave No Trace Principles for Kids."
+        },
+        {
+          "id": "webelos.webelos-walkabout.6b",
+          "number": "6b",
+          "adultText": "Take the planned 2-mile walk with others, such as the den, pack, or family, and follow the Leave No Trace Principles for Kids and the Outdoor Code on the trail.",
+          "kidText": "Time to walk! Go 2 miles with your den and family. Follow Leave No Trace the whole way.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Take Your 2-Mile Walk",
+              "kidSteps": [
+                "Use the buddy system. Stay with your buddy.",
+                "Bring your Six Essentials and a full water bottle.",
+                "Walk 2 miles. Stay on the trail and with the group.",
+                "Pack out your trash.",
+                "Take a water break and rest when you need to."
+              ],
+              "parentNote": "Look for the buddy system, Six Essentials, staying on the trail, packing out trash, and leaving plants and animals alone. Adults supervise the whole way. Check the forecast and health forms first.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "navigate",
+            "params": {
+              "prompt": "Practice with the trail map. Follow your compass to each stop.",
+              "zone": "nature-trail",
+              "waypoints": [
+                {
+                  "id": "trailhead",
+                  "label": "Trailhead"
+                },
+                {
+                  "id": "footbridge",
+                  "label": "Footbridge"
+                },
+                {
+                  "id": "lookout",
+                  "label": "Lookout"
+                },
+                {
+                  "id": "campsite",
+                  "label": "Campsite"
+                }
+              ],
+              "useCompass": true
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A compass is a tool with a needle that points north.",
+              "Use it with a map to find your way.",
+              "On our trail map, go in order: trailhead, footbridge, lookout, campsite.",
+              "The trailhead is where a trail starts.",
+              "Follow the compass arrow on your screen to each stop.",
+              "On a real walk, staying on the trail keeps you safe and protects plants."
+            ]
+          }
+        },
+        {
+          "id": "webelos.webelos-walkabout.7",
+          "number": "7",
+          "adultText": "Once the walk is done, sit down with the den and look back at what worked and what to try differently. Stop-Start-Continue is an easy way to do it.",
+          "kidText": "After your walk, sit with your den. Talk about what worked and what to change next time.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Talk About Your Walk",
+              "kidSteps": [
+                "Sit with your den after the walk.",
+                "Say what you would stop doing.",
+                "Say what you would start doing.",
+                "Say what you would keep doing."
+              ],
+              "parentNote": "Listen for at least one thing that went well and one thing to change. The den leader often leads this right after the walk.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "In Stop-Start-Continue, what goes under Continue?",
+                  "choices": [
+                    "Things that went well",
+                    "Things that went wrong",
+                    "Things you forgot"
+                  ],
+                  "answer": 0,
+                  "explain": "Continue means keep doing the good things."
+                },
+                {
+                  "prompt": "What goes under Stop?",
+                  "choices": [
+                    "Things that went badly",
+                    "Things that went well",
+                    "Snacks"
+                  ],
+                  "answer": 0,
+                  "explain": "Stop means things you should not do again."
+                },
+                {
+                  "prompt": "Next time we want to bring a map. Where does that go?",
+                  "choices": [
+                    "Start",
+                    "Stop",
+                    "Continue"
+                  ],
+                  "answer": 0,
+                  "explain": "Start means a new thing to try."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "After an outing, Scouts look back to get better.",
+              "Try Stop-Start-Continue. It has three parts.",
+              "Stop: things that went badly and you should not do again.",
+              "Start: new things to try next time.",
+              "Continue: things that went well and you want to keep doing.",
+              "Answer the questions, then try it with your den."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "webelos.my-community",
+      "name": "My Community",
+      "category": "citizenship",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/my-community/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn how voting works. Meet an elected leader. Follow the story of a law. Help your town.",
+      "requirements": [
+        {
+          "id": "webelos.my-community.1",
+          "number": "1",
+          "adultText": "Learn the difference between majority voting (more than half of the votes is needed to win) and plurality voting (the most votes wins, even if that is under half).",
+          "kidText": "Votes can be counted two ways. Majority needs over half the votes. Plurality needs just the most votes.",
+          "digital": true,
+          "activity": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Ten Scouts vote. Red gets 4 votes, Blue gets 3, Green gets 3. Who wins by plurality?",
+                  "choices": [
+                    "Red",
+                    "Blue",
+                    "Nobody"
+                  ],
+                  "answer": 0,
+                  "explain": "Plurality means the most votes wins, even if it is not over half."
+                },
+                {
+                  "prompt": "Same vote. Does Red have a majority?",
+                  "choices": [
+                    "Yes",
+                    "No"
+                  ],
+                  "answer": 1,
+                  "explain": "A majority is more than half. Half of 10 is 5, so Red needs 6."
+                },
+                {
+                  "prompt": "Which kind of vote may need a second round if nobody gets over half?",
+                  "choices": [
+                    "Majority",
+                    "Plurality"
+                  ],
+                  "answer": 0,
+                  "explain": "With majority voting, you vote again until someone gets over half."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Voting is how a group makes a choice. There are different ways to count votes.",
+              "Plurality means the choice with the most votes wins.",
+              "Even a win with 4 of 10 votes counts in plurality.",
+              "Majority means a choice needs more than half of all the votes.",
+              "With 10 votes, a majority is 6 or more. If no one gets 6, vote again.",
+              "Now try some votes."
+            ]
+          },
+          "notes": "Official requirement 1. Majority means more than 50 percent of the votes; plurality means the most votes. The kid-facing words stay because the requirement teaches them; the lessons define both."
+        },
+        {
+          "id": "webelos.my-community.2",
+          "number": "2",
+          "adultText": "Interview someone who was elected to office. Ask which kind of voting put them there and why that kind was used.",
+          "kidText": "Talk to a leader that voters picked. Ask how they won and what kind of vote was used.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Meet an Elected Leader",
+              "kidSteps": [
+                "Ask your den leader or a parent to help you find an elected leader.",
+                "Write three questions to ask them.",
+                "Ask your questions.",
+                "Say thank you."
+              ],
+              "parentNote": "Elected leaders include a mayor, city council member, school board member, or state representative. Your den leader may set up a visit. Good questions: how many votes did you get, was it majority or plurality, and why was that system used?",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Who is chosen by voters?",
+                  "choices": [
+                    "A mayor",
+                    "A store clerk",
+                    "A bus driver"
+                  ],
+                  "answer": 0,
+                  "explain": "Voters elect a mayor. Store clerks and bus drivers are hired."
+                },
+                {
+                  "prompt": "Which is a good question to ask?",
+                  "choices": [
+                    "How many votes did you get?",
+                    "What did you eat today?",
+                    "Where do you shop?"
+                  ],
+                  "answer": 0,
+                  "explain": "Ask about the vote. That is what this step is about."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "An elected leader is a person voters chose for a job.",
+              "A mayor, a school board member, and a senator are elected.",
+              "Ask how they won and how the votes were counted.",
+              "Other good questions: How many votes did you get? Why did you run?",
+              "Be polite and say thank you at the end."
+            ]
+          }
+        },
+        {
+          "id": "webelos.my-community.3",
+          "number": "3",
+          "adultText": "Pick a federal law and make a timeline of its history that shows how Congress, the President, and the courts each took part.",
+          "kidText": "Pick a law for the whole country. Make a timeline of its story that shows the three branches of government.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Make a Law Timeline",
+              "kidSteps": [
+                "Pick a federal law. Your den leader or a parent can suggest one.",
+                "Find the years when big things happened to that law.",
+                "Write each year on a timeline with a short note.",
+                "Mark which branch of government took part each time."
+              ],
+              "parentNote": "A common choice is the Americans with Disabilities Act: introduced in Congress in 1988, passed by the Senate in 1989, passed by the House and signed by the President in 1990, court rulings in 1999, and the ADA Amendments Act in 2008. Help your Scout find sources for whichever law they pick.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which branch does each job?",
+              "bins": [
+                {
+                  "id": "congress",
+                  "label": "Congress"
+                },
+                {
+                  "id": "president",
+                  "label": "The President"
+                },
+                {
+                  "id": "courts",
+                  "label": "The courts"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Writes and votes on bills",
+                  "bin": "congress"
+                },
+                {
+                  "label": "Passes a bill in the House and Senate",
+                  "bin": "congress"
+                },
+                {
+                  "label": "Signs a bill to make it law",
+                  "bin": "president"
+                },
+                {
+                  "label": "Can say no to a bill",
+                  "bin": "president"
+                },
+                {
+                  "label": "Decides what a law means in a case",
+                  "bin": "courts"
+                },
+                {
+                  "label": "Hears cases about a law",
+                  "bin": "courts"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A federal law is a law for the whole country.",
+              "Three branches of government work on laws. A branch is one part.",
+              "Congress writes and votes on bills, which are plans for new laws.",
+              "The President signs a bill to make it a law.",
+              "The courts decide what a law means.",
+              "Sort each job to Congress, the President, or the courts."
+            ]
+          },
+          "notes": "Official requirement 3. The three branches are legislative (Congress), executive (the President), and judicial (the courts); the kid text uses the plain names."
+        },
+        {
+          "id": "webelos.my-community.4",
+          "number": "4",
+          "adultText": "Take part in a service project that helps others, such as a card drive for troops, a diaper drive, birthday bags for a food pantry, or a food drive.",
+          "kidText": "Do a service project. A service project is when you help others and are not paid.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Join a Service Project",
+              "kidSteps": [
+                "Pick a project with your den or family.",
+                "Ask an adult to help you plan it.",
+                "Do the project.",
+                "Think about who you helped."
+              ],
+              "parentNote": "Look for real helping, such as a food drive, a donation drive, or cards for troops. The den or pack often leads one. An adult should oversee any tools and follow the safety rules.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "What is a service project?",
+                  "choices": [
+                    "Helping others without pay",
+                    "A game at recess",
+                    "A school test"
+                  ],
+                  "answer": 0,
+                  "explain": "A service project is a way to help other people or a place."
+                },
+                {
+                  "prompt": "Which one is a service project?",
+                  "choices": [
+                    "Collecting food for a pantry",
+                    "Playing video games",
+                    "Buying a toy"
+                  ],
+                  "answer": 0,
+                  "explain": "Collecting food helps people who need it."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A service project helps other people or a place.",
+              "You do it to help, not to be paid.",
+              "Collecting food, making cards, or cleaning a park are service projects.",
+              "Working together makes the job faster and more fun.",
+              "Try the quiz, then pick a project with your den."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "webelos.my-family",
+      "name": "My Family",
+      "category": "family-reverence",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/my-family/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Talk with your family about your beliefs and customs. Do a kind act. Learn what reverent means.",
+      "requirements": [
+        {
+          "id": "webelos.my-family.1",
+          "number": "1",
+          "adultText": "Share the faith traditions your family follows with a parent, pick out three holidays or celebrations they include, and create a craft, art piece, or dish tied to one of them.",
+          "kidText": "Talk with a parent about the beliefs and customs your family keeps. Name three holidays. Then make something that fits.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Family Traditions",
+              "kidSteps": [
+                "Talk with a parent about your family's faith traditions.",
+                "Name three holidays or celebrations your family keeps.",
+                "Make a craft, art, or food that is part of one of them."
+              ],
+              "parentNote": "This adventure is personal to your family, so share what matters to you. Any craft, drawing, collage, or recipe works. Scouting America also lets families count a Religious Emblem of their choice in place of this adventure.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "webelos.my-family.2",
+          "number": "2",
+          "adultText": "Do one kind thing for someone else, such as cleaning up the dishes, helping with a chore, or helping a neighbor with yard work.",
+          "kidText": "Do something kind for someone else. Help with the dishes, a chore, or a neighbor's yard.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Do a Kind Act",
+              "kidSteps": [
+                "Pick a kind act, like dishes, a chore, or helping a neighbor.",
+                "Do it without being asked.",
+                "Notice how it feels."
+              ],
+              "parentNote": "Look for a real act of kindness your Scout chose and did. Ask how it felt. If your Scout helps a neighbor, you or another adult should go along and supervise.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "webelos.my-family.3",
+          "number": "3",
+          "adultText": "With a parent's help, choose another faith to learn about and find two ways it matches your family's beliefs.",
+          "kidText": "Learn about a faith that is not your own. Find two ways it matches what your family believes.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Learn About Another Faith",
+              "kidSteps": [
+                "Pick another faith with a parent.",
+                "Read or watch something about it.",
+                "Find two things it shares with your family's beliefs.",
+                "Tell your parent what you learned."
+              ],
+              "parentNote": "Choose respectful sources, such as library books or a visit with a leader of that faith. Look for two honest similarities, such as caring for others or having a special day of worship.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "webelos.my-family.4",
+          "number": "4",
+          "adultText": "Explain to a parent what being reverent means to you, and share examples of how you live it each day.",
+          "kidText": "Reverent means showing respect for faith and for what others believe. Tell how you do that each day.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Being Reverent",
+              "kidSteps": [
+                "Talk with a parent about what reverent means.",
+                "Think of times each day when you are reverent.",
+                "Tell your parent how you show it."
+              ],
+              "parentNote": "Listen for a few real examples from your Scout's day, such as saying thanks, being quiet and respectful at a service, or respecting a friend's beliefs.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Your friend's family prays before a meal. What is a reverent thing to do?",
+                  "choices": [
+                    "Be quiet and respectful",
+                    "Laugh",
+                    "Talk loudly"
+                  ],
+                  "answer": 0,
+                  "explain": "Reverent means showing respect for what others believe."
+                },
+                {
+                  "prompt": "Reverent is one point of the Scout Law. What does it mean?",
+                  "choices": [
+                    "Showing respect for faith",
+                    "Being the fastest",
+                    "Saving money"
+                  ],
+                  "answer": 0,
+                  "explain": "Reverent means respect for faith and for what others believe."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Reverent is one point of the Scout Law.",
+              "Reverent means showing respect for faith and for what others believe.",
+              "You can be reverent by being quiet and kind during a prayer or ceremony.",
+              "You can also say thanks, take a quiet moment, or help someone in need.",
+              "Try the quiz. Then talk with a parent about how you show it."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "webelos.my-safety",
+      "name": "My Safety",
+      "category": "personal-safety",
+      "required": true,
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/my-safety/",
+      "fetchedOn": "2026-10-03",
+      "summary": "Learn to protect yourself and keep your home safe. Get ready for storms and floods.",
+      "requirements": [
+        {
+          "id": "webelos.my-safety.1",
+          "number": "1",
+          "adultText": "Get a parent's okay, then watch the Webelos version of the Protect Yourself Rules video together (about 22 minutes) and talk it over.",
+          "kidText": "Watch the Protect Yourself video with a parent. Then talk about what you learned.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Protect Yourself Video",
+              "kidSteps": [
+                "Ask a parent to watch the video with you.",
+                "Watch the whole video together.",
+                "Talk about it. Ask any question you have."
+              ],
+              "parentNote": "Watch the Webelos Protect Yourself Rules video (about 22 minutes) on the Scouting America Youth Protection site. Pause to talk. Remind your Scout who their safe adults are and that they can always tell one of them.",
+              "evidence": "checklist"
+            }
+          }
+        },
+        {
+          "id": "webelos.my-safety.2",
+          "number": "2",
+          "adultText": "Walk through your home and find items that could be harmful. See that they are kept in a safe spot, and find where each package says what to do after an accident.",
+          "kidText": "Find harmful things at home, like cleaners and medicine. Check that they are stored safely.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Home Hazard Hunt",
+              "kidSteps": [
+                "Walk around your home with a parent.",
+                "Find things that could be harmful, like cleaners and medicine.",
+                "Check that each one is stored safely.",
+                "Find the label that says what to do if someone touches or swallows it.",
+                "Post the Poison Help number where the family can see it."
+              ],
+              "parentNote": "Look for harmful items stored up high or locked away, and for the first-aid directions on each label. Poison Help is 1-800-222-1222; call 911 in an emergency. Keep the container nearby when you call.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which things need to be stored up high or locked?",
+              "bins": [
+                {
+                  "id": "locked",
+                  "label": "Harmful: store up high or locked"
+                },
+                {
+                  "id": "ok",
+                  "label": "Safe to keep out"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Bleach",
+                  "bin": "locked"
+                },
+                {
+                  "label": "Medicine bottles",
+                  "bin": "locked"
+                },
+                {
+                  "label": "Laundry pods",
+                  "bin": "locked"
+                },
+                {
+                  "label": "Crayons",
+                  "bin": "ok"
+                },
+                {
+                  "label": "Pillows",
+                  "bin": "ok"
+                },
+                {
+                  "label": "Toy blocks",
+                  "bin": "ok"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Some things at home can hurt you if you touch or swallow them.",
+              "Bleach, medicine, and cleaners are examples. Adults store them up high or locked.",
+              "Every package has a label. It says what to do if someone gets hurt.",
+              "If someone swallows something harmful, tell an adult fast.",
+              "Then call Poison Help at 1-800-222-1222. For an emergency, call 911.",
+              "Sort the items: harmful or safe to keep out?"
+            ]
+          }
+        },
+        {
+          "id": "webelos.my-safety.3",
+          "number": "3",
+          "adultText": "Look for the things your family already does to keep your home or den space safe, using a safety checklist as a guide.",
+          "kidText": "Find ways your family keeps your home safe. A checklist can help you look.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Home Safety Check",
+              "kidSteps": [
+                "Get a safety checklist from your den leader or a parent.",
+                "Walk through your home or den space with it.",
+                "Check off each safe thing you find.",
+                "Talk about one thing to fix."
+              ],
+              "parentNote": "Look at smoke alarms, an exit plan, clear paths, and safe storage. Scouting America has a Safe Home checklist and a Safe Den Meeting checklist on the activity pages. Test the smoke alarm while you are at it.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "quiz",
+            "params": {
+              "questions": [
+                {
+                  "prompt": "Which one helps keep your home safe?",
+                  "choices": [
+                    "Test smoke alarms",
+                    "Block the exit",
+                    "Leave the stove on"
+                  ],
+                  "answer": 0,
+                  "explain": "Working smoke alarms warn you early."
+                },
+                {
+                  "prompt": "What is a good fire plan?",
+                  "choices": [
+                    "Two ways out and a meeting place",
+                    "Hide in a closet",
+                    "Wait and see"
+                  ],
+                  "answer": 0,
+                  "explain": "Plan two ways out and a place to meet outside."
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "A safe home has smoke alarms that work. Test them every month.",
+              "Plan two ways out of each room. Pick a meeting place outside.",
+              "Keep floors and exits clear so nobody trips.",
+              "Keep dangerous things up high or locked up.",
+              "Try the quiz, then look at your own home with a checklist."
+            ]
+          }
+        },
+        {
+          "id": "webelos.my-safety.4",
+          "number": "4",
+          "adultText": "Fill out the Be Prepared for Natural Events worksheet for two or more events that could really happen in your area, such as earthquakes, floods, or tornadoes.",
+          "kidText": "Make a plan for two natural events near you, like floods or tornadoes.",
+          "digital": false,
+          "activity": {
+            "type": "fieldMission",
+            "params": {
+              "title": "Be Prepared Plans",
+              "kidSteps": [
+                "Find out which natural events could happen near you.",
+                "Pick two of them.",
+                "Fill out a worksheet for each one.",
+                "Share your plans with your family."
+              ],
+              "parentNote": "The official list of events: earthquakes, mudslides, floods, hurricanes, and tornadoes. Pick events likely where you live (the government Ready website helps), then complete a worksheet for each and review the plans as a family.",
+              "evidence": "checklist"
+            }
+          },
+          "practice": {
+            "type": "sort",
+            "params": {
+              "prompt": "Which safe step goes with which event?",
+              "bins": [
+                {
+                  "id": "quake",
+                  "label": "Earthquake"
+                },
+                {
+                  "id": "tornado",
+                  "label": "Tornado"
+                },
+                {
+                  "id": "flood",
+                  "label": "Flood"
+                }
+              ],
+              "items": [
+                {
+                  "label": "Drop, cover, and hold on",
+                  "bin": "quake"
+                },
+                {
+                  "label": "Hold on until the shaking stops",
+                  "bin": "quake"
+                },
+                {
+                  "label": "Go to the lowest floor",
+                  "bin": "tornado"
+                },
+                {
+                  "label": "Pick a small room with no windows",
+                  "bin": "tornado"
+                },
+                {
+                  "label": "Move to higher ground",
+                  "bin": "flood"
+                },
+                {
+                  "label": "Never walk through flood water",
+                  "bin": "flood"
+                }
+              ]
+            }
+          },
+          "lesson": {
+            "lines": [
+              "Natural events are big things nature does, like floods and earthquakes.",
+              "Pick the ones that could happen where you live.",
+              "Earthquake: drop, cover, and hold on until the shaking stops.",
+              "Tornado: go to the lowest floor, in a small room with no windows.",
+              "Flood: move to higher ground. Never walk through flood water.",
+              "Sort each safe step by the event it fits."
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "electives": [
+    {
+      "id": "webelos.aquanaut",
+      "name": "Aquanaut",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/aquanaut/",
+      "summary": "Learn to swim safely and what to do in a water emergency."
+    },
+    {
+      "id": "webelos.art-explosion",
+      "name": "Art Explosion",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/art-explosion/",
+      "summary": "Try drawing, painting, sculpture, or photos and make art that is all your own."
+    },
+    {
+      "id": "webelos.aware-and-care",
+      "name": "Aware and Care",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/aware-and-care/",
+      "summary": "See what life is like for people with vision or hearing loss. Learn how to help."
+    },
+    {
+      "id": "webelos.build-it",
+      "name": "Build It",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/build-it/",
+      "summary": "Learn how to use tools safely and build a small wood project."
+    },
+    {
+      "id": "webelos.catch-the-big-one",
+      "name": "Catch the Big One",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/catch-the-big-one/",
+      "summary": "Plan a fishing trip, pick your gear, tie a knot, and go fish."
+    },
+    {
+      "id": "webelos.champions-for-nature",
+      "name": "Champions for Nature Webelos",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/champions-for-nature-webelos/",
+      "summary": "Learn about habitats and animals in danger, and how people help protect them."
+    },
+    {
+      "id": "webelos.chefs-knife",
+      "name": "Chef's Knife",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/chefs-knife/",
+      "summary": "Learn kitchen knife safety. You must earn this one before you use any knife in Cub Scouts."
+    },
+    {
+      "id": "webelos.earth-rocks",
+      "name": "Earth Rocks",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/earth-rocks/",
+      "summary": "Dig into rocks and minerals and learn how the ground under you moves."
+    },
+    {
+      "id": "webelos.lets-camp",
+      "name": "Let's Camp Webelos",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/lets-camp-webelos/",
+      "summary": "Plan a campout, get ready for rough weather, and learn to leave no trace."
+    },
+    {
+      "id": "webelos.math-on-the-trail",
+      "name": "Math on the Trail",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/math-on-the-trail/",
+      "summary": "Learn your walking pace and use it to guess how long a walk takes."
+    },
+    {
+      "id": "webelos.modular-design",
+      "name": "Modular Design",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/modular-design/",
+      "summary": "Build with pieces that fit together and write steps for others to follow."
+    },
+    {
+      "id": "webelos.paddle-onward",
+      "name": "Paddle Onward",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/paddle-onward/",
+      "summary": "Learn to paddle a canoe, kayak, or paddleboard safely. Pass the swim test first."
+    },
+    {
+      "id": "webelos.pedal-away",
+      "name": "Pedal Away",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/pedal-away/",
+      "summary": "Check your bike and helmet, learn how gears work, and go for a ride."
+    },
+    {
+      "id": "webelos.race-time",
+      "name": "Race Time Webelos",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/race-time-webelos/",
+      "summary": "Build a Pinewood Derby car or a Raingutter Regatta boat. Then race it!"
+    },
+    {
+      "id": "webelos.summertime-fun",
+      "name": "Summertime Fun Webelos",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/summertime-fun-webelos/",
+      "summary": "Join three Scout events over the summer, like day camp or a picnic."
+    },
+    {
+      "id": "webelos.tech-on-the-trail",
+      "name": "Tech on the Trail",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/tech-on-the-trail/",
+      "summary": "Learn how GPS and online maps help you explore the outdoors and stay safe."
+    },
+    {
+      "id": "webelos.yo-yo",
+      "name": "Yo-yo",
+      "sourceUrl": "https://www.scouting.org/cub-scout-adventures/yo-yo/",
+      "summary": "Learn yo-yo tricks like the sleeper and walk the dog."
+    }
+  ]
+}

@@ -1,32 +1,27 @@
 import * as THREE from 'three';
-import { assets, type ModelAnimator } from '../engine/assets';
-import { damp, dampAngle, shortestAngle, wrapAngle } from '../engine/damp';
-import { setShadowCasting } from '../engine/environment';
+import type { RankId } from '../activities/types';
+import { dampAngle, shortestAngle, wrapAngle } from '../engine/damp';
 import type { InputState } from '../engine/input';
+import type { AvatarConfig } from '../save/types';
 import { clampToBounds } from '../world/bounds';
-import { personPlaceholder, type Person } from '../world/props';
 import type { Zone } from '../world/zone';
+import { defaultAvatar } from './avatar/options';
+import { buildAvatar, type AvatarRig, type Emote } from './avatar/rig';
 
 export interface PlayerOptions {
-  /** Body color (hex) of the placeholder shown until the model loads. The neckerchief is a darker shade of it. */
-  bodyColor: number;
-  /** Asset id of the character model. Defaults to `character.scout.a`. Any `character.scout.*` works. */
-  characterId?: string;
+  /** The Scout's look. Defaults to the Wolf uniform. */
+  avatar?: AvatarConfig;
+  /** Decides the default neckerchief for an avatar that leaves it out (a v1 save). Default 'wolf'. */
+  rank?: RankId;
 }
 
 export const PLAYER_SPEED = 4; // units per second
-const PLAYER_HEIGHT = 1.95;
 const TURN_K = 14; // how fast the player swings to face their direction of travel
 const MOVE_THRESHOLD = 0.05; // stick magnitude below this counts as standing still
-const BOB_RATE = 12; // radians per second
-const BOB_HEIGHT = 0.07;
-const DEFAULT_CHARACTER = 'character.scout.a';
-const WALK_TIME_SCALE = 1.35; // plays the walk clip a little faster than authored, to match PLAYER_SPEED
-const CROSS_FADE = 0.18; // seconds to blend between idle and walk
 
 /**
- * The scout the kid controls. Shows a capsule placeholder at once, then swaps in the character
- * model (idle and walk clips, cross-faded on `isMoving`) when it has loaded.
+ * The scout the kid controls: the blocky avatar rig (see player/avatar), walking when the stick is
+ * pushed and breathing when it is not. The look can change at any time with `setAvatar`.
  */
 export class Player {
   /** Scene object. Its transform is the interpolated, on-screen pose (see `interpolate`). */
@@ -42,41 +37,56 @@ export class Player {
    */
   viewYaw = Math.PI;
 
-  private readonly person: Person;
-  /** Set once the model has loaded; the bob is off from then on, the clips do the moving. */
-  private animator: ModelAnimator | undefined;
+  private rig: AvatarRig;
+  private rank: RankId;
   private readonly prevPosition = new THREE.Vector3();
   private prevFacing = this.facing;
-  private bobPhase = 0;
-  private bobAmount = 0;
 
-  constructor(options: PlayerOptions) {
-    this.person = personPlaceholder(options.bodyColor, PLAYER_HEIGHT);
-    this.person.name = 'player';
-    setShadowCasting(this.person, true, true); // the placeholder casts until the model arrives (its blob is skipped)
-    this.root.add(this.person);
-
-    const characterId = options.characterId ?? DEFAULT_CHARACTER;
-    assets
-      .load([characterId])
-      .then(() => this.useModel(characterId))
-      .catch((err: unknown) => {
-        console.warn('[player] could not load the character model, keeping the placeholder', err);
-      });
+  constructor(options: PlayerOptions = {}) {
+    this.rank = options.rank ?? 'wolf';
+    this.rig = buildAvatar(options.avatar ?? defaultAvatar(this.rank), { rank: this.rank });
+    this.rig.root.name = 'player';
+    this.root.add(this.rig.root);
   }
 
-  /** Swap the placeholder body for the character model, keeping the blob shadow. */
-  private useModel(characterId: string): void {
-    if (!assets.has(characterId)) return;
-    const model = assets.instance(characterId);
-    model.name = 'player-model';
-    setShadowCasting(model, true, true);
-    this.root.add(model); // the model's front is +z, same as the placeholder, so `facing` just works
-    this.person.body.visible = false;
-    this.person.body.position.y = 0;
-    this.animator = assets.animator(characterId, model);
-    this.animator?.setTimeScale('walk', WALK_TIME_SCALE);
-    this.animator?.play(this.isMoving ? 'walk' : 'idle', 0);
+  /** The look now showing, with every field filled in. */
+  get avatar(): AvatarRig['config'] {
+    return this.rig.config;
+  }
+
+  /** What the avatar is playing now ('idle', 'walk', 'cheer' or 'wave'). */
+  get emote(): Emote {
+    return this.rig.emote;
+  }
+
+  /**
+   * Change the Scout's look in place: only the parts that changed are rebuilt, and the pose and
+   * position carry on. Pass the profile's `rank` so a v1 avatar gets its rank's neckerchief.
+   */
+  setAvatar(config: AvatarConfig, rank?: RankId): void {
+    if (rank && rank !== this.rank) {
+      // The rank sets the defaults for missing fields, so a new rank needs a new rig.
+      this.rank = rank;
+      const old = this.rig;
+      const next = buildAvatar(config, { rank });
+      next.root.name = 'player';
+      next.play(old.emote);
+      this.root.add(next.root);
+      old.dispose();
+      this.rig = next;
+      return;
+    }
+    this.rig.setConfig(config);
+  }
+
+  /** Cheer: both arms up and a hop. Plays once, then back to standing or walking. */
+  celebrate(): void {
+    this.rig.play('cheer');
+  }
+
+  /** Wave hello. Plays once. */
+  wave(): void {
+    this.rig.play('wave');
   }
 
   /** Teleport (zone change, spawn). Clears interpolation so nothing slides. */
@@ -116,15 +126,7 @@ export class Player {
       this.facing = wrapAngle(dampAngle(this.facing, Math.atan2(dirX, dirZ), TURN_K, dt));
     }
 
-    if (this.animator) {
-      this.animator.play(this.isMoving ? 'walk' : 'idle', CROSS_FADE);
-      this.animator.update(dt);
-      return;
-    }
-
-    this.bobAmount = damp(this.bobAmount, this.isMoving ? 1 : 0, 12, dt);
-    if (this.isMoving) this.bobPhase += dt * BOB_RATE;
-    this.person.body.position.y = Math.abs(Math.sin(this.bobPhase)) * BOB_HEIGHT * this.bobAmount;
+    this.rig.update(dt, { moving: this.isMoving, speed: this.isMoving ? PLAYER_SPEED : 0 });
   }
 
   /** Place the scene object between the last two simulation steps. `alpha` is in [0, 1). */

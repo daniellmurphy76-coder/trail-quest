@@ -20,6 +20,7 @@ const world = vi.hoisted(() => {
     idleSeconds: 0,
     setDenChiefHandler: vi.fn(),
     setGuideName: vi.fn(),
+    setPlayerAvatar: vi.fn(),
     placeAtGuide: vi.fn(),
     setObjectiveVisible: vi.fn(),
     // Zone travel: the mock just remembers where the player is and tells the listeners.
@@ -63,6 +64,7 @@ beforeEach(() => {
   world.input.setEnabled.mockClear();
   world.setDenChiefHandler.mockClear();
   world.setGuideName.mockClear();
+  world.setPlayerAvatar.mockClear();
   world.placeAtGuide.mockClear();
   world.setObjectiveVisible.mockClear();
   world.travelTo.mockClear();
@@ -82,6 +84,12 @@ function boot(store = memoryStore(), today = '2026-10-03', extra: Partial<AppOpt
 
 function hudText(): string {
   return host.querySelector('.tq-hud')?.textContent ?? '';
+}
+
+/** After the name and rank, "Make your Scout" opens: accept the default look. */
+async function makeScout(): Promise<void> {
+  await flush();
+  buttonByText(host, 'Done').click();
 }
 
 function typeInto(selector: string, value: string): void {
@@ -133,6 +141,7 @@ describe('app: first run', () => {
     typeInto('input[name="scout-name"]', 'Rowan');
     buttonByText(host, 'Test Wolf').click();
     buttonByText(host, "Let's start").click();
+    await makeScout();
     await app.ready;
 
     expect(host.querySelector('.tq-overlay')).toBeNull();
@@ -158,6 +167,7 @@ describe('app: first run', () => {
     typeInto('input[name="scout-name"]', 'Rowan');
     buttonByText(host, 'Test Wolf').click();
     buttonByText(host, "Let's start").click();
+    await makeScout();
     await app.ready;
     await flush();
     expect(world.input.setEnabled).toHaveBeenLastCalledWith(true);
@@ -279,6 +289,7 @@ describe('app: guided start', () => {
     typeInto('input[name="scout-name"]', 'Rowan');
     buttonByText(host, 'Test Wolf').click();
     buttonByText(host, "Let's start").click();
+    await makeScout();
     await booted.app.ready;
     return booted;
   }
@@ -424,25 +435,62 @@ describe('app: the Start button', () => {
     expect(host.textContent).toContain('Welcome back, Rowan!');
   });
 
-  it('says "Bonus stop" when the trail is done and a bonus waits', async () => {
-    const done = { current: 5, best: 5, lastTrailDate: '2026-10-03', embers: 0 };
-    const store = storeWithScout(done, (p) => {
+  const doneToday = { current: 5, best: 5, lastTrailDate: '2026-10-03', embers: 0 };
+
+  it('says "Keep going!" when the trail is done and more waits, and it starts the next trail', async () => {
+    const store = storeWithScout(doneToday, (p) => {
       p.requirements = { [ID.campQuiz]: doneReq() };
       p.review = { [ID.campQuiz]: card(0, '2026-10-02') };
     });
     await play(store);
     expect(shown(startButton())).toBe(true);
-    expect(startButton()!.textContent).toContain('Bonus stop');
+    expect(startButton()!.textContent).toContain('Keep going!');
+    expect(startButton()!.textContent).not.toContain('Bonus');
     expect(lastObjective()).toBe(false);
 
     buttonByText(host.querySelector('.tq-hud')!, "Today's Trail").click();
     await flush();
-    expect(host.querySelector('.tq-overlay .tq-start')!.textContent).toContain('Bonus stop');
+    expect(host.querySelector('.tq-overlay .tq-start')!.textContent).toContain('Keep going!');
+    expect(host.textContent).toContain('Your trail is done! Great job!');
+    buttonByText(host, 'Close').click();
+    await flush();
+
+    // The button asks the Den Chief, who offers the two choices.
+    startButton()!.click();
+    await flush();
+    expect(host.textContent).toContain('Your trail is done today. Want to keep going?');
+    const labels = Array.from(host.querySelectorAll('.tq-dialog__choices button')).map((b) => b.textContent);
+    expect(labels).toEqual(['Keep going!', 'Look around']);
+    expect(host.textContent).not.toContain('Bonus');
   });
 
-  it('is hidden when the trail is done and there is no bonus', async () => {
-    const done = { current: 5, best: 5, lastTrailDate: '2026-10-03', embers: 0 };
-    await play(storeWithScout(done));
+  it('shows the dots of the new trail once the Scout keeps going', async () => {
+    const store = storeWithScout(doneToday, (p) => {
+      p.requirements = { [ID.campQuiz]: doneReq() };
+      p.review = { [ID.campQuiz]: card(0, '2026-10-02') };
+    });
+    await play(store);
+    expect(hudText()).toContain('Done'); // today's trail is finished
+    startButton()!.click();
+    await flush();
+    buttonByText(host.querySelector('.tq-dialog__choices')!, 'Keep going!').click();
+    await flush();
+    // A fresh trail is on its way: warm-up, new step, mission card. Nothing of it is done yet.
+    expect(host.textContent).toContain('Warm-up time!');
+    expect(hudText()).toContain('0 of 3');
+    expect(host.querySelectorAll('.tq-hud .tq-dot')).toHaveLength(3);
+  });
+
+  it('is hidden when the trail is done and nothing is left to keep going with', async () => {
+    // Everything is done, and today's log already shows every requirement used.
+    const store = storeWithScout(doneToday, (p) => {
+      const ids = Object.values(ID);
+      for (const id of ids) p.requirements[id] = doneReq();
+      p.sessions = [
+        { date: '2026-10-03', stops: ids.map((requirementId) => ({ kind: 'bonus' as const, requirementId, completed: true })), xpEarned: 0, durationSec: 60 },
+      ];
+    });
+    await play(store);
     expect(shown(startButton())).toBe(false);
     buttonByText(host.querySelector('.tq-hud')!, "Today's Trail").click();
     await flush();
@@ -620,16 +668,22 @@ describe('app: zones', () => {
     await flush();
     await click("Let's go!");
 
-    // Stop 1: the warm-up quiz, at Base Camp. No travel.
+    // Stop 1: the warm-up quiz, at Base Camp. No travel. The Den Chief asks if a reminder is wanted.
     await click('Next'); // intro
+    expect(host.textContent).toContain('Do you remember this one?');
+    await click('I remember!');
     await click('Alpha');
     await click('Finish');
     await click('Next'); // cheer
     await click('Great!'); // finishing the quiz completed Test Camp: a badge
     expect(world.travelTo).not.toHaveBeenCalled();
 
-    // Stop 2: collect. The trail sign walks to the Nature Trail first.
+    // Stop 2: collect. The Den Chief teaches at camp first (this content has no lesson yet, so the
+    // page is the requirement's own words), then the trail sign walks to the Nature Trail.
     await click('Next'); // intro
+    expect(host.textContent).toContain('Test step 1 of wolf.test-trek.');
+    expect(host.textContent).not.toContain('Walking to the Nature Trail');
+    await click('Next'); // the lesson page
     expect(host.textContent).toContain('Walking to the Nature Trail');
     await wait(TRAVEL_SIGN_MS + 200);
     expect(world.travelTo).toHaveBeenCalledWith('nature-trail');
@@ -666,6 +720,11 @@ describe('app: zones', () => {
     expect(world.travelTo).toHaveBeenCalledTimes(1);
     expect(world.state.zone).toBe('nature-trail');
     expect(host.textContent).toContain('Great trail, Rowan!');
+    // The trail is finished and more is waiting: the summary offers both ways on.
+    expect(Array.from(host.querySelectorAll('.tq-summary .tq-actions button')).map((b) => b.textContent)).toEqual([
+      '▶Keep going!',
+      'Explore camp',
+    ]);
 
     // "Explore camp" is a camp: the Scout walks back.
     await click('Explore camp');

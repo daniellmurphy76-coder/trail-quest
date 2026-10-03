@@ -1,6 +1,6 @@
 # Trail Quest
 
-A browser 3D RPG that helps two Cub Scouts, a Wolf (grade 2) and an Arrow of Light (grade 5), learn the requirements of their rank adventures through quests and mini-games. Personal project, public repo, deployed to GitHub Pages at https://daniellmurphy76-coder.github.io/trail-quest/.
+A browser 3D RPG that helps Cub Scouts of every rank (Lion K, Tiger 1, Wolf 2, Bear 3, Webelos 4, Arrow of Light 5) learn the requirements of their rank adventures through quests and mini-games. The first players are a Wolf and an Arrow of Light. Personal project, public repo, deployed to GitHub Pages at https://daniellmurphy76-coder.github.io/trail-quest/.
 
 Not affiliated with or endorsed by Scouting America. In-game approvals are not official sign-offs; den leaders record completion in Scoutbook Plus.
 
@@ -26,7 +26,9 @@ Not affiliated with or endorsed by Scouting America. In-game approvals are not o
 The game is built around a 3 to 5 minute daily session, Duolingo-style, not open-ended wandering. Free roam exists but is dessert, not dinner.
 
 - **The Den Chief** is the main guide: an older Scout who helps the den, friendly and a little goofy, never a lecturer. The Den Chief waits at Base Camp, hands out Today's Trail, cheers each stop, and closes the session. Zone NPCs (ranger, firefighter, mayor, camp cook) are specialists the Den Chief introduces. The guide's display name is per profile; default "Den Chief".
-- **Today's Trail** is three stops, each about a minute: **Warm-up** (a review item from something already learned, chosen by spaced repetition), **New step** (the next incomplete requirement in the active adventure), and **Field check** (confirm a pending field mission with the parent PIN, or hand out a new field mission card). A fourth bonus stop is offered only after the three are done.
+- **Today's Trail** is three stops, each about a minute: **Warm-up** (a review item from something already learned, chosen by spaced repetition), **New step** (the next incomplete requirement in the active adventure), and **Field check** (confirm a pending field mission with the parent PIN, or hand out a new field mission card). When the three are done the Scout may **keep going**: the game plans the next set of stops, as many times as they like. The streak counts once a day; XP and progress keep accruing.
+- **Teach before you test.** Every learnable requirement carries a `lesson`: two to six short Den Chief lines at the reading level, shown as dialogue pages before the activity. A quiz never appears without its lesson first; a review may offer "Remind me" instead.
+- **Make your Scout.** The player is a blocky, customizable character (body, skin, hair, eyes, shirt, shorts or pants or skort, shoes, hat, glasses, backpack, neckerchief), chosen at setup and changeable any time. Never a gender field; offer looks, not labels.
 - Every activity instance fits in 60 to 90 seconds: quizzes 2 or 3 questions, sequences 6 steps or fewer, collect targets within 20 seconds of walking. Walking between stops is capped at about 15 seconds; the trail map offers a one-tap hop to each zone.
 - **Progress map:** the required adventures are laid out as a winding trail of stops, like a language-app path, so a kid can always see the next stop and what has been earned.
 - **Motivation, kid version:** daily streak shown as a campfire that stays lit; XP; badges for completed adventures; cosmetics for the avatar and campsite. Earned "embers" keep the fire lit through a missed day. No penalties, no lives, no loss of progress, ever.
@@ -37,6 +39,7 @@ The game is built around a 3 to 5 minute daily session, Duolingo-style, not open
 
 - **Wolf profile, age 7 to 8.** Sentences of 10 words or fewer. Common one- and two-syllable words. Present tense, second person. One instruction per line.
 - **Arrow of Light profile, age 10 to 11.** Sentences of 15 words or fewer. Scouting terms allowed with a plain definition on first use.
+- **Vocabulary, not just sentence length.** Every kid-facing string (kidText, quiz prompts, choices and explanations, sequence steps, sort and craft labels, mission steps, Den Chief lines) uses words a kid of that age says out loud. Wolf: one- and two-syllable everyday words. Arrow of Light: everyday words a 10-year-old uses; never school-report words such as benefit, method, participate, demonstrate, appropriate, obtain, prior, sufficient, assess, individual, specific. Say "good thing" not "benefit", "join in" not "participate", "show" not "demonstrate", "right" not "appropriate", "enough" not "sufficient", "check" not "assess". A Scouting term (patrol, Code of Conduct, the SAFE checklist words) may appear only with a plain definition in the same text. `npm run lint:content` flags long or rare words in kid-facing strings; fix the wording rather than widening the allowlist, and add a Scouting term to the allowlist only when the content defines it.
 - **No voice, ever.** No speech synthesis, no Read buttons, no read-aloud setting. Words appear in a dialogue box with a quick typewriter reveal that a tap or key press skips. Minimum type size 20px on laptop, 22px on iPad.
 - No fail states, no death, no timers that end a quest. Retry is always free and friendly.
 - Status is never color-only; pair color with an icon or a word.

@@ -1,8 +1,10 @@
 import type { RankId } from '../../activities/types';
+import { defaultAvatar } from '../../player/avatar/options';
+import type { NewProfileOptions } from '../../save/store';
 import { h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
 import { button, uid } from '../../ui/widgets';
-import type { NewProfileOptions } from '../../save/store';
+import { AVATAR_EDITOR_TITLE, showAvatarEditor } from './avatar-editor';
 
 export interface RankChoice {
   rank: RankId;
@@ -19,11 +21,20 @@ export interface ProfileSetupOptions {
 
 export const DEFAULT_GUIDE_NAME = 'Den Chief';
 
-export function rankCardLabel(choice: RankChoice): string {
-  return `${choice.label} · grade ${choice.grade}`;
+/** "K" for kindergarten (grade 0), else the number. */
+export function gradeLabel(grade: number): string {
+  return grade === 0 ? 'K' : String(grade);
 }
 
-/** "Who is playing?": name, rank and guide name. Resolves the new profile's options, or null on Back. */
+export function rankCardLabel(choice: RankChoice): string {
+  return `${choice.label} · grade ${gradeLabel(choice.grade)}`;
+}
+
+/**
+ * "Who is playing?": name, rank and guide name, then "Make your Scout" (the avatar editor).
+ * Resolves the new profile's options with the chosen avatar, or null on Back. Back inside the
+ * editor returns to this form with everything still filled in.
+ */
 export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions): Promise<NewProfileOptions | null> {
   return new Promise<NewProfileOptions | null>((resolve) => {
     let finished = false;
@@ -84,7 +95,10 @@ export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions
       message.textContent = '';
     }
 
-    function submit(): void {
+    let editing = false;
+
+    async function submit(): Promise<void> {
+      if (editing) return;
       const name = nameInput.value.trim();
       if (name === '') {
         message.textContent = '✖ Type your name first.';
@@ -96,14 +110,37 @@ export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions
         cards[0]?.card.focus({ preventScroll: true });
         return;
       }
+      editing = true;
+      const avatar = await showAvatarEditor(host, {
+        initial: defaultAvatar(rank),
+        rank,
+        title: AVATAR_EDITOR_TITLE,
+        cancelLabel: 'Back',
+      });
+      editing = false;
+      if (finished) return;
+      if (!avatar) {
+        overlay.focus(start);
+        return;
+      }
       finish({
         name,
         rank,
         guideName: guideInput.value.trim() || DEFAULT_GUIDE_NAME,
+        avatar,
       });
     }
 
-    const start = button("Let's start", { variant: 'primary', icon: '→', onClick: submit });
+    const start = button("Let's start", {
+      variant: 'primary',
+      icon: '→',
+      onClick: () => {
+        submit().catch((err: unknown) => {
+          editing = false;
+          console.error(err);
+        });
+      },
+    });
     const back = options.allowCancel ? button('Back', { icon: '←', onClick: () => finish(null) }) : null;
 
     overlay.card.append(

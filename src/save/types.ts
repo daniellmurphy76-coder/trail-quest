@@ -43,10 +43,29 @@ export interface Profile {
   unlocks: string[];
 }
 
+/**
+ * The Scout's look, built from blocky parts (think Roblox). Every field after `bodyColor`
+ * is optional so v1 saves still load; `defaultAvatar(rank)` fills the gaps. Colors are hex.
+ */
 export interface AvatarConfig {
-  bodyColor: string; // hex
+  /** Legacy v1 tint. Used as the shirt color when `shirt` is unset. */
+  bodyColor: string;
+  /** Hat style id: 'none' | 'cap' | 'bucket' | 'beanie' | 'scout'. */
   hat?: string;
+  /** Neckerchief color; defaults to the rank's color. */
   neckerchief?: string;
+  build?: 'small' | 'regular' | 'tall';
+  skin?: string;
+  hairStyle?: 'none' | 'buzz' | 'short' | 'spiky' | 'curly' | 'long' | 'ponytail' | 'braids';
+  hairColor?: string;
+  eyes?: 'round' | 'happy' | 'wink' | 'star';
+  shirt?: string;
+  legs?: 'shorts' | 'pants' | 'skort';
+  legColor?: string;
+  shoes?: string;
+  hatColor?: string;
+  glasses?: boolean;
+  backpack?: boolean;
 }
 
 export interface Streak {

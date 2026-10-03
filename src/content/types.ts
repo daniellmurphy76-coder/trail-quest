@@ -47,6 +47,8 @@ export interface Requirement {
   optional?: boolean;
   activity: ActivitySpec;
   practice?: ActivitySpec;
+  /** Den Chief teaching shown as dialogue pages before the learn activity. */
+  lesson?: { lines: string[] };
   notes?: string;
   unverified?: boolean;
 }

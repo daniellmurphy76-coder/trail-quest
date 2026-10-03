@@ -12,7 +12,8 @@ export interface SummaryScreenOptions {
 
 /**
  * The end-of-trail card: stops done, XP earned today, the campfire streak, badges earned, and a
- * goodbye. Offers "Bonus stop" (when there is one) and "Explore camp".
+ * goodbye. Offers "Keep going!" (when there is more to do) and "Explore camp". When the trail is
+ * finished and nothing is left, the Den Chief says everything is done for now instead.
  */
 export function showSummary(host: HTMLElement, options: SummaryScreenOptions): Promise<SummaryChoice> {
   return new Promise<SummaryChoice>((resolve) => {
@@ -38,7 +39,7 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
       'dl',
       { class: 'tq-summary__rows' },
       row('Stops done', `${info.stopsDone} of ${info.stopsTotal}`),
-      row('XP earned today', `${info.xpEarned} XP`),
+      row('XP earned', `${info.xpEarned} XP`),
     );
 
     const campfire = info.streakLit
@@ -57,12 +58,13 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
         : null;
 
     const explore = button('Explore camp', {
-      variant: info.bonusAvailable ? 'secondary' : 'primary',
+      variant: info.keepGoingAvailable ? 'secondary' : 'primary',
       onClick: () => finish('explore'),
     });
-    const bonus = info.bonusAvailable
-      ? button('Bonus stop', { variant: 'primary', icon: '+', onClick: () => finish('bonus') })
+    const keepGoing = info.keepGoingAvailable
+      ? button(line('choiceKeepGoing', level, vars), { variant: 'primary', icon: '▶', onClick: () => finish('keep-going') })
       : null;
+    const everythingDone = !info.keepGoingAvailable && info.stopsDone === info.stopsTotal;
 
     append(overlay.card, [
       h('div', { class: 'tq-prompt' }, h('h2', null, title)),
@@ -74,10 +76,10 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
         h('span', null, campfire),
       ),
       badgeList,
-      h('p', null, line('summaryBye', level, vars)),
-      h('div', { class: 'tq-actions' }, bonus, explore),
+      h('p', null, line(everythingDone ? 'allDone' : 'summaryBye', level, vars)),
+      h('div', { class: 'tq-actions' }, keepGoing, explore),
     ]);
-    const primary = bonus ?? explore;
+    const primary = keepGoing ?? explore;
     overlay.setDefault(primary);
     overlay.focus(primary);
   });

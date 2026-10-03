@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { defaultAvatar } from '../../src/player/avatar/options';
 import { applyMigrations, migrate, type MigrationStep } from '../../src/save/migrations';
 import {
   createDefaultSave,
@@ -144,13 +145,31 @@ describe('createProfile / getActiveProfile', () => {
     );
   });
 
-  it('gives each profile a unique id and cycles the avatar palette', () => {
+  it('gives each profile a unique id', () => {
     const save = createDefaultSave();
     const a = createProfile(save, { name: 'A', rank: 'wolf' });
     const b = createProfile(save, { name: 'B', rank: 'wolf' });
     expect(a.id).not.toBe(b.id);
-    expect(a.avatar.bodyColor).not.toBe(b.avatar.bodyColor);
     expect(save.activeProfileId).toBe(b.id);
+  });
+
+  it("starts from the rank's uniform look, or from the avatar the editor chose", () => {
+    const save = createDefaultSave();
+    const wolf = createProfile(save, { name: 'A', rank: 'wolf' });
+    expect(wolf.avatar).toEqual(defaultAvatar('wolf'));
+    expect(createProfile(save, { name: 'B', rank: 'lion' }).avatar.neckerchief).toBe(defaultAvatar('lion').neckerchief);
+
+    const chosen = createProfile(save, {
+      name: 'C',
+      rank: 'bear',
+      avatar: { ...defaultAvatar('bear'), hat: 'cap', hairStyle: 'braids', glasses: true },
+    });
+    expect(chosen.avatar).toMatchObject({ hat: 'cap', hairStyle: 'braids', glasses: true });
+    // A partial avatar is filled in, so the save never holds half a look.
+    const partial = createProfile(save, { name: 'D', rank: 'webelos', avatar: { bodyColor: '#e07a5f', hat: 'beanie' } });
+    expect(partial.avatar).toEqual({ ...defaultAvatar('webelos'), bodyColor: '#e07a5f', shirt: '#e07a5f', hat: 'beanie' });
+    // And it survives a save and load.
+    expect(importSave(exportSave(save)).profiles[3]!.avatar).toEqual(partial.avatar);
   });
 
   it('rejects an empty name and has no active profile on an empty save', () => {

@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
+import type { RankId, ReadingLevel } from '../../src/activities/types';
 import {
   fillLine,
   line,
+  LINE_LEVEL_BY_READING_LEVEL,
   LINE_VARS,
   LINES,
   lineLevelOf,
   PARENT_TEXT,
+  RANK_FALLBACK_LABELS,
   STOP_KIND_LABELS,
   ZONE_LABELS,
   type LineKey,
   type LineLevel,
 } from '../../src/game/lines';
+import { checkVocabulary } from '../../scripts/vocabulary.mjs';
 
 /** Sentences end at . ! ? or an ellipsis. A {placeholder} counts as one word. */
 function sentences(text: string): string[] {
@@ -117,7 +121,7 @@ describe('Den Chief lines', () => {
       expect(line('choiceGo', level)).toBe("Let's go!");
       expect(line('choiceLook', level)).toBe('Look around first');
       expect(line('startTrail', level)).toBe("Start today's trail");
-      expect(line('startBonus', level)).toBe('Bonus stop');
+      expect(line('startKeepGoing', level)).toBe('Keep going!');
       expect(line('hudTrail', level)).toBe("Today's Trail");
       expect(line('hudProgress', level, { done: 1, total: 3 })).toBe('1 of 3');
       expect(line('hudProgressDone', level)).toBe('\u2713 Done');
@@ -139,6 +143,59 @@ describe('Den Chief lines', () => {
     expect(lineLevelOf('grade3')).toBe('grade2');
     expect(lineLevelOf('grade4')).toBe('grade5');
     expect(lineLevelOf('grade5')).toBe('grade5');
+  });
+
+  it('places every reading level, and gives anything unexpected (a grade 0 file) the younger wording', () => {
+    const levels: ReadingLevel[] = ['grade1', 'grade2', 'grade3', 'grade4', 'grade5'];
+    expect(Object.keys(LINE_LEVEL_BY_READING_LEVEL).sort()).toEqual(levels);
+    expect(lineLevelOf('grade0' as ReadingLevel)).toBe('grade2');
+  });
+
+  it('has a plain fallback name for all six ranks, so no rank is left out', () => {
+    const ranks: RankId[] = ['lion', 'tiger', 'wolf', 'bear', 'webelos', 'arrow-of-light'];
+    expect(Object.keys(RANK_FALLBACK_LABELS).sort()).toEqual([...ranks].sort());
+    expect(RANK_FALLBACK_LABELS['arrow-of-light']).toBe('Arrow of Light');
+  });
+
+  it('teaches before testing: the lesson intro and the remind-me choices', () => {
+    for (const level of ['grade2', 'grade5'] as const) {
+      expect(line('lessonIntro', level)).toBe('Let me show you something first.');
+      expect(line('remindMe', level)).toBe('Remind me');
+      expect(line('iRemember', level)).toBe('I remember!');
+      expect(line('remindAsk', level)).toMatch(/remember/);
+    }
+  });
+
+  it('offers to keep going once the trail is done, and says everything is done for now when it is', () => {
+    for (const level of ['grade2', 'grade5'] as const) {
+      expect(line('choiceKeepGoing', level)).toBe('Keep going!');
+      expect(line('choiceLookAround', level)).toBe('Look around');
+      expect(line('greetDone', level)).toMatch(/keep going/);
+      expect(line('allDone', level, { name: 'Rowan' })).toMatch(/done for now/);
+      expect(line('allDone', level, { name: 'Rowan' })).toContain('Rowan');
+    }
+    // No bonus-stop wording is left in the done greeting or the Start button.
+    for (const key of ['greetDone', 'startKeepGoing', 'allDone'] as const) {
+      expect(LINES[key].grade2).not.toMatch(/bonus/i);
+      expect(LINES[key].grade5).not.toMatch(/bonus/i);
+    }
+  });
+
+  it('keeps every Den Chief line to everyday words for its age', () => {
+    // grade2 lines at the grade 2 rules (one- and two-syllable words), grade5 lines at the grade 5 rules.
+    const flagged: string[] = [];
+    for (const key of KEYS) {
+      for (const [level, grade] of [['grade2', 2], ['grade5', 5]] as const) {
+        const text = LINES[key][level].replace(/\{\w+\}/g, 'Sam').replace(/\[(\w)\]/g, '$1');
+        for (const miss of checkVocabulary(text, grade)) flagged.push(`${key}.${level}: ${miss.word} (${miss.reason})`);
+      }
+    }
+    expect(flagged).toEqual([]);
+  });
+
+  it('words the field-check approval line in kid words, not "approval"', () => {
+    expect(LINES.stopFieldApproval.grade2).not.toMatch(/approv/i);
+    expect(LINES.stopFieldApproval.grade5).not.toMatch(/approv/i);
   });
 
   it('has a label for every zone and every kind of stop', () => {
