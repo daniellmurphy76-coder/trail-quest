@@ -128,6 +128,13 @@ export interface ActivityContext {
   readingLevel: ReadingLevel;
   /** Speak text aloud if the profile has read-aloud on. */
   speak: (text: string) => void;
+  /**
+   * Why this activity is running. 'new' is the default.
+   * 'review' is a warm-up repeat of something already learned.
+   * Field missions use 'handout' (show the card, resolve completed:false) and
+   * 'check-in' (kid confirms it is done, resolve completed:true; parent approval follows).
+   */
+  stage?: 'new' | 'review' | 'handout' | 'check-in';
 }
 
 /** Each activity type exports one of these. The runner mounts it into the overlay. */
