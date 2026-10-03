@@ -52,7 +52,9 @@ export interface Requirement {
    * screen, such as the whole Scout Oath or all twelve Scout Law points) and then short dialogue
    * `lines`. The poster is also offered as a peek during the activity.
    */
-  lesson?: { lines: string[]; poster?: Poster };
+  lesson?: { lines: string[]; poster?: Poster; posters?: Poster[] };
+  // `posters` shows one full text per screen in order (Oath, then Law). `poster` is the legacy
+  // single form; use `lessonPosters()` from load.ts to read either.
   notes?: string;
   unverified?: boolean;
 }

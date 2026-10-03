@@ -34,6 +34,8 @@ The game is built around a 3 to 5 minute daily session, Duolingo-style, not open
 - **Motivation, kid version:** daily streak shown as a campfire that stays lit; XP; badges for completed adventures; cosmetics for the avatar and campsite. Earned "embers" keep the fire lit through a missed day. No penalties, no lives, no loss of progress, ever.
 - **Spaced repetition:** knowledge activities (quiz, sequence, sort) re-enter the warm-up rotation on a simple Leitner schedule (1, 3, 7, 14 days). Field missions are never reviewed.
 - Session end always says what was earned, shows the streak, and says goodbye. Reminders are a parent's job; the game never nags and has no notifications.
+- **Rewards are earned by playing, never bought or timed.** Cosmetics unlock from badges, XP and streaks; locked tiles say how to earn them in kid words. Celebrations are short: a cheer, confetti on a badge, a toast for an unlock.
+- **Sound is effects only, never voice.** Short synthesized sounds (soft tap, chime, gentle "not yet", fanfare) plus quiet ambience, all behind one mute button remembered per Scout. Audio starts only after a user gesture. Features talk through `src/game/events.ts`, not by importing each other.
 
 ## Players and reading level
 

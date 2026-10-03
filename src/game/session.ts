@@ -17,6 +17,12 @@
  *   - a field mission handout (the card was shown, which is all a handout does).
  * A stop the kid backed out of, or a parent approval that did not happen, is not counted. It
  * earns nothing and costs nothing: the Den Chief says something kind and the trail moves on.
+ *
+ * Rewards and sound hang off events, not imports. The session emits on the event bus (travel,
+ * mission-approved, stop-complete, title-earned, badge-earned, cosmetic-unlocked, trail-complete,
+ * session-start and session-end); src/game/effects.ts draws confetti and the sound layer plays
+ * effects from the same events. A stop that pushes XP past a trail title, or earns a cosmetic
+ * (see rewards.ts), says so with a toast and an unlock card. Nothing is ever taken away.
  */
 import type { ActivityContext, ActivityResult, ActivityType, FieldMissionParams, ZoneId } from '../activities/types';
 import { getRequirement } from '../content/load';
@@ -28,9 +34,12 @@ import {
   finishSession,
   recordStopResult,
 } from '../quests/progress';
+import type { CosmeticGroup } from '../player/avatar/options';
 import type { TodaysTrail, TrailStop } from '../quests/types';
 import type { Profile, StopKind } from '../save/types';
+import { events as gameEvents, type EventBus } from './events';
 import { line, lineLevelOf, PARENT_TEXT, ZONE_LABELS, type LineKey, type LineVars } from './lines';
+import { cosmeticById, evaluateUnlocks, titleEarnedBetween, titleForXp, withCosmetics } from './rewards';
 import { lessonPlan, playLesson } from './screens/lesson';
 import { activeStreak, isTrailDoneToday } from './streak';
 
@@ -74,6 +83,21 @@ export interface SummaryInfo {
   badges: string[];
   /** True when there is another trail to keep going with. */
   keepGoingAvailable: boolean;
+  /** The Scout's trail title after the session ("Trail Walker"). */
+  title?: string;
+  /** Set when a stop on this trail earned a new title. */
+  newTitle?: string;
+  /** Names of the cosmetics earned during this trail ("Scout hat"). */
+  unlocks?: string[];
+}
+
+/** A cosmetic the Scout has just earned, for the unlock card. */
+export interface UnlockInfo {
+  /** Bare cosmetic id ('hat-scout'). */
+  id: string;
+  /** What to call it ("Scout hat"). */
+  label: string;
+  group: CosmeticGroup;
 }
 
 export type SummaryChoice = 'keep-going' | 'explore';
@@ -111,6 +135,14 @@ export interface SessionDeps {
   setPin(pin: string): Promise<void>;
   showBadge(info: { adventureId: string; adventureName: string }): Promise<void>;
   showSummary(info: SummaryInfo): Promise<SummaryChoice>;
+  /** The event bus to emit on. Defaults to the game's one bus; tests pass their own. */
+  events?: EventBus;
+  /** A cheer from the Scout's avatar when a stop is done. The app wires `world.player.celebrate`. */
+  celebrate?(): void;
+  /** A short message at the top of the screen (a new trail title). */
+  showToast?(text: string): void;
+  /** The "You earned a new hat!" card. Resolves when the Scout taps Great. Left out, nothing is shown. */
+  showUnlock?(info: UnlockInfo): Promise<void>;
   /**
    * ZONE-TRAVEL HOOK. Called after the trail sign when a stop belongs to a zone other than Base
    * Camp. Today every activity runs at Base Camp anyway, so the app leaves this unset. When real
@@ -199,11 +231,24 @@ interface StopOutcome {
   counted: boolean;
   /** Adventures this stop completed, in order. */
   completed: { adventureId: string; adventureName: string }[];
+  /** Names of the cosmetics this stop earned. */
+  unlocked: string[];
+  /** The trail title this stop reached, if it reached a new one. */
+  newTitle?: string;
 }
 
 export function createSession(deps: SessionDeps): Session {
   const level = lineLevelOf(deps.content.readingLevel);
   const planOptions = { implemented: deps.implemented };
+  const bus = deps.events ?? gameEvents;
+  /** Reward effects must never stop a trail: a hook that throws is logged and skipped. */
+  const safely = (fn: (() => void) | undefined): void => {
+    try {
+      fn?.();
+    } catch (error) {
+      console.warn('session hook failed', error);
+    }
+  };
 
   /** The trail in memory: today's first one, or the one the Scout is keeping going with. */
   let trail: TodaysTrail | undefined;
@@ -314,6 +359,7 @@ export function createSession(deps: SessionDeps): Session {
 
     if (stop.zone !== 'base-camp') {
       const closeSign = deps.showTrailSign(say('travel', { zone: ZONE_LABELS[stop.zone] }));
+      bus.emit({ type: 'travel', zone: stop.zone });
       try {
         await deps.wait(TRAVEL_SIGN_MS);
         // ZONE-TRAVEL HOOK: real zone travel plugs in here. Until then the activity runs at Base Camp.
@@ -326,6 +372,7 @@ export function createSession(deps: SessionDeps): Session {
     let counted: boolean;
     let waitingOnParent = false;
     let declinedApproval = false;
+    let approvedNow = false;
     let next: Profile;
 
     if (stage === 'approval') {
@@ -333,7 +380,10 @@ export function createSession(deps: SessionDeps): Session {
       next = deps.getProfile();
       counted = approved;
       declinedApproval = !approved;
-      if (approved) next = approveFieldMission(next, stop.requirementId, date);
+      if (approved) {
+        next = approveFieldMission(next, stop.requirementId, date);
+        approvedNow = true;
+      }
     } else {
       const result = await deps.runActivity(stop, stage);
       // A handout only ever shows the card, so it resolves completed: false and still counts.
@@ -344,6 +394,7 @@ export function createSession(deps: SessionDeps): Session {
         // The kid says it is done. If a parent is here, approve it now; otherwise it waits.
         if (await askParent(stop)) {
           next = approveFieldMission(next, stop.requirementId, date);
+          approvedNow = true;
         } else {
           waitingOnParent = true;
         }
@@ -359,9 +410,23 @@ export function createSession(deps: SessionDeps): Session {
         adventureId: id,
         adventureName: deps.content.adventures.find((a) => a.id === id)?.name ?? id,
       }));
+    // Cosmetics the Scout has now earned (XP, a badge, an approved mission): saved with the stop.
+    const freshCosmetics = evaluateUnlocks(next, deps.content);
+    next = withCosmetics(next, freshCosmetics);
     deps.persist(next);
 
     const gained = next.xp - before.xp;
+    if (approvedNow) bus.emit({ type: 'mission-approved', requirementId: stop.requirementId });
+    if (counted) {
+      bus.emit({ type: 'stop-complete', kind: stop.kind, xp: gained });
+      safely(() => deps.celebrate?.());
+    }
+    const newTitle = titleEarnedBetween(before.xp, next.xp);
+    if (newTitle !== undefined) {
+      bus.emit({ type: 'title-earned', title: newTitle });
+      safely(() => deps.showToast?.(say('titleEarned', { trailTitle: newTitle })));
+    }
+
     let key: LineKey;
     if (declinedApproval) key = 'parentLater';
     else if (!counted) key = 'backedOut';
@@ -370,18 +435,47 @@ export function createSession(deps: SessionDeps): Session {
     else key = gained > 0 ? 'cheerXp' : 'cheerPlain';
     await deps.showDialog({ text: say(key, { xp: gained }) });
 
-    for (const badge of completed) await deps.showBadge(badge);
-    return { counted, completed };
+    for (const badge of completed) {
+      bus.emit({ type: 'badge-earned', adventureId: badge.adventureId });
+      await deps.showBadge(badge);
+    }
+    const unlocked = await announceUnlocks(freshCosmetics);
+    return { counted, completed, unlocked, ...(newTitle !== undefined ? { newTitle } : {}) };
+  }
+
+  /** Tell the Scout about each new cosmetic: an event (confetti, sound), then the card. Returns their names. */
+  async function announceUnlocks(ids: readonly string[]): Promise<string[]> {
+    const names: string[] = [];
+    for (const id of ids) {
+      const lock = cosmeticById(id);
+      if (!lock) continue;
+      bus.emit({ type: 'cosmetic-unlocked', id });
+      names.push(lock.label);
+      if (deps.showUnlock) await deps.showUnlock({ id, label: lock.label, group: lock.group });
+    }
+    return names;
   }
 
   /**
    * Play every stop of `plan`, log it as its own session and show the summary. Resolves with the
-   * next trail when the Scout picks "Keep going!", else undefined.
+   * next trail when the Scout picks "Keep going!", else undefined. Each trail is announced with
+   * `session-start` and `session-end`, even when something throws on the way.
    */
   async function playTrail(plan: TodaysTrail): Promise<TodaysTrail | undefined> {
+    bus.emit({ type: 'session-start' });
+    try {
+      return await runTrail(plan);
+    } finally {
+      bus.emit({ type: 'session-end' });
+    }
+  }
+
+  async function runTrail(plan: TodaysTrail): Promise<TodaysTrail | undefined> {
     const date = plan.date;
     const startXp = deps.getProfile().xp;
     const earned: string[] = [];
+    const unlockedNames: string[] = [];
+    let newTitle: string | undefined;
     trail = plan;
     finished = false;
     outcomes = [];
@@ -392,6 +486,8 @@ export function createSession(deps: SessionDeps): Session {
       const outcome = await playStop(plan.stops[i]!, date);
       outcomes[i] = outcome.counted ? 'done' : 'skipped';
       earned.push(...outcome.completed.map((c) => c.adventureName));
+      unlockedNames.push(...outcome.unlocked);
+      if (outcome.newTitle !== undefined) newTitle = outcome.newTitle;
     }
 
     // finishSession counts the first `completedStops` stops as completed, so put the ones that
@@ -406,9 +502,16 @@ export function createSession(deps: SessionDeps): Session {
       completedStops: doneStops.length,
     };
     const seconds = Math.max(0, Math.round((deps.now() - startedAt) / 1000));
-    const after = finishSession(deps.getProfile(), ordered, seconds, date);
+    let after = finishSession(deps.getProfile(), ordered, seconds, date);
+    // A finished trail can light the streak, and a streak can earn something (star eyes).
+    const streakCosmetics = evaluateUnlocks(after, deps.content);
+    after = withCosmetics(after, streakCosmetics);
     deps.persist(after);
     finished = true;
+    if (doneStops.length > 0 && doneStops.length === plan.stops.length) {
+      bus.emit({ type: 'trail-complete', stops: doneStops.length });
+    }
+    unlockedNames.push(...(await announceUnlocks(streakCosmetics)));
 
     // Keeping going is for a Scout who finished the whole trail.
     const more = doneStops.length === plan.stops.length ? planMore(date) : undefined;
@@ -420,6 +523,9 @@ export function createSession(deps: SessionDeps): Session {
       streakLit: after.streak.lastTrailDate === date,
       badges: earned,
       keepGoingAvailable: more !== undefined,
+      title: titleForXp(after.xp),
+      ...(newTitle !== undefined ? { newTitle } : {}),
+      unlocks: unlockedNames,
     });
     if (choice !== 'keep-going') return undefined;
     if (!more) {

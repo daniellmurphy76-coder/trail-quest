@@ -4,6 +4,10 @@
  * Clothes, Extras. Every option is a 56px swatch or little picture with a word under it and a
  * check mark when picked, so nothing depends on color alone. Works with keyboard, mouse and touch.
  *
+ * A few options are earned by playing (the scout hat, star eyes, the backpack, the gold shirt...).
+ * Until the Scout has earned one, its tile shows a lock mark and a plain "how to earn it" line, and
+ * tapping it does nothing but say so. The Random button and the starting look never use one either.
+ *
  * Resolves the finished look (every field filled in) on Done, or null on Cancel or Escape.
  * The preview has its own WebGL renderer, which is freed when the editor closes. With no WebGL the
  * editor still works and says the picture is not available.
@@ -20,11 +24,16 @@ import {
   HAT_STYLES,
   LEG_STYLES,
   NECKERCHIEF_COLORS,
+  SHIRT_COLORS,
   SHOE_COLORS,
   SKIN_TONES,
+  cosmeticLock,
+  earnedCosmetics,
   fillAvatar,
   randomAvatar,
   type Choice,
+  type CosmeticGroup,
+  type CosmeticLock,
   type FilledAvatar,
 } from '../../player/avatar/options';
 import { createAvatarPreview, type AvatarPreview } from '../../player/avatar/preview';
@@ -33,6 +42,8 @@ import { h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
 import { button, uid } from '../../ui/widgets';
 import '../avatar.css';
+import '../rewards.css';
+import type { LineLevel } from '../lines';
 
 export interface AvatarEditorOptions {
   /** The look to start from. A v1 avatar (bodyColor only) is filled in from the rank. */
@@ -47,6 +58,14 @@ export interface AvatarEditorOptions {
   cancelLabel?: string;
   /** Replaces Math.random for the Random button (tests). */
   random?: () => number;
+  /**
+   * The Scout's `Profile.unlocks`: which earned options are open. Left out, nothing has been earned
+   * yet (a brand-new Scout), so the earned options show as locked. Tests that want every tile open
+   * pass `ALL_COSMETIC_UNLOCKS`.
+   */
+  unlocks?: readonly string[];
+  /** Which wording the "how to earn it" lines use. Default 'grade2'. */
+  level?: LineLevel;
 }
 
 export const AVATAR_EDITOR_TITLE = 'Make your Scout';
@@ -71,6 +90,8 @@ interface GroupDef {
   set(look: FilledAvatar, value: string): void;
   /** False hides the group (hat color with no hat). */
   visible?(look: FilledAvatar): boolean;
+  /** Set when some of this group's options have to be earned. */
+  lockGroup?: CosmeticGroup;
 }
 
 const ON_OFF = (label: string): readonly Choice[] => [
@@ -83,12 +104,13 @@ const GROUPS: readonly GroupDef[] = [
   { tab: 'body', title: 'Skin', choices: SKIN_TONES, get: (a) => a.skin, set: (a, v) => (a.skin = v) },
   { tab: 'hair', title: 'Hair style', choices: HAIR_STYLES, picture: 'hairStyle', get: (a) => a.hairStyle, set: (a, v) => (a.hairStyle = v as FilledAvatar['hairStyle']) },
   { tab: 'hair', title: 'Hair color', choices: HAIR_COLORS, get: (a) => a.hairColor, set: (a, v) => (a.hairColor = v), visible: (a) => a.hairStyle !== 'none' },
-  { tab: 'face', title: 'Eyes', choices: EYE_STYLES, picture: 'eyes', get: (a) => a.eyes, set: (a, v) => (a.eyes = v as FilledAvatar['eyes']) },
+  { tab: 'face', title: 'Eyes', choices: EYE_STYLES, picture: 'eyes', lockGroup: 'eyes', get: (a) => a.eyes, set: (a, v) => (a.eyes = v as FilledAvatar['eyes']) },
   { tab: 'face', title: 'Glasses', choices: ON_OFF('Glasses'), picture: 'glasses', get: (a) => (a.glasses ? 'on' : 'off'), set: (a, v) => (a.glasses = v === 'on') },
   {
     tab: 'clothes',
     title: 'Shirt',
-    choices: CLOTHES_COLORS,
+    choices: SHIRT_COLORS,
+    lockGroup: 'shirt',
     get: (a) => a.shirt,
     set: (a, v) => {
       a.shirt = v;
@@ -98,9 +120,9 @@ const GROUPS: readonly GroupDef[] = [
   { tab: 'clothes', title: 'Legs', choices: LEG_STYLES, picture: 'legs', get: (a) => a.legs, set: (a, v) => (a.legs = v as FilledAvatar['legs']) },
   { tab: 'clothes', title: 'Leg color', choices: CLOTHES_COLORS, get: (a) => a.legColor, set: (a, v) => (a.legColor = v) },
   { tab: 'clothes', title: 'Shoes', choices: SHOE_COLORS, get: (a) => a.shoes, set: (a, v) => (a.shoes = v) },
-  { tab: 'extras', title: 'Hat', choices: HAT_STYLES, picture: 'hat', get: (a) => a.hat, set: (a, v) => (a.hat = v) },
+  { tab: 'extras', title: 'Hat', choices: HAT_STYLES, picture: 'hat', lockGroup: 'hat', get: (a) => a.hat, set: (a, v) => (a.hat = v) },
   { tab: 'extras', title: 'Hat color', choices: HAT_COLORS, get: (a) => a.hatColor, set: (a, v) => (a.hatColor = v), visible: (a) => a.hat !== 'none' },
-  { tab: 'extras', title: 'Backpack', choices: ON_OFF('Backpack'), picture: 'backpack', get: (a) => (a.backpack ? 'on' : 'off'), set: (a, v) => (a.backpack = v === 'on') },
+  { tab: 'extras', title: 'Backpack', choices: ON_OFF('Backpack'), picture: 'backpack', lockGroup: 'backpack', get: (a) => (a.backpack ? 'on' : 'off'), set: (a, v) => (a.backpack = v === 'on') },
   { tab: 'extras', title: 'Scarf', choices: NECKERCHIEF_COLORS, get: (a) => a.neckerchief, set: (a, v) => (a.neckerchief = v) },
 ];
 
@@ -115,22 +137,35 @@ interface GroupView {
   options: OptionView[];
 }
 
-function optionButton(def: GroupDef, choice: Choice): HTMLButtonElement {
+/**
+ * One tile. A locked one (`lock` set and not earned) keeps its picture or swatch, adds a lock mark,
+ * and says how to earn it under the word. It is still a button (a keyboard can reach it and a screen
+ * reader can read it) but it is `aria-disabled` and never picks.
+ */
+function optionButton(def: GroupDef, choice: Choice, lock?: CosmeticLock, level: LineLevel = 'grade2'): HTMLButtonElement {
   const face = h('span', { class: 'tq-opt__face', attrs: { 'aria-hidden': 'true' } });
   if (def.picture) face.append(optionIcon(def.picture, choice.value));
   else face.style.setProperty('--swatch', choice.value);
   face.append(h('span', { class: 'tq-opt__tick' }, '✓'));
+  const classes = ['tq-opt', def.picture ? 'tq-opt--picture' : 'tq-opt--swatch'];
+  const children = [face, h('span', { class: 'tq-opt__label' }, choice.label)];
+  if (lock) {
+    classes.push('tq-opt--locked');
+    children.push(
+      h('span', { class: 'tq-opt__lock' }, h('span', { attrs: { 'aria-hidden': 'true' } }, '\u{1F512}'), h('span', { class: 'tq-sr' }, 'Locked. ')),
+      h('span', { class: 'tq-opt__earn' }, lock.earn[level]),
+    );
+  }
   return h(
     'button',
     {
-      class: `tq-opt${def.picture ? ' tq-opt--picture' : ' tq-opt--swatch'}`,
+      class: classes.join(' '),
       type: 'button',
       role: 'radio',
-      dataset: { value: choice.value },
-      attrs: { 'aria-checked': 'false' },
+      dataset: lock ? { value: choice.value, locked: 'true' } : { value: choice.value },
+      attrs: lock ? { 'aria-checked': 'false', 'aria-disabled': 'true' } : { 'aria-checked': 'false' },
     },
-    face,
-    h('span', { class: 'tq-opt__label' }, choice.label),
+    ...children,
   );
 }
 
@@ -174,7 +209,16 @@ export function showAvatarEditor(host: HTMLElement, options: AvatarEditorOptions
       onEscape: () => finish(null),
     });
 
-    let look = fillAvatar(options.initial, options.rank);
+    const level = options.level ?? 'grade2';
+    const unlocks = options.unlocks ?? [];
+    const earned = earnedCosmetics(unlocks);
+    /** The lock on an option the Scout has not earned yet, or undefined when it is free or earned. */
+    const closedLock = (def: GroupDef, value: string): CosmeticLock | undefined => {
+      const lock = def.lockGroup ? cosmeticLock(def.lockGroup, value) : undefined;
+      return lock && !earned.has(lock.id) ? lock : undefined;
+    };
+
+    let look = fillAvatar(options.initial, options.rank, unlocks);
 
     // ---- the picture ---------------------------------------------------------------------------
     const canvas = h('canvas', {
@@ -209,8 +253,8 @@ export function showAvatarEditor(host: HTMLElement, options: AvatarEditorOptions
       const labelId = uid('tq-opt-group');
       const grid = h('div', { class: 'tq-avatar__grid', role: 'radiogroup', attrs: { 'aria-labelledby': labelId } });
       const views: OptionView[] = def.choices.map((choice) => {
-        const btn = optionButton(def, choice);
-        btn.addEventListener('click', () => pick(def, choice.value));
+        const btn = optionButton(def, choice, closedLock(def, choice.value), level);
+        btn.addEventListener('click', () => pick(def, choice));
         grid.append(btn);
         return { value: choice.value, button: btn };
       });
@@ -291,9 +335,15 @@ export function showAvatarEditor(host: HTMLElement, options: AvatarEditorOptions
       }
     }
 
-    function pick(def: GroupDef, value: string): void {
+    function pick(def: GroupDef, choice: Choice): void {
+      const lock = closedLock(def, choice.value);
+      if (lock) {
+        // Not earned yet: nothing changes, and the Scout is told how to get it.
+        status.textContent = `${lock.label} is locked. ${lock.earn[level]}`;
+        return;
+      }
       const next = { ...look };
-      def.set(next, value);
+      def.set(next, choice.value);
       look = next;
       refresh();
       preview?.setConfig(look);
@@ -303,7 +353,7 @@ export function showAvatarEditor(host: HTMLElement, options: AvatarEditorOptions
     const random = button('Random', {
       icon: '\u{1F3B2}',
       onClick: () => {
-        look = randomAvatar(options.rank, options.random);
+        look = randomAvatar(options.rank, options.random, unlocks);
         refresh();
         preview?.setConfig(look);
         status.textContent = 'New look!';

@@ -1,8 +1,10 @@
 import type * as THREE from 'three';
 import type { ZoneId } from '../activities/types';
 import type { Bounds } from './bounds';
+import type { Collider } from './collide';
 
 export type { Bounds } from './bounds';
+export type { Collider } from './collide';
 
 /** Something the player can walk up to and act on. */
 export interface Interactable {
@@ -38,6 +40,12 @@ export interface Zone {
    * "trailhead", "footbridge", "lookout", "campsite", "library", "school", "fire-station", "store").
    */
   landmarks?: Record<string, THREE.Vector3>;
+  /**
+   * Solid footprints the player cannot walk through: trunks, rocks, tents, buildings, fences,
+   * lamp posts, the fire ring. Never on a path, an open spot, a landmark or the spawn. Optional:
+   * a zone without any simply has nothing to bump into. May grow when a model swaps in.
+   */
+  colliders?: Collider[];
   /** Fixed-step animation (campfire flicker and so on). */
   update(dt: number): void;
 }

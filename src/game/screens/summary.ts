@@ -1,6 +1,7 @@
 import { append, h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
 import { button } from '../../ui/widgets';
+import '../rewards.css';
 import { line, type LineLevel, type LineVars } from '../lines';
 import type { SummaryChoice, SummaryInfo } from '../session';
 
@@ -11,8 +12,8 @@ export interface SummaryScreenOptions {
 }
 
 /**
- * The end-of-trail card: stops done, XP earned today, the campfire streak, badges earned, and a
- * goodbye. Offers "Keep going!" (when there is more to do) and "Explore camp". When the trail is
+ * The end-of-trail card: the Scout's trail title under the heading, stops done, XP earned today,
+ * the campfire streak, badges and cosmetics earned, and a goodbye. Offers "Keep going!" (when there is more to do) and "Explore camp". When the trail is
  * finished and nothing is left, the Den Chief says everything is done for now instead.
  */
 export function showSummary(host: HTMLElement, options: SummaryScreenOptions): Promise<SummaryChoice> {
@@ -42,6 +43,35 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
       row('XP earned', `${info.xpEarned} XP`),
     );
 
+    // The trail title sits right under the heading. A title earned on this trail gets its own line.
+    const titleLine = info.title
+      ? h(
+          'p',
+          { class: 'tq-summary__title' },
+          h('span', { class: 'tq-icon', attrs: { 'aria-hidden': 'true' } }, '★'),
+          h('span', null, line('summaryTrailTitle', level, { ...vars, trailTitle: info.title })),
+        )
+      : null;
+    const newTitleLine = info.newTitle
+      ? h('p', { class: 'tq-summary__newtitle' }, line('summaryNewTitle', level, { ...vars, trailTitle: info.newTitle }))
+      : null;
+
+    const unlockList =
+      info.unlocks && info.unlocks.length > 0
+        ? h(
+            'ul',
+            { class: 'tq-summary__unlocks' },
+            ...info.unlocks.map((name) =>
+              h(
+                'li',
+                null,
+                h('span', { class: 'tq-icon', attrs: { 'aria-hidden': 'true' } }, '✦'),
+                line('summaryUnlock', level, { ...vars, unlock: name }),
+              ),
+            ),
+          )
+        : null;
+
     const campfire = info.streakLit
       ? line('campfireLit', level, { ...vars, streak: info.streak })
       : line('campfireNot', level, vars);
@@ -68,6 +98,8 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
 
     append(overlay.card, [
       h('div', { class: 'tq-prompt' }, h('h2', null, title)),
+      titleLine,
+      newTitleLine,
       rows,
       h(
         'p',
@@ -76,6 +108,7 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
         h('span', null, campfire),
       ),
       badgeList,
+      unlockList,
       h('p', null, line(everythingDone ? 'allDone' : 'summaryBye', level, vars)),
       h('div', { class: 'tq-actions' }, keepGoing, explore),
     ]);

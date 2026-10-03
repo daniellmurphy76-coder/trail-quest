@@ -1,0 +1,29 @@
+/*
+ * The Sound button in the HUD card. The rest of the HUD is styled in src/game/game.css; this file
+ * is kept apart so the audio work does not collide with edits there.
+ */
+
+/* Name and rank on the left, the Sound button on the right. On a narrow card the button wraps
+   to its own line, still against the right edge. */
+.tq-hud__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  align-self: stretch;
+}
+
+.tq-hud__who {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tq-hud__sound {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 4px 12px;
+  white-space: nowrap;
+}

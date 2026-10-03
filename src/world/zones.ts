@@ -15,6 +15,10 @@
  *     ("trailhead", "footbridge", "lookout", "campsite" at the Nature Trail; "library", "school",
  *     "fire-station", "store" at Town Square); and one Interactable with label "Back to camp"
  *     that calls `deps.onReturnToBaseCamp`, near the spawn.
+ *   - A zone should list its solid props as `colliders` (see ./collide.ts): trunks (not crowns),
+ *     rocks, buildings, fences, posts, the fire ring. Build them from the same lists that place the
+ *     props, and never put one on the spawn, an open spot, a landmark or the way in from the spawn
+ *     (a landmark that is a sign gets no collider of its own). The tests check all of that.
  *   - `createZone` may be called more than once per id; the game builds each zone once and keeps it.
  */
 import type { ZoneId } from '../activities/types';

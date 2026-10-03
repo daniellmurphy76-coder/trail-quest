@@ -120,8 +120,9 @@ describe('profile setup: Make your Scout', () => {
     await flush();
     radio('Size', 'Tall').click();
     buttonByText(host, 'Extras').click();
-    radio('Hat', 'Beanie').click();
-    radio('Backpack', 'Backpack').click();
+    radio('Hat', 'Cap').click(); // free; the Beanie has to be earned
+    buttonByText(host, 'Face').click();
+    radio('Glasses', 'Glasses').click();
     buttonByText(host, 'Done').click();
 
     const options = (await result)!;
@@ -129,7 +130,7 @@ describe('profile setup: Make your Scout', () => {
       name: 'Rowan',
       rank: 'wolf',
       guideName: 'Den Chief',
-      avatar: { ...defaultAvatar('wolf'), build: 'tall', hat: 'beanie', backpack: true },
+      avatar: { ...defaultAvatar('wolf'), build: 'tall', hat: 'cap', glasses: true },
     });
     expect(host.querySelector('.tq-overlay')).toBeNull(); // both screens are gone
   });

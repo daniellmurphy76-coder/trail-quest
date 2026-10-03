@@ -10,8 +10,10 @@
  *
  * Every prop starts as a cheap primitive (boxes in the building colors, merged and instanced) and
  * is swapped for the CC0 model when it loads. Nothing here waits on assets. The zone carries no
- * lights: the world's environment lights every zone. The player has no colliders, so streets, the
- * plaza and the open spots are kept clear by layout, not by walls.
+ * lights: the world's environment lights every zone. Solid things block the player (see
+ * `Zone.colliders`): the buildings, the flagpole, the planters, the lamps, the stop signs, the Trail
+ * sign and the lawn trees' trunks. The four name signs stand on their own landmarks, so they have
+ * none. Streets, the plaza, the open spots and the landmarks are kept clear of colliders.
  *
  * Draw calls: about 24 with primitives only (28 with the four name signs, which are sprites). After
  * the swap about 39 (buildings 7, plants up to 8, streets 3, planters 5, flagpole 3, and so on).
@@ -23,9 +25,20 @@ import { assets } from '../engine/assets';
 import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { squareBounds } from './bounds';
+import { boxCollider, circleCollider, type Collider } from './collide';
 import { createGround, createGroundApron } from './ground';
 import { labelSprite } from './placeholder-zone';
-import { flagpole, instancedModel, scatterPlants, type AvoidCircle, type Placement, type Rng, type Spot } from './props';
+import {
+  flagpole,
+  instancedModel,
+  scatterPlants,
+  tintPlants,
+  treeColliders,
+  type AvoidCircle,
+  type Placement,
+  type Rng,
+  type Spot,
+} from './props';
 import type { Interactable, Zone } from './zone';
 import type { ZoneDeps } from './zones';
 
@@ -229,6 +242,11 @@ const PLANTERS: readonly Spot[] = [
 const PLANTER_RING_RADIUS = 0.95;
 const PLANTER_STONES = 6;
 const PLANTER_STONE_SCALE = 0.85;
+/** What a planter blocks: its ring of stones and a little more, bed and bush inside. */
+const PLANTER_COLLIDER_RADIUS = PLANTER_RING_RADIUS + 0.25;
+const FLAGPOLE_COLLIDER_RADIUS = 0.35;
+/** A lamp post, a stop sign post or the Trail sign: a thin post, so a small circle. */
+const POST_COLLIDER_RADIUS = 0.25;
 
 interface Lamp {
   x: number;
@@ -860,6 +878,19 @@ export function createTownSquare(deps: ZoneDeps): Zone {
   const trees = buildTrees(mulberry32(SEED + 4), keepClear);
   root.add(trees.group);
 
+  // ---- colliders: footprints, not crowns ---------------------------------------------------------
+  // Buildings from the same footprints that place them, trunks from the same spots as the trees.
+  // The civic name signs are left out on purpose: each stands exactly on its landmark.
+  const colliders: Collider[] = [
+    ...BUILDINGS.map((b) => boxCollider(b.x, b.z, b.w / 2, b.d / 2, b.yaw)),
+    circleCollider(0, 0, FLAGPOLE_COLLIDER_RADIUS),
+    ...PLANTERS.map((p) => circleCollider(p.x, p.z, PLANTER_COLLIDER_RADIUS)),
+    ...LAMPS.map((l) => circleCollider(l.x, l.z, POST_COLLIDER_RADIUS)),
+    ...STOP_SIGNS.map((s) => circleCollider(s.x, s.z, POST_COLLIDER_RADIUS)),
+    circleCollider(SIGN_POS.x, SIGN_POS.z, POST_COLLIDER_RADIUS),
+    ...treeColliders(trees.spots),
+  ];
+
   // Plants stay off the paving, the streets, the buildings, the props and the tree trunks.
   const avoid: AvoidCircle[] = [
     { x: 0, z: 0, radius: PLAZA_RADIUS + PLAZA_FEATHER },
@@ -897,6 +928,7 @@ export function createTownSquare(deps: ZoneDeps): Zone {
     if (assets.has('plant.bush')) {
       const bushes = instancedModel('plant.bush', planters.bushes, { cast: false, receive: true });
       if (bushes) {
+        tintPlants(bushes);
         root.remove(primitiveBushes);
         dispose(primitiveBushes);
         root.add(bushes);
@@ -912,6 +944,7 @@ export function createTownSquare(deps: ZoneDeps): Zone {
         ),
       );
       if (meshes.every((m) => m !== undefined)) {
+        for (const m of meshes) tintPlants(m!);
         root.remove(primitiveFlowers);
         dispose(primitiveFlowers);
         root.add(...(meshes as THREE.InstancedMesh[]));
@@ -986,6 +1019,7 @@ export function createTownSquare(deps: ZoneDeps): Zone {
     interactables: [back],
     openSpots,
     landmarks,
+    colliders,
     update: (dt: number) => {
       time += dt;
       // The flag flutters a little.

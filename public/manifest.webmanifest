@@ -7,6 +7,9 @@
   "background_color": "#87CEEB",
   "theme_color": "#2F6B3A",
   "icons": [
+    { "src": "icons/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "icons/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" },
     { "src": "favicon.svg", "type": "image/svg+xml", "sizes": "any" }
   ]
 }

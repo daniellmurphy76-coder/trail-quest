@@ -226,7 +226,13 @@ describe('collectKidStrings', () => {
   it('lists the poster fields as kid-facing', () => {
     expect(KID_FACING_FIELDS.rank).toContain('adventures[].requirements[].lesson.poster.title');
     expect(KID_FACING_FIELDS.rank).toContain('adventures[].requirements[].lesson.poster.lines[]');
-    expect(POSTER_FIELDS).toEqual(['lesson.poster.title', 'lesson.poster.lines[]']);
+    expect(POSTER_FIELDS).toEqual([
+      'lesson.poster.title',
+      'lesson.poster.lines[]',
+      'lesson.posters[].title',
+      'lesson.posters[].lines[]',
+    ]);
+    expect(KID_FACING_FIELDS.rank).toContain('adventures[].requirements[].lesson.posters[].lines[]');
   });
 
   it('survives a poster that is not the right shape', () => {

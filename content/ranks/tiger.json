@@ -78,17 +78,19 @@
               "The last part is about you. Be strong, think well, and do right.",
               "Now put the first four parts in order. Tap Show me if you forget."
             ],
-            "poster": {
-              "title": "Scout Oath",
-              "lines": [
-                "On my honor I will do my best",
-                "to do my duty to God and my country",
-                "and to obey the Scout Law;",
-                "to help other people at all times;",
-                "to keep myself physically strong,",
-                "mentally awake, and morally straight."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Oath",
+                "lines": [
+                  "On my honor I will do my best",
+                  "to do my duty to God and my country",
+                  "and to obey the Scout Law;",
+                  "to help other people at all times;",
+                  "to keep myself physically strong,",
+                  "mentally awake, and morally straight."
+                ]
+              }
+            ]
           },
           "notes": "Practice orders the first four parts of the Oath. The last part (strong, awake, straight) is taught in plain words in the lesson; the den says the full Oath in the field mission."
         },
@@ -140,23 +142,25 @@
               "Helpful means you help others out.",
               "Friendly means you are nice to others. You say hi."
             ],
-            "poster": {
-              "title": "Scout Law: A Scout is",
-              "lines": [
-                "Trustworthy",
-                "Loyal",
-                "Helpful",
-                "Friendly",
-                "Courteous",
-                "Kind",
-                "Obedient",
-                "Cheerful",
-                "Thrifty",
-                "Brave",
-                "Clean",
-                "Reverent"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Law: A Scout is",
+                "lines": [
+                  "Trustworthy",
+                  "Loyal",
+                  "Helpful",
+                  "Friendly",
+                  "Courteous",
+                  "Kind",
+                  "Obedient",
+                  "Cheerful",
+                  "Thrifty",
+                  "Brave",
+                  "Clean",
+                  "Reverent"
+                ]
+              }
+            ]
           },
           "notes": "The adult partner reading the Scout Law aloud happens off screen; the quiz shows the understanding part. Any one of the three points satisfies the requirement."
         },
@@ -290,12 +294,14 @@
               "Doing your best means you try hard. You do not have to win.",
               "Think of a time you tried hard. Then tell your grown-up."
             ],
-            "poster": {
-              "title": "Cub Scout Motto",
-              "lines": [
-                "Do Your Best"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Cub Scout Motto",
+                "lines": [
+                  "Do Your Best"
+                ]
+              }
+            ]
           }
         },
         {
@@ -681,16 +687,18 @@
               "Fire is hot. Be careful. Use it only with a grown-up.",
               "Be kind to people and leave plants and animals safe."
             ],
-            "poster": {
-              "title": "Outdoor Code",
-              "lines": [
-                "I will do my best to:",
-                "be clean and take my trash home;",
-                "be careful with fire;",
-                "be kind to people outside;",
-                "take care of nature."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Outdoor Code",
+                "lines": [
+                  "I will do my best to:",
+                  "be clean and take my trash home;",
+                  "be careful with fire;",
+                  "be kind to people outside;",
+                  "take care of nature."
+                ]
+              }
+            ]
           },
           "notes": "The four parts are clean, careful, considerate, and conservation-minded (the Four C's in the Tiger handbook)."
         },

@@ -110,17 +110,19 @@
               "The last part means a strong body, a sharp mind, and doing what is right.",
               "Now put the lines in order. Tap Show me if you forget."
             ],
-            "poster": {
-              "title": "Scout Oath",
-              "lines": [
-                "On my honor I will do my best",
-                "to do my duty to God and my country",
-                "and to obey the Scout Law;",
-                "to help other people at all times;",
-                "to keep myself physically strong,",
-                "mentally awake, and morally straight."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Oath",
+                "lines": [
+                  "On my honor I will do my best",
+                  "to do my duty to God and my country",
+                  "and to obey the Scout Law;",
+                  "to help other people at all times;",
+                  "to keep myself physically strong,",
+                  "mentally awake, and morally straight."
+                ]
+              }
+            ]
           },
           "digital": true,
           "activity": {
@@ -154,23 +156,25 @@
               "Brave does not mean you never feel scared. It means you do right anyway.",
               "Example: you feel nervous but still tell the truth. That is brave."
             ],
-            "poster": {
-              "title": "Scout Law: A Scout is",
-              "lines": [
-                "Trustworthy",
-                "Loyal",
-                "Helpful",
-                "Friendly",
-                "Courteous",
-                "Kind",
-                "Obedient",
-                "Cheerful",
-                "Thrifty",
-                "Brave",
-                "Clean",
-                "Reverent"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Law: A Scout is",
+                "lines": [
+                  "Trustworthy",
+                  "Loyal",
+                  "Helpful",
+                  "Friendly",
+                  "Courteous",
+                  "Kind",
+                  "Obedient",
+                  "Cheerful",
+                  "Thrifty",
+                  "Brave",
+                  "Clean",
+                  "Reverent"
+                ]
+              }
+            ]
           },
           "digital": true,
           "activity": {
@@ -325,13 +329,15 @@
               "You do not wait to be paid or thanked.",
               "Example: carry a neighbor's groceries, just to be nice."
             ],
-            "poster": {
-              "title": "Scout Motto and Slogan",
-              "lines": [
-                "Motto: Be Prepared",
-                "Slogan: Do a Good Turn Daily"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Motto and Slogan",
+                "lines": [
+                  "Motto: Be Prepared",
+                  "Slogan: Do a Good Turn Daily"
+                ]
+              }
+            ]
           },
           "digital": true,
           "activity": {
@@ -1750,18 +1756,20 @@
               "Think about your campout. Which rules did your team follow?",
               "Then sort the choices that follow the rules."
             ],
-            "poster": {
-              "title": "Leave No Trace for Kids",
-              "lines": [
-                "Know before you go. Learn about the place first.",
-                "Choose the right path. Stay on the trail.",
-                "Trash your trash. Take your trash home.",
-                "Leave what you find. Rocks and flowers stay.",
-                "Be careful with fire. Never leave it alone.",
-                "Respect wildlife. Watch animals from far away.",
-                "Be kind to other people. Share the trail."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Leave No Trace for Kids",
+                "lines": [
+                  "Know before you go. Learn about the place first.",
+                  "Choose the right path. Stay on the trail.",
+                  "Trash your trash. Take your trash home.",
+                  "Leave what you find. Rocks and flowers stay.",
+                  "Be careful with fire. Never leave it alone.",
+                  "Respect wildlife. Watch animals from far away.",
+                  "Be kind to other people. Share the trail."
+                ]
+              }
+            ]
           },
           "digital": false,
           "activity": {

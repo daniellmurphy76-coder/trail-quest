@@ -10,6 +10,7 @@ import {
   LEG_STYLES,
   NECKERCHIEF_COLORS,
   RANK_IDS,
+  SHIRT_COLORS,
   SHOE_COLORS,
   SKIN_TONES,
   cleanColor,
@@ -169,7 +170,7 @@ describe('randomAvatar', () => {
       expect(SKIN_TONES.map((c) => c.value)).toContain(a.skin);
       expect(HAIR_STYLES.map((c) => c.value)).toContain(a.hairStyle);
       expect(HAT_STYLES.map((c) => c.value)).toContain(a.hat);
-      expect(CLOTHES_COLORS.map((c) => c.value)).toContain(a.shirt);
+      expect(SHIRT_COLORS.map((c) => c.value)).toContain(a.shirt);
       expect(a.bodyColor).toBe(a.shirt);
       expect(a.neckerchief).toBe(defaultAvatar('bear').neckerchief); // the rank color stays
       expect(fillAvatar(a, 'bear')).toEqual(a);

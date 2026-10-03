@@ -1,7 +1,8 @@
 import { h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { button } from '../../ui/widgets';
-import { feedbackSlot } from '../shared';
+import { events } from '../../game/events';
+import { emitComplete, feedbackSlot } from '../shared';
 import type {
   ActivityContext,
   ActivityController,
@@ -118,6 +119,7 @@ function playNavigate(host: HTMLElement, params: NavigateParams, world: WorldAct
 
     function reached(i: number): void {
       if (finished || celebrating || i !== index) return;
+      events.emit({ type: 'waypoint' });
       marker?.remove();
       marker = null;
       visited += 1;
@@ -150,6 +152,7 @@ function playNavigate(host: HTMLElement, params: NavigateParams, world: WorldAct
       if (timer !== null) clearInterval(timer);
       panel.close();
       world.clear();
+      if (completed) emitComplete('navigate');
       resolve(completed ? { completed: true, attempts: total, score: 1 } : { completed: false, attempts: visited });
     }
 

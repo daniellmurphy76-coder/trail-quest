@@ -4,6 +4,7 @@ import { WebGLRenderer } from 'three';
 import { showAvatarEditor } from '../../src/game/screens/avatar-editor';
 import { mulberry32 } from '../../src/engine/seed';
 import {
+  ALL_COSMETIC_UNLOCKS,
   BUILDS,
   CLOTHES_COLORS,
   EYE_STYLES,
@@ -13,6 +14,7 @@ import {
   HAT_STYLES,
   LEG_STYLES,
   NECKERCHIEF_COLORS,
+  SHIRT_COLORS,
   SHOE_COLORS,
   SKIN_TONES,
   defaultAvatar,
@@ -71,8 +73,9 @@ afterEach(() => {
 
 const rank = 'wolf' as const;
 
+/** Opens the editor with every earned option already open; the lock tests pass their own `unlocks`. */
 function open(extra: Partial<Parameters<typeof showAvatarEditor>[1]> = {}) {
-  return showAvatarEditor(host, { initial: defaultAvatar(rank), rank, ...extra });
+  return showAvatarEditor(host, { initial: defaultAvatar(rank), rank, unlocks: ALL_COSMETIC_UNLOCKS, ...extra });
 }
 
 function group(title: string): HTMLElement {
@@ -142,7 +145,7 @@ describe('avatar editor: layout and words', () => {
     expect(labels('Hair color')).toEqual(HAIR_COLORS.map((c) => c.label));
     expect(labels('Eyes')).toEqual(EYE_STYLES.map((c) => c.label));
     expect(labels('Glasses')).toEqual(['None', 'Glasses']);
-    expect(labels('Shirt')).toEqual(CLOTHES_COLORS.map((c) => c.label));
+    expect(labels('Shirt')).toEqual(SHIRT_COLORS.map((c) => c.label));
     expect(labels('Legs')).toEqual(LEG_STYLES.map((c) => c.label));
     expect(labels('Leg color')).toEqual(CLOTHES_COLORS.map((c) => c.label));
     expect(labels('Shoes')).toEqual(SHOE_COLORS.map((c) => c.label));
@@ -396,5 +399,161 @@ describe('avatar editor: the 3D preview', () => {
     await result;
     await flush();
     expect(() => window.dispatchEvent(new Event('resize'))).not.toThrow();
+  });
+});
+
+describe('avatar editor: options that are earned', () => {
+  /** Every locked tile: the group it sits in, its word, and the plain line that says how to earn it. */
+  const LOCKED = [
+    ['Hat', 'Scout', 'Finish an adventure at Base Camp.'],
+    ['Hat', 'Beanie', 'Earn 50 XP.'],
+    ['Hat', 'Bucket', 'Finish an adventure away from Base Camp.'],
+    ['Eyes', 'Star', 'Play 3 days in a row.'],
+    ['Backpack', 'Backpack', 'Do a real mission. Your parent says yes.'],
+    ['Shirt', 'Gold', 'Earn 500 XP.'],
+  ] as const;
+
+  const GOLD = '#e0a82e';
+  const locked = (title: string, label: string): boolean => radio(title, label).classList.contains('tq-opt--locked');
+  const statusText = (): string => host.querySelector('[role="status"]')!.textContent ?? '';
+
+  it('shows each earned option as a locked tile with a lock mark and the earn-it line, until it is earned', () => {
+    void open({ unlocks: [] });
+    for (const [title, label, earn] of LOCKED) {
+      const tile = radio(title, label);
+      expect(tile.classList.contains('tq-opt--locked'), `${title} ${label}`).toBe(true);
+      expect(tile.getAttribute('aria-disabled')).toBe('true');
+      expect(tile.dataset.locked).toBe('true');
+      expect(tile.getAttribute('aria-checked')).toBe('false');
+      expect(tile.querySelector('.tq-opt__earn')!.textContent).toBe(earn);
+      // A mark and words, never color alone: the lock glyph for sight, "Locked" for a screen reader.
+      expect(tile.querySelector('.tq-opt__lock')!.textContent).toContain('\u{1F512}');
+      expect(tile.querySelector('.tq-opt__lock .tq-sr')!.textContent).toMatch(/Locked/);
+      expect(tile.querySelector('.tq-opt__label')!.textContent).toBe(label);
+    }
+  });
+
+  it('is strict by default: a Scout with no unlocks list has earned nothing yet', () => {
+    void showAvatarEditor(host, { initial: defaultAvatar(rank), rank });
+    for (const [title, label] of LOCKED) expect(locked(title, label), `${title} ${label}`).toBe(true);
+  });
+
+  it('leaves everything else free: the cap, braids, spiky hair, the other eyes, every other color', () => {
+    void open({ unlocks: [] });
+    expect(host.querySelectorAll('.tq-opt--locked')).toHaveLength(LOCKED.length);
+    for (const [title, label] of [
+      ['Hat', 'None'],
+      ['Hat', 'Cap'],
+      ['Hair style', 'Braids'],
+      ['Hair style', 'Spiky'],
+      ['Eyes', 'Round'],
+      ['Eyes', 'Happy'],
+      ['Eyes', 'Wink'],
+      ['Backpack', 'None'],
+      ['Shirt', 'Red'],
+      ['Skin', 'Tan'],
+    ] as const) {
+      expect(locked(title, label), `${title} ${label}`).toBe(false);
+      expect(radio(title, label).hasAttribute('aria-disabled')).toBe(false);
+    }
+  });
+
+  it('does not select a locked tile, says how to earn it, and Done never includes it', async () => {
+    const result = open({ unlocks: [] });
+    tab('Extras').click();
+    radio('Hat', 'Scout').click();
+    expect(selected('Hat')).toEqual(['None']);
+    expect(radio('Hat', 'Scout').getAttribute('aria-checked')).toBe('false');
+    expect(radio('Hat', 'Scout').classList.contains('is-selected')).toBe(false);
+    expect(statusText()).toBe('Scout hat is locked. Finish an adventure at Base Camp.');
+    radio('Backpack', 'Backpack').click();
+    expect(selected('Backpack')).toEqual(['None']);
+    tab('Face').click();
+    radio('Eyes', 'Star').click();
+    tab('Clothes').click();
+    radio('Shirt', 'Gold').click();
+    expect(selected('Shirt')).toEqual(['Blue']);
+    expect(statusText()).toBe('Gold shirt is locked. Earn 500 XP.');
+    buttonByText(host, 'Done').click();
+
+    const look = (await result)!;
+    expect(look.hat).toBe('none');
+    expect(look.backpack).toBe(false);
+    expect(look.eyes).toBe('round');
+    expect(look.shirt).toBe(defaultAvatar(rank).shirt);
+  });
+
+  it('keeps a locked tile out of reach of the keyboard too: Enter and Space do nothing', () => {
+    void open({ unlocks: [] });
+    tab('Extras').click();
+    const tile = radio('Hat', 'Beanie');
+    tile.focus();
+    expect(document.activeElement).toBe(tile); // still reachable, so a screen reader can read the line
+    press(tile, 'Enter');
+    press(tile, ' ');
+    expect(selected('Hat')).toEqual(['None']);
+    expect(statusText()).toBe('Beanie is locked. Earn 50 XP.');
+  });
+
+  it('opens a tile as soon as it is earned, and only that one', async () => {
+    const result = open({ unlocks: ['badge:wolf.bobcat', 'cosmetic:hat-scout'] });
+    tab('Extras').click();
+    expect(locked('Hat', 'Scout')).toBe(false);
+    expect(locked('Hat', 'Beanie')).toBe(true);
+    expect(radio('Hat', 'Scout').querySelector('.tq-opt__earn')).toBeNull();
+    radio('Hat', 'Scout').click();
+    expect(selected('Hat')).toEqual(['Scout']);
+    buttonByText(host, 'Done').click();
+    await expect(result).resolves.toMatchObject({ hat: 'scout' });
+  });
+
+  it('opens every tile for a Scout who has earned everything', () => {
+    void open({ unlocks: ALL_COSMETIC_UNLOCKS });
+    expect(host.querySelectorAll('.tq-opt--locked')).toHaveLength(0);
+  });
+
+  it('starts without a locked option the saved look still wears, so Done cannot save one', async () => {
+    const wearing = { ...defaultAvatar(rank), hat: 'scout', eyes: 'star' as const, backpack: true, shirt: GOLD, bodyColor: GOLD };
+    const result = showAvatarEditor(host, { initial: wearing, rank, unlocks: [] });
+    expect(selected('Shirt')).toEqual(['Blue']);
+    tab('Extras').click();
+    expect(selected('Hat')).toEqual(['None']);
+    expect(selected('Backpack')).toEqual(['None']);
+    buttonByText(host, 'Done').click();
+    await expect(result).resolves.toEqual(defaultAvatar(rank));
+  });
+
+  it('keeps what a Scout has earned in the look they started with', async () => {
+    const wearing = { ...defaultAvatar(rank), hat: 'scout', eyes: 'star' as const };
+    const result = showAvatarEditor(host, { initial: wearing, rank, unlocks: ['cosmetic:hat-scout'] });
+    buttonByText(host, 'Done').click();
+    await expect(result).resolves.toMatchObject({ hat: 'scout', eyes: 'round' });
+  });
+
+  it('Random only uses what has been earned', async () => {
+    for (let seed = 1; seed <= 25; seed += 1) {
+      const result = open({ unlocks: [], random: mulberry32(seed) });
+      buttonByText(host, 'Random').click();
+      buttonByText(host, 'Done').click();
+      const look = (await result)!;
+      expect(['scout', 'beanie', 'bucket']).not.toContain(look.hat);
+      expect(look.eyes).not.toBe('star');
+      expect(look.backpack).toBe(false);
+      expect(look.shirt).not.toBe(GOLD);
+    }
+  });
+
+  it('words the earn-it line for the older Scouts when asked', () => {
+    void open({ unlocks: [], level: 'grade5' });
+    expect(radio('Backpack', 'Backpack').querySelector('.tq-opt__earn')!.textContent).toBe(
+      'Finish a field mission and get your parent to say yes.',
+    );
+    expect(radio('Eyes', 'Star').querySelector('.tq-opt__earn')!.textContent).toBe('Finish a trail 3 days in a row.');
+  });
+
+  it('keeps the word on a locked tile for the option list, so the labels are unchanged', () => {
+    void open({ unlocks: [] });
+    const labels = Array.from(group('Hat').querySelectorAll('.tq-opt__label')).map((l) => l.textContent);
+    expect(labels).toEqual(HAT_STYLES.map((c) => c.label));
   });
 });

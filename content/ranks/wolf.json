@@ -80,21 +80,28 @@
               "Say them with your den. Hold up the Cub Scout sign.",
               "Now put the Oath lines in order. Tap Show me if you forget."
             ],
-            "poster": {
-              "title": "Scout Oath and Scout Law",
-              "lines": [
-                "On my honor I will do my best",
-                "to do my duty to God and my country",
-                "and to obey the Scout Law;",
-                "to help other people at all times;",
-                "to keep myself physically strong,",
-                "mentally awake, and morally straight.",
-                "A Scout is trustworthy, loyal, helpful,",
-                "friendly, courteous, kind,",
-                "obedient, cheerful, thrifty,",
-                "brave, clean, and reverent."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Oath",
+                "lines": [
+                  "On my honor I will do my best",
+                  "to do my duty to God and my country",
+                  "and to obey the Scout Law;",
+                  "to help other people at all times;",
+                  "to keep myself physically strong,",
+                  "mentally awake, and morally straight."
+                ]
+              },
+              {
+                "title": "Scout Law",
+                "lines": [
+                  "A Scout is trustworthy, loyal, helpful,",
+                  "friendly, courteous, kind,",
+                  "obedient, cheerful, thrifty,",
+                  "brave, clean, and reverent."
+                ]
+              }
+            ]
           },
           "notes": "Practice is the Oath by line. The Law points are taught in requirement 3."
         },
@@ -158,23 +165,25 @@
               "Brave means you do right when you are scared.",
               "Thrifty means you save things and do not waste."
             ],
-            "poster": {
-              "title": "Scout Law: A Scout is",
-              "lines": [
-                "Trustworthy",
-                "Loyal",
-                "Helpful",
-                "Friendly",
-                "Courteous",
-                "Kind",
-                "Obedient",
-                "Cheerful",
-                "Thrifty",
-                "Brave",
-                "Clean",
-                "Reverent"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Law: A Scout is",
+                "lines": [
+                  "Trustworthy",
+                  "Loyal",
+                  "Helpful",
+                  "Friendly",
+                  "Courteous",
+                  "Kind",
+                  "Obedient",
+                  "Cheerful",
+                  "Thrifty",
+                  "Brave",
+                  "Clean",
+                  "Reverent"
+                ]
+              }
+            ]
           },
           "notes": "Quiz teaches meanings; the 12 points are not asked in order. Any later Law question can reuse this style."
         },
@@ -387,12 +396,14 @@
               "Doing your best means trying hard.",
               "You can lose and still do your best!"
             ],
-            "poster": {
-              "title": "Cub Scout Motto",
-              "lines": [
-                "Do Your Best"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Cub Scout Motto",
+                "lines": [
+                  "Do Your Best"
+                ]
+              }
+            ]
           }
         },
         {
@@ -687,18 +698,20 @@
               "Each rule helps keep trails, plants, and animals safe.",
               "Now sort the good and bad choices."
             ],
-            "poster": {
-              "title": "Leave No Trace for Kids",
-              "lines": [
-                "Know before you go. Learn about the place first.",
-                "Choose the right path. Stay on the trail.",
-                "Trash your trash. Take your trash home.",
-                "Leave what you find. Rocks and flowers stay.",
-                "Be careful with fire. Never leave it alone.",
-                "Respect wildlife. Watch animals from far away.",
-                "Be kind to other people. Share the trail."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Leave No Trace for Kids",
+                "lines": [
+                  "Know before you go. Learn about the place first.",
+                  "Choose the right path. Stay on the trail.",
+                  "Trash your trash. Take your trash home.",
+                  "Leave what you find. Rocks and flowers stay.",
+                  "Be careful with fire. Never leave it alone.",
+                  "Respect wildlife. Watch animals from far away.",
+                  "Be kind to other people. Share the trail."
+                ]
+              }
+            ]
           },
           "notes": "Items follow the Leave No Trace Principles for Kids (know before you go, choose the right path, trash your trash, leave what you find, be careful with fire, respect wildlife, be kind to other visitors)."
         },
@@ -1135,23 +1148,25 @@
               "Friendly means you say hi and welcome new people.",
               "Courteous means you are polite, like saying please."
             ],
-            "poster": {
-              "title": "Scout Law: A Scout is",
-              "lines": [
-                "Trustworthy",
-                "Loyal",
-                "Helpful",
-                "Friendly",
-                "Courteous",
-                "Kind",
-                "Obedient",
-                "Cheerful",
-                "Thrifty",
-                "Brave",
-                "Clean",
-                "Reverent"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Law: A Scout is",
+                "lines": [
+                  "Trustworthy",
+                  "Loyal",
+                  "Helpful",
+                  "Friendly",
+                  "Courteous",
+                  "Kind",
+                  "Obedient",
+                  "Cheerful",
+                  "Thrifty",
+                  "Brave",
+                  "Clean",
+                  "Reverent"
+                ]
+              }
+            ]
           },
           "notes": "Any three fitting Scout Law points satisfy the requirement; the quiz covers helpful, friendly, and courteous."
         },

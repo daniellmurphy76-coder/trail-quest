@@ -1,6 +1,7 @@
 import { append, h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
 import { button } from '../../ui/widgets';
+import { emitComplete } from '../shared';
 import type { ActivityContext, ActivityController, ActivityResult, FieldMissionParams } from '../types';
 
 const NOTE = 'Do this in real life. Then come back and tell me!';
@@ -26,6 +27,7 @@ function runFieldMission(
       if (finished) return;
       finished = true;
       overlay.close();
+      if (completed) emitComplete('fieldMission');
       resolve({ completed, attempts: 1 });
     };
 

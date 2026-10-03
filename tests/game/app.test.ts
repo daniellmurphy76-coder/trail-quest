@@ -696,6 +696,7 @@ describe('app: zones', () => {
     await click('Finish');
     await click('Next'); // cheer
     await click('Great!'); // finishing the quiz completed Test Camp: a badge
+    await click('Great!'); // and the Scout hat that a Bobcat adventure earns
     expect(world.travelTo).not.toHaveBeenCalled();
 
     // Stop 2: collect. The Den Chief teaches at camp first (this content has no lesson yet, so the

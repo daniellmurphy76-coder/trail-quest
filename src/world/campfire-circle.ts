@@ -10,8 +10,10 @@
  *
  * Everything starts as an instanced primitive and upgrades to the CC0 models as they load; nothing
  * waits on assets. The zone carries no lights of its own beyond the campfire's: the environment
- * (sun, sky light, fog) lights every zone. The player has no colliders and walks through props, so
- * the gateway path and the open spots are kept clear by layout, not by blocking.
+ * (sun, sky light, fog) lights every zone. Solid things block the player (see `Zone.colliders`): tree
+ * trunks, the fire ring, the benches, the stump seats, the gateway posts, the lanterns, the rocks,
+ * the woodpile and the Trail sign. The way in from the spawn, through the gateway and the gap in the
+ * benches, and the open spots are kept clear of colliders.
  *
  * Draw calls. Primitives only: about 20 (ground 2, trees 2, campfire 4 meshes plus its embers,
  * plants 1, benches 1, gateway 1, stumps 1, lanterns 2, trail sign 2, rock 1, woodpile 1,
@@ -26,13 +28,16 @@ import { assets } from '../engine/assets';
 import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
+import { boxCollider, circleCollider, type Collider } from './collide';
 import { createGround, createGroundApron } from './ground';
 import { labelSprite } from './placeholder-zone';
 import {
+  CAMPFIRE_COLLIDER_RADIUS,
   campfire,
   instancedModel,
   scatterPlants,
   tree,
+  treeColliders,
   type AvoidCircle,
   type Placement,
   type Rng,
@@ -79,6 +84,15 @@ const LANTERN_RING_COUNT = 6;
 const LANTERN_HEIGHT = 2.4; // a `signpost.single` model is 2.4 tall
 const GLOBE_RADIUS = 0.2;
 const DECOR_RING = 11.3; // the reading rock and the woodpile stand a little beyond the lanterns
+
+/** What each prop blocks, as half sizes (boxes) or radii (circles), a touch inside the models. */
+const BENCH_HALF = { hw: 0.32, hd: 1.05 } as const; // log.single is 0.72 wide and 2.2 long
+const STUMP_COLLIDER_RADIUS = 0.7; // at scale 1
+const GATE_POST_COLLIDER_RADIUS = 0.4;
+const LANTERN_COLLIDER_RADIUS = 0.3;
+const ROCK_FLAT_HALF = { hw: 0.63, hd: 0.55 } as const; // rock.flat is 1.4 by 1.21, per unit of scale
+const WOODPILE_HALF = { hw: 0.7, hd: 1.15 } as const; // log.stack is 1.44 by 2.4
+const SIGN_COLLIDER_RADIUS = 0.3;
 
 const OPEN_RING = 8.4;
 const OPEN_SLOTS = 12;
@@ -500,6 +514,24 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
   });
   root.add(primitiveTrees);
 
+  // ---- colliders: footprints, not crowns ---------------------------------------------------------
+  // Each comes from the same list that places its prop, so the two cannot drift apart. The
+  // gateway's crossbeam is overhead and the gap between its posts is the way in, so only the posts block.
+  const colliders: Collider[] = [
+    ...treeColliders(treeSpots),
+    circleCollider(0, 0, CAMPFIRE_COLLIDER_RADIUS),
+    ...benchPlacements.map((b) => boxCollider(b.x, b.z, BENCH_HALF.hw, BENCH_HALF.hd, b.yaw)),
+    ...stumpPlacements.map((st) => circleCollider(st.x, st.z, STUMP_COLLIDER_RADIUS * (st.scale ?? 1))),
+    circleCollider(-GATE_POST_X, GATE_Z, GATE_POST_COLLIDER_RADIUS),
+    circleCollider(GATE_POST_X, GATE_Z, GATE_POST_COLLIDER_RADIUS),
+    ...lanternSpots.map((l) => circleCollider(l.x, l.z, LANTERN_COLLIDER_RADIUS)),
+    ...rockPlacements.map((r) =>
+      boxCollider(r.x, r.z, ROCK_FLAT_HALF.hw * (r.scale ?? 1), ROCK_FLAT_HALF.hd * (r.scale ?? 1), r.yaw),
+    ),
+    ...stackPlacements.map((w) => boxCollider(w.x, w.z, WOODPILE_HALF.hw, WOODPILE_HALF.hd, w.yaw)),
+    circleCollider(SIGN_X, SIGN_Z, SIGN_COLLIDER_RADIUS),
+  ];
+
   // ---- open spots: a ring between the benches and the lanterns ----------------------------------
   // Each prop is a circle (x, z, radius); a spot stays OPEN_CLEARANCE beyond its edge.
   const solids: AvoidCircle[] = [
@@ -657,6 +689,7 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
     interactables: [back],
     openSpots,
     landmarks: {},
+    colliders,
     update: (dt: number) => {
       fire.update(dt);
       fireflies.update(dt);

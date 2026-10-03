@@ -4,6 +4,7 @@ import { dampAngle, shortestAngle, wrapAngle } from '../engine/damp';
 import type { InputState } from '../engine/input';
 import type { AvatarConfig } from '../save/types';
 import { clampToBounds } from '../world/bounds';
+import { PLAYER_RADIUS, resolveCollisions } from '../world/collide';
 import type { Zone } from '../world/zone';
 import { defaultAvatar } from './avatar/options';
 import { buildAvatar, type AvatarRig, type Emote } from './avatar/rig';
@@ -18,6 +19,8 @@ export interface PlayerOptions {
 export const PLAYER_SPEED = 4; // units per second
 const TURN_K = 14; // how fast the player swings to face their direction of travel
 const MOVE_THRESHOLD = 0.05; // stick magnitude below this counts as standing still
+/** A step longer than this is walked in pieces, so a thin wall can never be jumped over. */
+const MAX_STEP = 0.15;
 
 /**
  * The scout the kid controls: the blocky avatar rig (see player/avatar), walking when the stick is
@@ -100,10 +103,11 @@ export class Player {
   }
 
   /** One fixed simulation step. */
-  update(dt: number, input: InputState, zone: Pick<Zone, 'bounds'>): void {
+  update(dt: number, input: InputState, zone: Pick<Zone, 'bounds' | 'colliders'>): void {
     this.prevPosition.copy(this.position);
     this.prevFacing = this.facing;
 
+    const colliders = zone.colliders;
     const mx = input.move.x;
     const mz = input.move.z;
     const magnitude = Math.hypot(mx, mz);
@@ -116,14 +120,32 @@ export class Player {
       const dirX = -fz * mx - fx * mz;
       const dirZ = fx * mx - fz * mz;
 
-      const next = clampToBounds(
-        this.position.x + dirX * PLAYER_SPEED * dt,
-        this.position.z + dirZ * PLAYER_SPEED * dt,
-        zone.bounds,
-      );
+      // Step, push out of whatever the step ran into, then keep inside the zone. Pushing out only
+      // removes the part of the move that goes into the prop, so the Scout glides along a wall or
+      // around a trunk at full speed along it instead of sticking.
+      const stepX = dirX * PLAYER_SPEED * dt;
+      const stepZ = dirZ * PLAYER_SPEED * dt;
+      const pieces = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / MAX_STEP));
+      let x = this.position.x;
+      let z = this.position.z;
+      for (let i = 0; i < pieces; i++) {
+        x += stepX / pieces;
+        z += stepZ / pieces;
+        if (colliders && colliders.length > 0) {
+          const out = resolveCollisions(x, z, PLAYER_RADIUS, colliders);
+          x = out.x;
+          z = out.z;
+        }
+      }
+      const next = clampToBounds(x, z, zone.bounds);
       this.position.x = next.x;
       this.position.z = next.z;
       this.facing = wrapAngle(dampAngle(this.facing, Math.atan2(dirX, dirZ), TURN_K, dt));
+    } else if (colliders && colliders.length > 0) {
+      // Standing still: only move if a prop just appeared on top of the Scout (a model swapping in).
+      const out = resolveCollisions(this.position.x, this.position.z, PLAYER_RADIUS, colliders);
+      this.position.x = out.x;
+      this.position.z = out.z;
     }
 
     this.rig.update(dt, { moving: this.isMoving, speed: this.isMoving ? PLAYER_SPEED : 0 });

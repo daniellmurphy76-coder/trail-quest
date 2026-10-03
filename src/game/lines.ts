@@ -51,9 +51,26 @@ export interface LineVars {
   total?: number;
   /** Distance to a compass target, in steps. */
   steps?: number;
+  /** A trail title from rewards.ts ("Trail Walker"). Not the same as `title`, which is a stop's. */
+  trailTitle?: string;
+  /** The name of a cosmetic the Scout earned ("Scout hat"). */
+  unlock?: string;
 }
 
-export const LINE_VARS = ['name', 'guide', 'streak', 'xp', 'title', 'adventure', 'zone', 'done', 'total', 'steps'] as const;
+export const LINE_VARS = [
+  'name',
+  'guide',
+  'streak',
+  'xp',
+  'title',
+  'adventure',
+  'zone',
+  'done',
+  'total',
+  'steps',
+  'trailTitle',
+  'unlock',
+] as const;
 
 interface Pair {
   grade2: string;
@@ -204,6 +221,32 @@ export const LINES = {
   },
   badgeEarned: same('You earned the {adventure} badge!'),
 
+  // ---- rewards: a toast for a new trail title, and the card for a new cosmetic ----
+  titleEarned: {
+    grade2: 'New title: {trailTitle}!',
+    grade5: 'You earned a new trail title: {trailTitle}!',
+  },
+  unlockHat: {
+    grade2: 'You earned a new hat! Try it on in Change my look.',
+    grade5: 'You earned a new hat! Try it on in Change my look.',
+  },
+  unlockEyes: {
+    grade2: 'You earned new eyes! Try them on in Change my look.',
+    grade5: 'You earned new eyes! Try them on in Change my look.',
+  },
+  unlockBackpack: {
+    grade2: 'You earned a backpack! Try it on in Change my look.',
+    grade5: 'You earned a backpack! Try it on in Change my look.',
+  },
+  unlockMany: {
+    grade2: 'You earned new things! Try them on in Change my look.',
+    grade5: 'You earned new things! Try them on in Change my look.',
+  },
+  unlockShirt: {
+    grade2: 'You earned a new shirt color! Try it in Change my look.',
+    grade5: 'You earned a new shirt color! Try it on in Change my look.',
+  },
+
   // ---- approval screen ----
   approvalTitle: same('Ask your parent to approve: {title}'),
   approvalHelp: {
@@ -216,6 +259,12 @@ export const LINES = {
     grade2: 'Great trail, {name}!',
     grade5: 'Trail complete, {name}!',
   },
+  summaryTrailTitle: same('Your title: {trailTitle}'),
+  summaryNewTitle: {
+    grade2: 'New title: {trailTitle}!',
+    grade5: 'You earned a new title: {trailTitle}!',
+  },
+  summaryUnlock: same('New: {unlock}'),
   campfireLit: same('Your campfire is lit: Day {streak}.'),
   campfireNot: {
     grade2: 'Do all the stops to light your campfire.',

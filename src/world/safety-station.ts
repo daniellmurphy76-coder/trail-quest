@@ -14,6 +14,11 @@
  * for the CC0 model once it loads, so the zone never waits on assets. After the swap it is 26 draw
  * calls (28 with the sprites), and the sun's shadow pass redraws the 16 casting meshes. The zone
  * carries no lights: the world's environment lights every zone.
+ *
+ * Solid things block the player (see `Zone.colliders`): tree trunks, the fire station, the two
+ * houses, the fence, the stop sign, the lamps, both signposts, the first-aid tent, the slide, the
+ * swing set and the sandbox. The street, the sidewalks and the paved path from the spawn stay
+ * clear, and so do the open spots and the spawn.
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -21,6 +26,7 @@ import { assets } from '../engine/assets';
 import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
+import { boxCollider, circleCollider, type Collider } from './collide';
 import { createGround, createGroundApron } from './ground';
 import { labelSprite } from './placeholder-zone';
 import {
@@ -28,6 +34,7 @@ import {
   scatterModels,
   scatterPlants,
   tree,
+  treeColliders,
   type AvoidCircle,
   type Placement,
   type Spot,
@@ -65,7 +72,18 @@ const LAMPS: readonly Spot[] = [
   { x: 8.2, z: -2.6 },
 ];
 
+/** What each prop blocks, as half sizes (boxes) or radii (circles). Posts are thin, so small circles. */
+const POST_COLLIDER_RADIUS = 0.3;
+const STATION_HALF = { hw: 3.0, hd: 3.1 } as const; // the model at 1.25 times is 6.1 by 6.5
+const TENT_HALF = { hw: 2.3, hd: 1.85 } as const; // the A-frame is 4.6 wide and 3.7 deep
+const SWING_HALF = { hw: 2.5, hd: 1.0 } as const; // two A-frames 4.6 apart, legs 2 apart
+const SANDBOX_COLLIDER_RADIUS = 2.2; // the ring of stones and the sand inside it
+const FENCE_HALF = { hw: 0.15, hd: 2.0 } as const; // each fence run is 4 long and thin
+
 const SLIDE = { x: -14.4, z: 3.2, yaw: Math.PI / 2 }; // ramp runs toward +x
+/** The slide's frame, ladder, platform and ramp run from -1.9 to 3.7 along its own z, about 1.4 wide. */
+const SLIDE_HALF = { hw: 0.7, hd: 2.8 } as const;
+const SLIDE_MIDDLE = 0.9; // where the middle of that run is, along the slide's own z
 const SWING = { x: -9.2, z: 6.3, yaw: 0.5 };
 const SWING_BAR_Y = 3;
 const SWING_PIVOT_X = 0.8;
@@ -675,6 +693,29 @@ export function createSafetyStation(deps: ZoneDeps): Zone {
   const primitiveTrees = tree(rng, treeSpots);
   root.add(primitiveTrees);
 
+  // ---- colliders: footprints, not crowns ---------------------------------------------------------
+  // Each comes from the same list or constant that places its prop, so the two cannot drift apart.
+  const colliders: Collider[] = [
+    ...treeColliders(treeSpots),
+    boxCollider(STATION.x, STATION.z, STATION_HALF.hw, STATION_HALF.hd),
+    circleCollider(STOP_SIGN.x, STOP_SIGN.z, POST_COLLIDER_RADIUS),
+    ...LAMPS.map((l) => circleCollider(l.x, l.z, POST_COLLIDER_RADIUS)),
+    ...HOUSES.map((h) => boxCollider(h.x, h.z, h.w / 2, h.d / 2, HOUSE_YAW)),
+    ...FENCE_ZS.map((z) => boxCollider(FENCE_X, z, FENCE_HALF.hw, FENCE_HALF.hd)),
+    circleCollider(MEETING_SIGN.x, MEETING_SIGN.z, POST_COLLIDER_RADIUS),
+    circleCollider(TRAIL_SIGN.x, TRAIL_SIGN.z, POST_COLLIDER_RADIUS),
+    boxCollider(TENT.x, TENT.z, TENT_HALF.hw, TENT_HALF.hd, TENT.yaw),
+    boxCollider(
+      SLIDE.x + Math.sin(SLIDE.yaw) * SLIDE_MIDDLE,
+      SLIDE.z + Math.cos(SLIDE.yaw) * SLIDE_MIDDLE,
+      SLIDE_HALF.hw,
+      SLIDE_HALF.hd,
+      SLIDE.yaw,
+    ),
+    boxCollider(SWING.x, SWING.z, SWING_HALF.hw, SWING_HALF.hd, SWING.yaw),
+    circleCollider(SANDBOX.x, SANDBOX.z, SANDBOX_COLLIDER_RADIUS),
+  ];
+
   // ---- open spots, then plants that keep off the props, the street, the path and the spots ----
   const openSpots = placeOpenSpots(mulberry32(SEED + 5));
   const plantAvoid: AvoidCircle[] = [
@@ -773,6 +814,7 @@ export function createSafetyStation(deps: ZoneDeps): Zone {
     interactables: [back],
     openSpots,
     landmarks: {},
+    colliders,
     update: (dt: number) => {
       swingTime += dt;
       applySway();

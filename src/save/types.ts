@@ -26,7 +26,10 @@ export interface Profile {
   rank: RankId;
   /** Display name of the guide, default "Den Chief". */
   guideName: string;
+  /** Unused since voice was removed; kept so v1 saves load. */
   readAloud: boolean;
+  /** Sound effects on or off. Missing means on. */
+  sound?: boolean;
   createdAt: string; // ISO date-time
   avatar: AvatarConfig;
   xp: number;

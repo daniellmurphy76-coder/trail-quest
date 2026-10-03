@@ -3,7 +3,7 @@ import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
 import { button, srOnly } from '../../ui/widgets';
 import { shuffleSteps } from '../sequence/shuffle';
-import { cardHeader, feedbackSlot } from '../shared';
+import { cardHeader, emitAnswer, emitComplete, emitTap, feedbackSlot } from '../shared';
 import type { ActivityController, ActivityResult, CraftParams } from '../types';
 import './craft.css';
 
@@ -58,6 +58,7 @@ function runCraft(host: HTMLElement, params: CraftParams): Promise<ActivityResul
       if (finished) return;
       finished = true;
       overlay.close();
+      if (completed) emitComplete('craft');
       resolve(
         completed
           ? { completed, attempts, score: Math.min(1, Math.max(0, 1 - wrongTaps / total)) }
@@ -118,7 +119,9 @@ function runCraft(host: HTMLElement, params: CraftParams): Promise<ActivityResul
     function tap(chip: Chip): void {
       if (finished || done) return;
       attempts += 1;
+      emitTap();
       if (chip.item.needed) {
+        emitAnswer(true);
         const target = benchSlots[packed]!;
         target.li.classList.add('is-filled');
         target.mark.textContent = '✔'; // heavy check mark; the label next to it carries the meaning
@@ -143,6 +146,7 @@ function runCraft(host: HTMLElement, params: CraftParams): Promise<ActivityResul
           overlay.focus(chips[Math.min(at, chips.length - 1)]?.btn);
         }
       } else {
+        emitAnswer(false);
         wrongTaps += 1;
         shake(chip.btn);
         showResultBanner(slot, 'notyet', `That does not belong in the ${params.result}.`);

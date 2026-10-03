@@ -4,15 +4,11 @@ import { watchOverlays } from '../../src/game/overlays';
 import { showApprovalScreen } from '../../src/game/screens/approval';
 import { badgeSvg, showBadgeCard } from '../../src/game/screens/badge';
 import { createHud } from '../../src/game/screens/hud';
-import { showParentMode } from '../../src/game/screens/parent';
 import { showProfilePicker } from '../../src/game/screens/profile-picker';
 import { showSummary } from '../../src/game/screens/summary';
 import { showTrailPanel } from '../../src/game/screens/trail-panel';
 import { showTrailSign } from '../../src/game/screens/trail-sign';
-import { createDefaultSave, createProfile } from '../../src/save/store';
-import type { SaveFile } from '../../src/save/types';
 import { buttonByText, flush, makeHost } from '../ui/helpers';
-import { fixtureRank, ID } from '../fixtures/rank.fixture';
 
 let host: HTMLElement;
 beforeEach(() => {
@@ -253,96 +249,6 @@ describe('summary', () => {
     expect(host.querySelector('.tq-summary__badges')).toBeNull();
     buttonByText(host, 'Explore camp').click();
     await result;
-  });
-});
-
-describe('parent mode', () => {
-  function makeSave(): SaveFile {
-    const save = createDefaultSave();
-    const profile = createProfile(save, { name: 'Rowan', rank: 'wolf' });
-    profile.requirements[ID.campErrand] = { status: 'pending-approval', attempts: 1 };
-    profile.requirements[ID.campQuiz] = { status: 'done', attempts: 1, learnedAt: '2026-09-20', completedAt: '2026-09-20' };
-    return save;
-  }
-
-  function open(save: SaveFile, extra: Partial<Parameters<typeof showParentMode>[1]> = {}) {
-    const persist = vi.fn();
-    const result = showParentMode(host, {
-      save,
-      today: () => '2026-10-03',
-      persist,
-      replaceSave: vi.fn(),
-      changePin: vi.fn(async () => true),
-      contentFor: () => fixtureRank,
-      rankLabel: () => 'Wolf',
-      ...extra,
-    });
-    return { result, persist };
-  }
-
-  it('lists adventures with each requirement in words, and the waiting mission with Approve', async () => {
-    const save = makeSave();
-    const { result } = open(save);
-    expect(host.textContent).toContain('Waiting for your approval');
-    expect(host.textContent).toContain('Test camp errand');
-    expect(host.textContent).toContain('Test Camp — 1 of 4 done');
-
-    // Adventure lists open and close with a button.
-    const toggle = buttonByText(host, 'Test Camp');
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    toggle.click();
-    const text = host.textContent ?? '';
-    expect(text).toContain('Done');
-    expect(text).toContain('Waiting for approval');
-    expect(text).toContain('Not yet');
-    buttonByText(host, 'Close').click();
-    await expect(result).resolves.toEqual({ imported: false });
-  });
-
-  it('approves a waiting mission and saves', () => {
-    const save = makeSave();
-    const { persist } = open(save);
-    buttonByText(host, 'Approve').click();
-    const profile = save.profiles[0]!;
-    expect(profile.requirements[ID.campErrand]).toMatchObject({ status: 'done', approvedAt: '2026-10-03' });
-    expect(profile.xp).toBe(30);
-    expect(persist).toHaveBeenCalled();
-    expect(host.textContent).toContain('Approved: Test camp errand');
-    expect(host.textContent).toContain('Nothing is waiting.');
-  });
-
-  it('resets a Scout only after a confirm', async () => {
-    const save = makeSave();
-    save.profiles[0]!.xp = 90;
-    const { persist } = open(save);
-
-    buttonByText(host, 'Reset Rowan').click();
-    expect(host.querySelectorAll('.tq-overlay')).toHaveLength(2); // the confirm sits on top
-    buttonByText(host, 'Keep everything').click();
-    await flush();
-    expect(save.profiles[0]!.xp).toBe(90);
-    expect(persist).not.toHaveBeenCalled();
-
-    buttonByText(host, 'Reset Rowan').click();
-    buttonByText(host, 'Reset this Scout').click();
-    await flush();
-    expect(save.profiles[0]).toMatchObject({ name: 'Rowan', xp: 0, requirements: {} });
-    expect(persist).toHaveBeenCalled();
-  });
-
-  it('changes the PIN through the app and says so', async () => {
-    const changePin = vi.fn(async () => true);
-    open(makeSave(), { changePin });
-    buttonByText(host, 'Change PIN').click();
-    await flush();
-    expect(changePin).toHaveBeenCalledTimes(1);
-    expect(host.textContent).toContain('PIN changed.');
-  });
-
-  it('has Export and Import buttons', () => {
-    open(makeSave());
-    expect(buttonByText(host, 'Export save')).toBeDefined();
-    expect(buttonByText(host, 'Import save')).toBeDefined();
   });
 });
 

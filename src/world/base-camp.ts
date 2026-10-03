@@ -4,16 +4,20 @@ import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { createDenChief } from '../player/avatar/presets';
 import { perimeterPoint, squareBounds } from './bounds';
+import { boxCollider, circleCollider, type Collider } from './collide';
 import { createGround, createGroundApron } from './ground';
 import {
+  CAMPFIRE_COLLIDER_RADIUS,
   campfire,
   flagpole,
   instancedModel,
   lodge,
   rock,
+  rockColliders,
   scatterModels,
   scatterPlants,
   tree,
+  treeColliders,
   type AvoidCircle,
   type Placement,
   type Spot,
@@ -55,6 +59,15 @@ const BASE_CAMP_MODELS = [
   'signpost',
 ] as const;
 
+const FLAGPOLE_RADIUS = 0.3;
+const SIGNPOST_RADIUS = 0.35;
+/** The primitive lodge is 8 by 6; the cabin model, once it arrives, is 6.65 wide and 7.03 deep. */
+const LODGE_HALF = { hw: 4, hd: 3 } as const;
+const CABIN_HALF = { hw: 3.3, hd: 3.5 } as const;
+/** Half sizes of the tent models' footprints (3.8 by 2.76, and the small one 2.58 by 3.0), a touch inside. */
+const TENT_HALF = { hw: 1.8, hd: 1.3 } as const;
+const SMALL_TENT_HALF = { hw: 1.2, hd: 1.4 } as const;
+
 /** Yaw that turns a model whose front is +z to look at (tx, tz) from (x, z). */
 function yawToward(x: number, z: number, tx: number, tz: number): number {
   return Math.atan2(tx - x, tz - z);
@@ -64,6 +77,10 @@ function yawToward(x: number, z: number, tx: number, tz: number): number {
  * Base Camp: the hub. A dirt clearing in rolling grass, a ring of trees, a campfire, a flagpole, a
  * lodge, and the Den Chief. The zone carries no lights: the world's environment (sun, sky light,
  * fog) lights every zone, and the campfire adds its own warm point light.
+ *
+ * Solid things block the player (see `Zone.colliders`): tree trunks and rocks (from the very spot
+ * lists that place them), the fire ring, the flagpole and the cabin. The tents and the signpost only
+ * exist as models, so their colliders join the list when the models swap in, never before.
  */
 export function createBaseCamp(opts: BaseCampOptions): Zone {
   const root = new THREE.Group();
@@ -116,6 +133,16 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
 
   const spawn = new THREE.Vector3(0, 0, 9);
 
+  // ---- colliders: footprints, not crowns -----------------------------------------------------------
+  const cabinCollider = boxCollider(cabin.position.x, cabin.position.z, LODGE_HALF.hw, LODGE_HALF.hd, cabin.rotation.y);
+  const colliders: Collider[] = [
+    ...treeColliders(treeSpots),
+    ...rockColliders(rockSpots),
+    circleCollider(0, 0, CAMPFIRE_COLLIDER_RADIUS),
+    circleCollider(pole.position.x, pole.position.z, FLAGPOLE_RADIUS),
+    cabinCollider,
+  ];
+
   // The Den Chief is the same blocky avatar rig as the player, in a preset look (see player/avatar/presets).
   const denChief = createDenChief();
   denChief.root.position.set(3.4, 0, -1.8);
@@ -123,7 +150,7 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
   root.add(denChief.root);
 
   // Plants gather around the clearing's edge and at the feet of props, and keep off the dirt, the
-  // spawn point, and the doorsteps. They are decoration only: nothing here blocks the player.
+  // spawn point, and the doorsteps. They are decoration only: the player walks through them.
   const tentSpots = [
     { x: 6, z: -16.5 },
     { x: 13.5, z: -15.5 },
@@ -191,16 +218,28 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
       setShadowCasting(model, true, true);
       root.remove(cabin);
       root.add(model);
+      cabinCollider.hw = CABIN_HALF.hw; // the model is not the primitive's size
+      cabinCollider.hd = CABIN_HALF.hd;
     }
 
     // Camp extras that only exist once the art is here: tents ringed around the fire, a signpost.
     const tentPlacements: Placement[] = tentSpots.map((p) => ({ ...p, yaw: yawToward(p.x, p.z, 0, 0) }));
     const tents = instancedModel('tent', tentPlacements);
-    if (tents) root.add(tents);
-    const smallTent = instancedModel('tent.small', [
-      { ...smallTentSpot, yaw: yawToward(smallTentSpot.x, smallTentSpot.z, 0, 0) },
-    ]);
-    if (smallTent) root.add(smallTent);
+    if (tents) {
+      root.add(tents);
+      for (const t of tentPlacements) colliders.push(boxCollider(t.x, t.z, TENT_HALF.hw, TENT_HALF.hd, t.yaw));
+    }
+    const smallTentPlacement: Placement = {
+      ...smallTentSpot,
+      yaw: yawToward(smallTentSpot.x, smallTentSpot.z, 0, 0),
+    };
+    const smallTent = instancedModel('tent.small', [smallTentPlacement]);
+    if (smallTent) {
+      root.add(smallTent);
+      colliders.push(
+        boxCollider(smallTentSpot.x, smallTentSpot.z, SMALL_TENT_HALF.hw, SMALL_TENT_HALF.hd, smallTentPlacement.yaw),
+      );
+    }
 
     if (assets.has('signpost')) {
       const sign = assets.instance('signpost');
@@ -208,6 +247,7 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
       sign.rotation.y = 0.3;
       setShadowCasting(sign, true, true);
       root.add(sign);
+      colliders.push(circleCollider(sign.position.x, sign.position.z, SIGNPOST_RADIUS));
     }
   };
 
@@ -224,6 +264,7 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
     bounds: squareBounds(WALK_HALF),
     spawn,
     interactables: [talk],
+    colliders,
     update: (dt: number) => {
       fire.update(dt);
       waveClock -= dt;

@@ -8,6 +8,7 @@ import type { RequirementProgress } from '../save/types';
 import {
   REVIEWABLE_TYPES,
   type Adventure,
+  type Poster,
   type RankContent,
   type Requirement,
 } from './types';
@@ -92,4 +93,29 @@ export function learnActivityOf(requirement: Requirement): ActivitySpec | undefi
 
 export function isFieldMission(requirement: Requirement): boolean {
   return requirement.activity.type === 'fieldMission';
+}
+
+/**
+ * The full-text posters a requirement's lesson shows, one per screen, in order: `lesson.posters`
+ * when it has any, else the legacy single `lesson.poster`. Titles and lines are trimmed, blank
+ * lines are dropped, and a poster with nothing on it is left out. Always an array (empty when the
+ * lesson has no poster), so callers never branch on which form the content uses.
+ */
+export function lessonPosters(
+  requirement: { lesson?: { poster?: Poster; posters?: readonly Poster[] } } | undefined,
+): Poster[] {
+  const lesson = requirement?.lesson;
+  if (!lesson) return [];
+  const clean = (list: readonly (Poster | undefined)[]): Poster[] => {
+    const out: Poster[] = [];
+    for (const poster of list) {
+      if (!poster || !Array.isArray(poster.lines)) continue;
+      const lines = poster.lines.map((text) => String(text).trim()).filter((text) => text !== '');
+      if (lines.length === 0) continue;
+      out.push({ title: typeof poster.title === 'string' ? poster.title.trim() : '', lines });
+    }
+    return out;
+  };
+  const many = Array.isArray(lesson.posters) ? clean(lesson.posters) : [];
+  return many.length > 0 ? many : clean([lesson.poster]);
 }

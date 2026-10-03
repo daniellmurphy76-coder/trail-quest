@@ -84,6 +84,8 @@ describe('Den Chief lines', () => {
       done: 1,
       total: 3,
       steps: 12,
+      trailTitle: 'Trail Walker',
+      unlock: 'Scout hat',
     };
     for (const key of KEYS) {
       for (const level of ['grade2', 'grade5'] as const) {

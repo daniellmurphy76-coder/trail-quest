@@ -1,0 +1,153 @@
+/*
+ * Parent mode dashboard: an overview card for each Scout, then Details and Tools for one Scout.
+ * Plain and readable. Builds on the overlay kit (src/ui/ui.css) and the older Parent mode rules in
+ * game.css (.tq-parent__*), which the Details list still uses. Progress is always written out as
+ * numbers next to the bars, so a bar is never the only way to read it.
+ */
+
+/* The card never grows taller than the screen; the body scrolls inside it. */
+.tq-pdash {
+  max-height: 100%;
+  min-height: 0;
+}
+
+.tq-pdash > * {
+  flex-shrink: 0;
+}
+
+.tq-pdash > .tq-parent__body {
+  flex: 1 1 auto;
+  flex-shrink: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tq-pdash__title {
+  margin: 0;
+  font-size: 1.15em;
+}
+
+.tq-pdash__title:focus {
+  outline: none;
+}
+
+.tq-pdash__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tq-pdash__card,
+.tq-pdash__tool {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 3px solid var(--tq-ink);
+  border-radius: 12px;
+}
+
+.tq-pdash__card h3 {
+  margin: 0;
+  font-size: 1.15em;
+}
+
+.tq-pdash__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9em, 1fr));
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.tq-pdash__stat dt {
+  font-size: 0.85em;
+}
+
+.tq-pdash__stat dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.tq-pdash__overall {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tq-pdash__bar {
+  height: 16px;
+  background: var(--tq-surface-2);
+  border: 2px solid var(--tq-ink);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tq-pdash__fill {
+  display: block;
+  height: 100%;
+  background: var(--tq-primary);
+}
+
+.tq-pdash__adventures {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-pdash__adv {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(5em, 10em) 5.5em;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.tq-pdash__adv-count {
+  text-align: right;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tq-pdash__pending {
+  margin: 0;
+  font-weight: 700;
+}
+
+.tq-pdash__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tq-pdash__tool h3 {
+  margin: 0;
+}
+
+.tq-pdash__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--tq-surface-2);
+  border: 3px solid var(--tq-ink);
+  border-radius: 12px;
+}
+
+.tq-pdash__question {
+  margin: 0;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .tq-pdash__adv {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .tq-pdash__adv .tq-pdash__bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

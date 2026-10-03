@@ -22,6 +22,8 @@ export const KID_FACING_FIELDS = {
     'adventures[].requirements[].lesson.lines[]',
     'adventures[].requirements[].lesson.poster.title',
     'adventures[].requirements[].lesson.poster.lines[]',
+    'adventures[].requirements[].lesson.posters[].title',
+    'adventures[].requirements[].lesson.posters[].lines[]',
     'electives[].summary',
   ],
   /** Fields inside `activity.params` and `practice.params` of every requirement, by activity type. */
@@ -45,7 +47,12 @@ export const KID_FACING_FIELDS = {
  * rule skips them, because "to do my duty to God and my country" is what it is. Paths are
  * relative to a requirement.
  */
-export const POSTER_FIELDS = ['lesson.poster.title', 'lesson.poster.lines[]'];
+export const POSTER_FIELDS = [
+  'lesson.poster.title',
+  'lesson.poster.lines[]',
+  'lesson.posters[].title',
+  'lesson.posters[].lines[]',
+];
 
 /**
  * School-report words that kid text must not use. Matched on the word and on its plain

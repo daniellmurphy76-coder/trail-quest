@@ -18,8 +18,11 @@
  * Art is primitive first and upgrades as models load, never blocking on them:
  *   - ground, track, start line and ball are always primitives (one vertex-colored track mesh);
  *   - trees, fence, gate, benches, stones, scoreboard, Trail sign and plants swap to models.
- * The zone carries no lights: the world's environment lights every zone. Nothing here blocks the
- * player (there are no colliders), so the track and the open spots stay clear of props by layout.
+ * The zone carries no lights: the world's environment lights every zone. Solid things block the
+ * player (see `Zone.colliders`): tree trunks, the fence and gate, the benches, the scoreboard, the
+ * cones, the stretching stones and the Trail sign. The track, the infield, the open spots and the
+ * spawn are kept clear of colliders. The ball hops in the infield and has none, so it never stands
+ * in the way of the walk from the spawn.
  *
  * Draw calls: 15 with primitives (apron, ground, track, cones, fence, gate, benches, scoreboard and its
  * label, stones, ball, trees 2, plants, Trail sign) and 23 after the swap (fence + gate 3, trees 2,
@@ -32,6 +35,7 @@ import { assets } from '../engine/assets';
 import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
+import { boxCollider, circleCollider, type Collider } from './collide';
 import { createGround, createGroundApron } from './ground';
 import { labelSprite } from './placeholder-zone';
 import {
@@ -39,6 +43,7 @@ import {
   scatterModels,
   scatterPlants,
   tree,
+  treeColliders,
   type AvoidCircle,
   type Placement,
   type Rng,
@@ -85,6 +90,14 @@ const BENCH_Z = -14;
 const BENCH_X = [-10.5, -5.5, 5.5, 10.5];
 const SCOREBOARD = { x: 0, z: -14.4, scale: 1.6, labelY: 4.7, labelHeight: 1.4 } as const;
 
+/** What each prop blocks, as half sizes (boxes) or radii (circles), a touch inside the models. */
+const FENCE_HALF_DEPTH = 0.15; // the fence is 4 long and 0.28 thin
+const BENCH_HALF = { hw: 0.36, hd: 1.1 } as const; // log.single is 0.72 wide and 2.2 long
+const SCOREBOARD_HALF = { hw: 0.95, hd: 0.25 } as const; // the signpost model at 1.6 times its size
+const CONE_RADIUS = 0.35;
+const STONE_RADIUS = 0.55; // at scale 1
+const SIGN_COLLIDER_RADIUS = 0.3;
+
 const STRETCH = { x: -4.5, z: -1.5, radius: 2.8, stones: 8 } as const;
 const BALL = { x: 0.2, z: 0.9, radius: 0.4 } as const;
 const BALL_BOUNCE = 0.3;
@@ -107,6 +120,11 @@ const FITNESS_MODELS = [
 /** Open spots keep this far from the spawn and the Trail sign (the shared zone test wants 3). */
 const KEEP_CLEAR_SIGN = 3.2;
 const MAX_SPOTS = 14;
+
+/** One cone in each corner of the oval, a little inside the track's inner edge. */
+const CONE_SPOTS: readonly Spot[] = [40, 140, 220, 320].map((deg) =>
+  trackPoint((deg * Math.PI) / 180, -FITNESS_TRACK.width / 2 - 0.55),
+);
 
 const dummy = new THREE.Object3D();
 
@@ -337,7 +355,7 @@ export function createFitnessField(deps: ZoneDeps): Zone {
     'cones',
     coneGeometry(),
     vertexColorMaterial(),
-    [40, 140, 220, 320].map((deg) => ({ ...trackPoint((deg * Math.PI) / 180, -FITNESS_TRACK.width / 2 - 0.55), scale: 1.25 })),
+    CONE_SPOTS.map((p) => ({ ...p, scale: 1.25 })),
   );
   root.add(cones);
 
@@ -431,6 +449,19 @@ export function createFitnessField(deps: ZoneDeps): Zone {
   const primitiveTrees = tree(treeRng, treeSpots);
   root.add(primitiveTrees);
 
+  // ---- colliders: footprints, not crowns ---------------------------------------------------------
+  // Each comes from the same list that places its prop, so the two cannot drift apart.
+  const colliders: Collider[] = [
+    ...treeColliders(treeSpots),
+    ...fencePlacements.map((f) => boxCollider(f.x, f.z, FENCE_SEGMENT / 2, FENCE_HALF_DEPTH, f.yaw)),
+    boxCollider(GATE_X, FENCE_Z, FENCE_SEGMENT / 2, FENCE_HALF_DEPTH),
+    ...benchPlacements.map((b) => boxCollider(b.x, b.z, BENCH_HALF.hw, BENCH_HALF.hd, b.yaw)),
+    boxCollider(SCOREBOARD.x, SCOREBOARD.z, SCOREBOARD_HALF.hw, SCOREBOARD_HALF.hd),
+    ...CONE_SPOTS.map((c) => circleCollider(c.x, c.z, CONE_RADIUS)),
+    ...stonePlacements.map((st) => circleCollider(st.x, st.z, STONE_RADIUS * (st.scale ?? 1))),
+    circleCollider(signX, signZ, SIGN_COLLIDER_RADIUS),
+  ];
+
   // ---- plants: around the edges only, never on the track or in the infield ---------------------
   // AvoidCircle is all plants understand, so the oval (and the infield) is covered with a grid of
   // circles, plus a keep-out for the spawn, the sign, the benches, the scoreboard and the gate.
@@ -483,10 +514,7 @@ export function createFitnessField(deps: ZoneDeps): Zone {
     { x: BALL.x, z: BALL.z, radius: 1.3 },
     ...BENCH_X.map((x) => ({ x, z: BENCH_Z, radius: 1.8 })),
     ...stonePlacements.map((s) => ({ x: s.x, z: s.z, radius: 1.3 })),
-    ...[40, 140, 220, 320].map((deg) => {
-      const p = trackPoint((deg * Math.PI) / 180, -FITNESS_TRACK.width / 2 - 0.55);
-      return { ...p, radius: 1.3 };
-    }),
+    ...CONE_SPOTS.map((p) => ({ ...p, radius: 1.3 })),
   ];
   const openSpots: THREE.Vector3[] = [];
   for (const c of candidates) {
@@ -565,6 +593,7 @@ export function createFitnessField(deps: ZoneDeps): Zone {
     interactables: [back],
     openSpots,
     landmarks: {},
+    colliders,
     update: (dt: number) => {
       // The ball hops gently on the spot, so the infield feels alive.
       t += dt;

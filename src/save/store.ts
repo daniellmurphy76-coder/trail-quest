@@ -3,7 +3,8 @@
  * Everything goes through an injectable KeyValueStore so tests never touch localStorage.
  */
 import type { RankId } from '../activities/types';
-import { defaultAvatar, fillAvatar } from '../player/avatar/options';
+import { listRankContent } from '../content/load';
+import { defaultAvatar, fillAvatar, RANK_IDS } from '../player/avatar/options';
 import { migrate } from './migrations';
 import { SAVE_VERSION, STORAGE_KEY, type AvatarConfig, type Profile, type SaveFile } from './types';
 
@@ -136,6 +137,71 @@ export function createProfile(save: SaveFile, options: NewProfileOptions): Profi
 
 export function getActiveProfile(save: SaveFile): Profile | undefined {
   return save.profiles.find((profile) => profile.id === save.activeProfileId);
+}
+
+// ---- Parent tools: reset, remove, move up a rank ----------------------------------------------------
+
+/** The rank after `rank` in program order (Lion, Tiger, Wolf, Bear, Webelos, Arrow of Light), if any. */
+export function nextRank(rank: RankId): RankId | undefined {
+  const index = RANK_IDS.indexOf(rank);
+  return index >= 0 ? RANK_IDS[index + 1] : undefined;
+}
+
+/**
+ * Start the Scout over. XP, streak, requirement progress, review cards, finished adventures,
+ * sessions and every unlock (badges and the cosmetics they opened) go. Name, rank, guide, look
+ * and the sound setting stay. Returns a new profile; the input is not changed.
+ */
+export function resetProgress(profile: Profile): Profile {
+  return {
+    ...profile,
+    xp: 0,
+    streak: { current: 0, best: 0, embers: 0 },
+    requirements: {},
+    adventures: {},
+    review: {},
+    sessions: [],
+    unlocks: [],
+  };
+}
+
+/**
+ * Delete a profile from the save (mutating it). If it was the active profile, the active id is
+ * cleared so the caller can send the player back to the picker. `removed` is false when there was
+ * no such profile.
+ */
+export function removeProfile(save: SaveFile, id: string): { removed: boolean; wasActive: boolean } {
+  const index = save.profiles.findIndex((profile) => profile.id === id);
+  if (index < 0) return { removed: false, wasActive: false };
+  save.profiles.splice(index, 1);
+  const wasActive = save.activeProfileId === id;
+  if (wasActive) delete save.activeProfileId;
+  return { removed: true, wasActive };
+}
+
+/**
+ * Move a Scout up to a later rank. The look stays; the neckerchief follows the new rank only if it
+ * is still the old rank's default color. Progress stays too: requirement ids start with the rank,
+ * so the old rank's progress is kept and never mixes with the new rank's. Returns a new profile.
+ * Throws a message safe to show a parent when `next` is not a later rank or has no content yet
+ * (`hasContent` defaults to the bundled rank files).
+ */
+export function promoteRank(
+  profile: Profile,
+  next: RankId,
+  hasContent: (rank: RankId) => boolean = (rank) => listRankContent().some((content) => content.rank === rank),
+): Profile {
+  if (RANK_IDS.indexOf(next) <= RANK_IDS.indexOf(profile.rank)) {
+    throw new Error(`${profile.name} cannot move back to an earlier rank.`);
+  }
+  if (!hasContent(next)) throw new Error('There are no adventures for that rank in the game yet.');
+  const oldDefault = defaultAvatar(profile.rank).neckerchief.toLowerCase();
+  const stillDefault = profile.avatar.neckerchief?.toLowerCase() === oldDefault;
+  return {
+    ...profile,
+    rank: next,
+    avatar: stillDefault ? { ...profile.avatar, neckerchief: defaultAvatar(next).neckerchief } : { ...profile.avatar },
+  };
 }
 
 const PIN_PATTERN = /^\d{4}$/;

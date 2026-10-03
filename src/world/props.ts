@@ -4,6 +4,7 @@ import { assets } from '../engine/assets';
 import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import type { Bounds } from './bounds';
+import { circlesAt, TREE_TRUNK_RADIUS, type CircleCollider } from './collide';
 
 /** Seeded random source returning floats in [0, 1), for example `mulberry32(2026)`. */
 export type Rng = () => number;
@@ -84,6 +85,26 @@ export function rock(rng: Rng, spots: readonly Spot[]): THREE.InstancedMesh {
   mesh.instanceMatrix.needsUpdate = true;
   setShadowCasting(mesh, true, true);
   return mesh;
+}
+
+/**
+ * Trunk-sized colliders for a stand of trees: one circle per spot, the trunk and not the crown.
+ * Pass the very same `spots` given to `tree(rng, spots)` and `scatterModels(..., spots, ...)`, so
+ * the colliders can never drift from the trees.
+ */
+export function treeColliders(spots: readonly Spot[], radius = TREE_TRUNK_RADIUS): CircleCollider[] {
+  return circlesAt(spots, radius);
+}
+
+/** What a boulder at a spot blocks: a bit under the widest model (rocks differ a lot in size). */
+export const ROCK_COLLIDER_RADIUS = 0.9;
+
+/**
+ * Boulder-sized colliders for `rock(rng, spots)` and the rock models scattered over the same
+ * `spots`: one circle per spot. Pass the very same list so the colliders can never drift.
+ */
+export function rockColliders(spots: readonly Spot[], radius = ROCK_COLLIDER_RADIUS): CircleCollider[] {
+  return circlesAt(spots, radius);
 }
 
 // ---- model-backed props -------------------------------------------------------------------------
@@ -176,12 +197,23 @@ export interface ScatterPlantsOptions {
   /** Model ids to use instead of the default `plant.*` mix. Each is picked equally often. */
   ids?: readonly string[];
   /**
+   * Multiplier on `count`: the zones ask for a number, and this thins it (0.6 keeps 60 percent).
+   * Default `DEFAULT_PLANT_DENSITY`. Pass 1 to get exactly `count` (when there is room).
+   */
+  density?: number;
+  /**
    * Gather plants near the edges of the `avoid` circles. A candidate that is `d` units outside the
    * nearest circle is kept with probability exp(-d / edgeFalloff), so about a third survive at
    * `edgeFalloff` units out. Leave it out for an even scatter.
    */
   edgeFalloff?: number;
 }
+
+/**
+ * How much of the asked-for plant count `scatterPlants` makes unless `density` says otherwise. The
+ * first scatter was dense enough to read as clutter, so it is cut by 40 percent.
+ */
+export const DEFAULT_PLANT_DENSITY = 0.6;
 
 /** How often each `plant.*` model turns up: lots of grass, some flowers and bushes, the odd mushroom. */
 const PLANT_CHOICES: ReadonlyArray<{ id: string; weight: number }> = [
@@ -265,11 +297,76 @@ function tufts(rng: Rng, spots: readonly Spot[]): THREE.InstancedMesh | null {
   return mesh;
 }
 
+// ---- plant color --------------------------------------------------------------------------------
+
 /**
- * Up to `count` plants scattered over `bounds`, never inside an `avoid` circle. Starts as one
- * InstancedMesh of tiny green tufts (1 draw call) and upgrades itself to the `plant.*` models
- * (grass, flowers, bushes, mushrooms; one draw call per model used, at most 8) when they load.
- * Same seed, same layout. Plants do not cast shadows, they only receive them.
+ * Every leaf and stem in the Kenney nature kit is painted one bright mint-teal, as a vertex color
+ * (linear RGB, as the GLB stores it). Read straight, it looks like cyan clutter on the grass.
+ */
+const KENNEY_TEAL = new THREE.Color().setRGB(0.173, 0.847, 0.722);
+/** The grass green it is shifted to: a little deeper than the ground, so tufts still read against it. */
+const PLANT_GREEN = new THREE.Color(0x4e9b3a);
+/** What a teal vertex color is multiplied by to land on `PLANT_GREEN`, per channel. */
+const PLANT_TINT = new THREE.Color().setRGB(
+  PLANT_GREEN.r / KENNEY_TEAL.r,
+  PLANT_GREEN.g / KENNEY_TEAL.g,
+  PLANT_GREEN.b / KENNEY_TEAL.b,
+);
+
+/** True for the kit's teal (and its shades): green at least as strong as blue, both well above red. */
+function isKitTeal(r: number, g: number, b: number): boolean {
+  return g > 0.3 && g >= b && b >= r * 1.8;
+}
+
+/**
+ * Multiply every teal vertex color of `geometry` by the teal-to-green tint, in place. Anything
+ * else (petals, mushroom caps and stems) is left exactly as painted, so flowers keep their colors.
+ * Returns how many vertices were teal and how many there are; a geometry with no vertex colors
+ * reports none teal.
+ */
+export function tintTealVertices(geometry: THREE.BufferGeometry): { teal: number; total: number } {
+  const color = geometry.getAttribute('color');
+  if (!color) return { teal: 0, total: 0 };
+  let teal = 0;
+  for (let i = 0; i < color.count; i++) {
+    const r = color.getX(i);
+    const g = color.getY(i);
+    const b = color.getZ(i);
+    if (!isKitTeal(r, g, b)) continue;
+    color.setXYZ(i, r * PLANT_TINT.r, g * PLANT_TINT.g, b * PLANT_TINT.b);
+    teal++;
+  }
+  if (teal > 0) color.needsUpdate = true;
+  return { teal, total: color.count };
+}
+
+/**
+ * Turn the kit's teal to grass green on a plant mesh made by `instancedModel` (it owns its
+ * geometry, so tinting it touches no other mesh and keeps the draw call count as it was). When
+ * the whole model is foliage (every vertex teal, as for grass and bushes) and `rng` is given, each
+ * instance also gets its own slight shift in hue and lightness, so a field of tufts is not one
+ * flat green. Flowers get the stems tinted and the petals untouched, and no per-instance shift.
+ */
+export function tintPlants(mesh: THREE.InstancedMesh, rng?: Rng): void {
+  const { teal, total } = tintTealVertices(mesh.geometry);
+  if (!rng || total === 0 || teal < total) return;
+  const shifted = new THREE.Color();
+  const multiplier = new THREE.Color();
+  for (let i = 0; i < mesh.count; i++) {
+    shifted.copy(PLANT_GREEN).offsetHSL((rng() * 2 - 1) * 0.025, 0, (rng() - 0.4) * 0.07);
+    // The vertex colors already carry the green, so the instance only carries the change from it.
+    mesh.setColorAt(i, multiplier.setRGB(shifted.r / PLANT_GREEN.r, shifted.g / PLANT_GREEN.g, shifted.b / PLANT_GREEN.b));
+  }
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+}
+
+/**
+ * About `count * density` plants (see `ScatterPlantsOptions.density`; 60 percent by default)
+ * scattered over `bounds`, never inside an `avoid` circle. Starts as one InstancedMesh of tiny
+ * green tufts (1 draw call) and upgrades itself to the `plant.*` models (grass, flowers, bushes,
+ * mushrooms; one draw call per model used, at most 8) when they load, recolored from the kit's
+ * teal to grass green (see `tintPlants`). Same seed, same layout. Plants do not cast shadows,
+ * they only receive them.
  */
 export function scatterPlants(
   rng: Rng,
@@ -280,7 +377,8 @@ export function scatterPlants(
 ): THREE.Group {
   const group = new THREE.Group();
   group.name = 'plants';
-  const spots = plantSpots(rng, count, bounds, avoid, options.edgeFalloff);
+  const wanted = Math.round(Math.max(0, count) * (options.density ?? DEFAULT_PLANT_DENSITY));
+  const spots = plantSpots(rng, wanted, bounds, avoid, options.edgeFalloff);
   // A separate stream for the models, so the layout is the same whichever art is showing.
   const modelRng = mulberry32(Math.floor(rng() * 0x100000000));
   const placeholder = tufts(rng, spots);
@@ -304,7 +402,9 @@ export function scatterPlants(
     const meshes: THREE.InstancedMesh[] = [];
     usable.forEach((c, i) => {
       const mesh = instancedModel(c.id, buckets[i]!, { cast: false, receive: true });
-      if (mesh) meshes.push(mesh);
+      if (!mesh) return;
+      tintPlants(mesh, modelRng); // after every placement draw, so the layout never shifts
+      meshes.push(mesh);
     });
     if (meshes.length === 0) return;
     if (placeholder) {
@@ -322,6 +422,9 @@ export function scatterPlants(
 }
 
 // ---- campfire -----------------------------------------------------------------------------------
+
+/** What a `campfire()` blocks, flames and stone ring together (the ring is 1.1 out; the model pit is 1.2 wide). */
+export const CAMPFIRE_COLLIDER_RADIUS = 1.25;
 
 /** A campfire that can trade its primitive stones and logs for the `campfire` model. */
 export interface CampfireProp extends AnimatedProp {

@@ -78,6 +78,17 @@ function withPoster(id: string, lines: string[], poster: { title: string; lines:
   };
 }
 
+/** The fixture with a lesson and several posters on one requirement (the Oath, then the Law). */
+function withPosters(id: string, lines: string[], posters: { title: string; lines: string[] }[]): RankContent {
+  return {
+    ...fixtureRank,
+    adventures: fixtureRank.adventures.map((adventure) => ({
+      ...adventure,
+      requirements: adventure.requirements.map((r) => (r.id === id ? { ...r, lesson: { lines, posters } } : r)),
+    })),
+  };
+}
+
 const litToday = { current: 3, best: 3, lastTrailDate: TODAY, embers: 0 };
 
 interface Harness {
@@ -788,6 +799,58 @@ describe('session: teaching before the activity', () => {
     expect(page).toBeGreaterThan(-1);
     expect(h.order.indexOf('sign')).toBeGreaterThan(page);
     expect(h.order.indexOf('run:new-step')).toBeGreaterThan(h.order.indexOf('sign'));
+  });
+});
+
+describe('session: a lesson with two posters (the Oath, then the Law)', () => {
+  const OATH = { title: 'The Test Oath', lines: ['Oath line one.', 'Oath line two.', 'Oath line three.'] };
+  const LAW = { title: 'The Test Law', lines: ['Law point one.', 'Law point two.'] };
+  const CHORE_LINES = ['Chore line one.', 'Chore line two.'];
+  const HINT = 'Here is the whole thing. Read it top to bottom.';
+
+  it('shows each as its own poster page, in order, between the intro line and the lesson lines', async () => {
+    const h = harness({ profile: threeStops(), content: withPosters(ID.campChore, CHORE_LINES, [OATH, LAW]) });
+    await createSession(h.deps).talk();
+
+    const run = h.order.indexOf('run:new-step');
+    expect(h.order.slice(run - 6, run)).toEqual([
+      expect.stringMatching(/^dialog:A new step! /),
+      `dialog:${LESSON_INTRO}`,
+      'poster:The Test Oath',
+      'poster:The Test Law',
+      'dialog:Chore line one.',
+      'dialog:Chore line two.',
+    ]);
+    // Two pages, never one: the Oath's lines and the Law's lines are not on the same screen.
+    expect(h.posters).toEqual([
+      { title: OATH.title, lines: OATH.lines, hint: HINT },
+      { title: LAW.title, lines: LAW.lines, hint: HINT },
+    ]);
+    for (const poster of h.posters) {
+      const both = OATH.lines.some((l) => poster.lines.includes(l)) && LAW.lines.some((l) => poster.lines.includes(l));
+      expect(both).toBe(false);
+    }
+    expect(h.stages).toEqual(['review', 'new', 'handout']);
+  });
+
+  it('still reads the legacy single `poster` as one page', async () => {
+    const h = harness({ profile: threeStops(), content: withPoster(ID.campChore, CHORE_LINES, OATH) });
+    await createSession(h.deps).talk();
+    expect(h.posters.map((p) => p.title)).toEqual(['The Test Oath']);
+  });
+
+  it('shows both again after "Remind me" on a review, and neither after "I remember!"', async () => {
+    const remind = harness({ profile: threeStops(), content: withPosters(ID.campQuiz, ['Quiz line one.'], [OATH, LAW]) });
+    await createSession(remind.deps).talk();
+    expect(remind.posters.map((p) => p.title)).toEqual(['The Test Oath', 'The Test Law']);
+
+    const remember = harness({
+      profile: threeStops(),
+      content: withPosters(ID.campQuiz, ['Quiz line one.'], [OATH, LAW]),
+      choose: (text) => (text === REMIND_ASK ? 1 : 0),
+    });
+    await createSession(remember.deps).talk();
+    expect(remember.deps.showPoster).not.toHaveBeenCalled();
   });
 });
 

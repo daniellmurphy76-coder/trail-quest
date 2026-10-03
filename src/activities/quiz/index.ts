@@ -2,14 +2,14 @@ import { clear, h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
 import { button } from '../../ui/widgets';
-import { cardHeader, feedbackSlot, peekButton } from '../shared';
+import { cardHeader, emitAnswer, emitComplete, emitTap, feedbackSlot, peekButton, postersOf } from '../shared';
 import type { ActivityContext, ActivityController, ActivityResult, QuizParams } from '../types';
 
 /**
  * One question at a time. A wrong tap shows "Not yet" and the same question stays, so the kid
  * can tap again; there are no lives and no fail. Completes when `passCount` (default all)
- * questions have been answered correctly. When the context carries a poster, a "Show me" button
- * peeks at it without touching the score or the question.
+ * questions have been answered correctly. When the context carries posters, a "Show me" button
+ * peeks at them (a pager when there is more than one) without touching the score or the question.
  */
 function runQuiz(host: HTMLElement, params: QuizParams, ctx: ActivityContext): Promise<ActivityResult> {
   const questions = params.questions;
@@ -42,6 +42,7 @@ function runQuiz(host: HTMLElement, params: QuizParams, ctx: ActivityContext): P
       if (finished) return;
       finished = true;
       overlay.close();
+      if (completed) emitComplete('quiz');
       resolve(completed ? { completed, attempts, score: firstTry / needed } : { completed, attempts });
     }
 
@@ -67,8 +68,10 @@ function runQuiz(host: HTMLElement, params: QuizParams, ctx: ActivityContext): P
         const entry = choiceButtons[i];
         if (!entry || solved || tried.has(i) || finished) return;
         attempts += 1;
+        emitTap();
         const text = question.explain ?? '';
         if (i === question.answer) {
+          emitAnswer(true);
           solved = true;
           correct += 1;
           if (!missedThisOne) firstTry += 1;
@@ -96,6 +99,7 @@ function runQuiz(host: HTMLElement, params: QuizParams, ctx: ActivityContext): P
           overlay.setDefault(next);
           overlay.focus(next);
         } else {
+          emitAnswer(false);
           tried.add(i);
           missedThisOne = true;
           entry.btn.classList.add('is-tried');
@@ -110,7 +114,7 @@ function runQuiz(host: HTMLElement, params: QuizParams, ctx: ActivityContext): P
       overlay.setDefault(null);
       overlay.card.append(
         cardHeader(`Question ${index + 1} of ${needed}`, () => finish(false)),
-        h('div', { class: 'tq-prompt' }, h('h2', null, question.prompt), peekButton(host, ctx.poster)),
+        h('div', { class: 'tq-prompt' }, h('h2', null, question.prompt), peekButton(host, postersOf(ctx))),
         h('div', { class: 'tq-choices', role: 'group', attrs: { 'aria-label': 'Answers' } }, ...choiceButtons.map((c) => c.btn)),
         slot,
         actions,

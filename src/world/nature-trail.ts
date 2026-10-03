@@ -11,8 +11,11 @@
  * asset library has loaded it. Placement is pure and seeded (`natureTrailLayout`), so the primitive
  * and model versions stand in exactly the same places and the tests can check it without a renderer.
  *
- * Walking is not blocked by anything (the player has no colliders), so the path, the open spots and
- * the flat lookout stay clear of props by construction rather than by collision.
+ * Solid things block the player (`TrailLayout.colliders`, built from the same lists that place the
+ * props, so they cannot drift): tree trunks, the lookout rocks, stumps, the tent, firewood, the log
+ * seats, the fire ring, the Back to camp sign, and the stream, which is a wall of boxes with a gap
+ * exactly as wide as the bridge. The trailhead sign stands on its own landmark, so it has none. The
+ * path, the open spots and the flat lookout are kept clear of colliders by construction.
  *
  * Draw calls: primitives about 23 (ground 2, path 1, stream 1, trees 2, rocks 1, stumps 1, plants 1,
  * bridge 1, signs 2, tent 1, firewood 1, seats 1, campfire 5, animals 3), plus 4 landmark labels in a
@@ -25,14 +28,17 @@ import { assets, type ModelAnimator } from '../engine/assets';
 import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
+import { boxCollider, circleCollider, type BoxCollider, type Collider } from './collide';
 import { createGround, createGroundApron } from './ground';
 import { labelSprite } from './placeholder-zone';
 import {
+  CAMPFIRE_COLLIDER_RADIUS,
   campfire,
   instancedModel,
   scatterModels,
   scatterPlants,
   tree,
+  treeColliders,
   type AvoidCircle,
   type Placement,
   type Rng,
@@ -279,6 +285,8 @@ export interface TrailLayout {
   openSpots: Spot[];
   /** Everything with a footprint, for keeping plants and spots off it. */
   blockers: Circle[];
+  /** What the player cannot walk through. Never on the path, an open spot, a landmark or the spawn. */
+  colliders: Collider[];
 }
 
 /** Yaw that turns a thing whose front is +z to look at (tx, tz) from (x, z). */
@@ -297,6 +305,64 @@ function shuffled<T>(items: readonly T[], rng: Rng): T[] {
 
 const ROCK_RADIUS: Record<RockKind, number> = { large: 1.35, tall: 1.2, small: 0.6 };
 const ROCK_HEIGHT: Record<RockKind, number> = { large: 0.72, tall: 2.4, small: 0.58 };
+/** Each rock model's size at scale 1 (width, height, depth), which the primitive matches. */
+const ROCK_SIZE: Record<RockKind, readonly [number, number, number]> = {
+  large: [2.16, 0.72, 2.8],
+  tall: [2.37, 2.4, 1.65],
+  small: [1.1, 0.58, 1.1],
+};
+/** A rock blocks this much of its width and depth (rocks are lumpy, and the player is round). */
+const ROCK_FOOTPRINT = 0.75;
+const STUMP_COLLIDER_RADIUS = 0.6; // at scale 1
+const SIGN_COLLIDER_RADIUS = 0.3;
+/** Half sizes of the small tent model (2.58 by 3.0) and the firewood and log seat models, a touch inside. */
+const TENT_HALF = { hw: 1.25, hd: 1.3 } as const;
+const FIREWOOD_HALF = { hw: 0.7, hd: 1.15 } as const;
+const SEAT_HALF = { hw: 0.35, hd: 1.1 } as const;
+/** The bridge deck is 3.1 wide; the stream's wall leaves a gap this wide (half) for it. */
+const BRIDGE_GAP_HALF = 1.5;
+/** Each stretch of the stream's wall is about this long; neighbours overlap a little so a bend leaves no crack. */
+const STREAM_CHUNK = 2;
+const STREAM_JOINT = 0.2;
+
+/**
+ * The stream as a chain of turned boxes along its curve, a stream wide, with a gap where the
+ * bridge crosses. The stream flows west to east across the whole zone, so its x grows with its arc
+ * length and the gap edges are found by halving. The boxes run past the walkable square.
+ */
+function streamColliders(stream: Polyline, bridgeX: number): BoxCollider[] {
+  const arcAt = (x: number): number => {
+    let lo = 0;
+    let hi = stream.length;
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2;
+      if (stream.pointAt(mid).x < x) lo = mid;
+      else hi = mid;
+    }
+    return (lo + hi) / 2;
+  };
+  const out: BoxCollider[] = [];
+  const stretch = (from: number, to: number): void => {
+    const n = Math.max(1, Math.ceil((to - from) / STREAM_CHUNK));
+    for (let i = 0; i < n; i++) {
+      const a = stream.pointAt(from + ((to - from) * i) / n);
+      const b = stream.pointAt(from + ((to - from) * (i + 1)) / n);
+      out.push(
+        boxCollider(
+          (a.x + b.x) / 2,
+          (a.z + b.z) / 2,
+          STREAM_HALF,
+          Math.hypot(b.x - a.x, b.z - a.z) / 2 + STREAM_JOINT,
+          Math.atan2(b.x - a.x, b.z - a.z),
+        ),
+      );
+    }
+  };
+  // Each box reaches STREAM_JOINT past its ends, so the stretches stop that far short of the gap.
+  stretch(0, arcAt(bridgeX - BRIDGE_GAP_HALF - STREAM_JOINT));
+  stretch(arcAt(bridgeX + BRIDGE_GAP_HALF + STREAM_JOINT), stream.length);
+  return out;
+}
 
 /** Where everything stands. Same answer every call. */
 export function natureTrailLayout(): TrailLayout {
@@ -514,6 +580,25 @@ export function natureTrailLayout(): TrailLayout {
     bird,
     openSpots,
     blockers,
+    colliders: [
+      ...treeColliders(trees),
+      ...rocks.map((r) =>
+        boxCollider(
+          r.x,
+          r.z,
+          ROCK_SIZE[r.kind][0] * r.scale * 0.5 * ROCK_FOOTPRINT,
+          ROCK_SIZE[r.kind][2] * r.scale * 0.5 * ROCK_FOOTPRINT,
+          r.yaw,
+        ),
+      ),
+      ...stumps.map((s) => circleCollider(s.x, s.z, STUMP_COLLIDER_RADIUS * (s.scale ?? 1))),
+      boxCollider(tent.x, tent.z, TENT_HALF.hw, TENT_HALF.hd, tent.yaw),
+      circleCollider(fire.x, fire.z, CAMPFIRE_COLLIDER_RADIUS),
+      boxCollider(firewood.x, firewood.z, FIREWOOD_HALF.hw, FIREWOOD_HALF.hd, firewood.yaw),
+      ...seats.map((s) => boxCollider(s.x, s.z, SEAT_HALF.hw, SEAT_HALF.hd, s.yaw)),
+      circleCollider(backSign.x, backSign.z, SIGN_COLLIDER_RADIUS),
+      ...streamColliders(stream, bridge.x),
+    ],
   };
 }
 
@@ -607,11 +692,6 @@ function birdGeometry(): THREE.BufferGeometry {
   ]);
 }
 
-const ROCK_SIZE: Record<RockKind, readonly [number, number, number]> = {
-  large: [2.16, 0.72, 2.8],
-  tall: [2.37, 2.4, 1.65],
-  small: [1.1, 0.58, 1.1],
-};
 const ROCK_MODEL: Record<RockKind, string> = { large: 'rock.large', tall: 'rock.tall', small: 'rock.small' };
 
 /** Every rock as one instanced, squashed or stretched dodecahedron. One draw call. */
@@ -850,7 +930,7 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
   if (layout.stumps.length > 0) root.add(primitiveStumps);
 
   // Plants gather at the edges of the path, the stream and the props, and keep off the spawn, the
-  // open spots and the animals. Decoration only: nothing blocks the player.
+  // open spots and the animals. Decoration only: the player walks through them.
   const avoid: AvoidCircle[] = [{ x: layout.spawn.x, z: layout.spawn.z, radius: 2.5 }];
   for (let s = 0; s <= layout.path.length; s += 1) {
     const p = layout.path.pointAt(s);
@@ -1084,6 +1164,7 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
     bounds: squareBounds(NATURE_TRAIL_HALF),
     spawn: new THREE.Vector3(layout.spawn.x, 0, layout.spawn.z),
     interactables: [back],
+    colliders: layout.colliders,
     openSpots: layout.openSpots.map((p) => new THREE.Vector3(p.x, 0, p.z)),
     landmarks: {
       trailhead: new THREE.Vector3(layout.landmarks.trailhead.x, 0, layout.landmarks.trailhead.z),

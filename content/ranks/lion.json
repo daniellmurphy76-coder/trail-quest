@@ -143,23 +143,25 @@
               "One point is friendly. A friendly Scout is kind to all.",
               "Say hi. Share. Ask a kid to play."
             ],
-            "poster": {
-              "title": "Scout Law: A Scout is",
-              "lines": [
-                "Trustworthy",
-                "Loyal",
-                "Helpful",
-                "Friendly",
-                "Courteous",
-                "Kind",
-                "Obedient",
-                "Cheerful",
-                "Thrifty",
-                "Brave",
-                "Clean",
-                "Reverent"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Law: A Scout is",
+                "lines": [
+                  "Trustworthy",
+                  "Loyal",
+                  "Helpful",
+                  "Friendly",
+                  "Courteous",
+                  "Kind",
+                  "Obedient",
+                  "Cheerful",
+                  "Thrifty",
+                  "Brave",
+                  "Clean",
+                  "Reverent"
+                ]
+              }
+            ]
           }
         },
         {
@@ -215,12 +217,14 @@
               "You do not have to win.",
               "Trying hard is what counts!"
             ],
-            "poster": {
-              "title": "Cub Scout Motto",
-              "lines": [
-                "Do Your Best"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Cub Scout Motto",
+                "lines": [
+                  "Do Your Best"
+                ]
+              }
+            ]
           }
         },
         {

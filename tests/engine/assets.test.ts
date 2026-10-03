@@ -26,7 +26,6 @@ const FAMILIES = [
   'signpost',
   'building',
   'street',
-  'character',
   'animal',
   'pickup',
 ];
@@ -43,7 +42,6 @@ const REQUIRED = [
   'building.school',
   'building.firestation',
   'building.store',
-  'character.denchief',
   'animal.bird',
   'animal.squirrel',
   'animal.rabbit',
@@ -94,7 +92,6 @@ describe('asset manifest', () => {
         `a ${prefix}* model`,
       ).toBe(true);
     }
-    expect(ids.filter((id) => id.startsWith('character.scout.')).length).toBeGreaterThanOrEqual(2);
   });
 
   it('keeps every file inside its budget and the total under 12 MB', () => {
@@ -127,12 +124,11 @@ describe('asset manifest', () => {
     }
   });
 
-  it('gives every character idle and walk clips', () => {
-    for (const [id, entry] of entries) {
-      if (!id.startsWith('character.')) continue;
-      expect(entry.animations?.idle, `${id} idle`).toBeTruthy();
-      expect(entry.animations?.walk, `${id} walk`).toBeTruthy();
-    }
+  it('ships no character models: the player and the Den Chief are built in code', () => {
+    expect(entries.filter(([id]) => id.startsWith('character.')).map(([id]) => id)).toEqual([]);
+    expect(fs.readdirSync(path.join(publicDir, 'assets', 'models', 'kenney-mini-characters'))).toEqual([
+      'aid-sunglasses.glb',
+    ]);
   });
 
   it('lists every pack in CREDITS.md', () => {

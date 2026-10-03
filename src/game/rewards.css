@@ -1,0 +1,115 @@
+/*
+ * Rewards: the unlock card, locked avatar tiles, the title and unlock lines on the summary, and
+ * the confetti canvas. Uses the overlay tokens from src/ui/ui.css. Type stays at 1em (20px on a
+ * laptop, 22px on iPad); status is always a mark and a word, never color alone.
+ */
+
+/* ---------- Unlock card ---------- */
+
+.tq-unlock-card {
+  max-width: 480px;
+  align-items: center;
+  text-align: center;
+}
+
+.tq-unlock__emblem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  font-size: 3.2em;
+  line-height: 1;
+  color: var(--tq-ink);
+  background: var(--tq-accent);
+  border: 4px solid var(--tq-ink);
+  border-radius: 50%;
+  animation: tq-pop 420ms ease-out;
+}
+
+.tq-unlock__name {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+/* ---------- Locked avatar tiles ---------- */
+
+/* A locked tile is wide enough for its "how to earn it" line. */
+.tq-opt--locked {
+  grid-column: span 2;
+  cursor: default;
+  background: var(--tq-surface-2);
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.tq-opt--locked:active {
+  transform: none;
+}
+
+.tq-opt--locked .tq-opt__face {
+  opacity: 0.55;
+}
+
+.tq-opt__lock {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.tq-opt__earn {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Summary: title and unlocks ---------- */
+
+.tq-summary__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.tq-summary__newtitle {
+  margin: 0;
+  padding: 8px 14px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--tq-accent) 22%, var(--tq-surface));
+  border: 3px solid var(--tq-ink);
+  border-radius: 12px;
+}
+
+.tq-summary__unlocks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+}
+
+.tq-summary__unlocks .tq-icon {
+  margin-right: 8px;
+}
+
+/* ---------- Confetti ---------- */
+
+/* #ui > * turns pointer events back on, so the canvas also sets pointer-events: none inline. */
+.tq-confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-unlock__emblem {
+    animation: none;
+  }
+}

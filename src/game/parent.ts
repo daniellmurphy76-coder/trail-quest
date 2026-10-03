@@ -74,19 +74,8 @@ export function approveAndAward(
   return { profile: awarded, newBadges };
 }
 
-/** Start the Scout over: name, rank, guide and settings stay; XP, streak, progress and badges go. */
-export function resetProfileProgress(profile: Profile): Profile {
-  return {
-    ...profile,
-    xp: 0,
-    streak: { current: 0, best: 0, embers: 0 },
-    requirements: {},
-    adventures: {},
-    review: {},
-    sessions: [],
-    unlocks: [],
-  };
-}
+/** Start the Scout over (see `resetProgress` in the save store): name, rank, look and settings stay. */
+export { resetProgress as resetProfileProgress } from '../save/store';
 
 /** How many of an adventure's requirements are done, for the parent's list. */
 export function adventureProgress(adventure: Adventure, profile: Profile): { done: number; total: number } {

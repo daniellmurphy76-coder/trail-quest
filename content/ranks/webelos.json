@@ -66,17 +66,19 @@
               "Say it with your den, hand up in the Cub Scout sign.",
               "Now put the lines in order. Tap Show me if you forget."
             ],
-            "poster": {
-              "title": "Scout Oath",
-              "lines": [
-                "On my honor I will do my best",
-                "to do my duty to God and my country",
-                "and to obey the Scout Law;",
-                "to help other people at all times;",
-                "to keep myself physically strong,",
-                "mentally awake, and morally straight."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Oath",
+                "lines": [
+                  "On my honor I will do my best",
+                  "to do my duty to God and my country",
+                  "and to obey the Scout Law;",
+                  "to help other people at all times;",
+                  "to keep myself physically strong,",
+                  "mentally awake, and morally straight."
+                ]
+              }
+            ]
           },
           "notes": "Part of official requirement 2 (recite the Oath and Law with the den and den leader, and talk about the three points of the Oath). Split into 2a Oath, 2b Law, 2c the three points. Steps are the Oath split at its natural pauses."
         },
@@ -104,23 +106,25 @@
               "Each point tells how a Scout acts. Learn them in four groups of three.",
               "Now put the four groups in order. Tap Show me if you forget."
             ],
-            "poster": {
-              "title": "Scout Law: A Scout is",
-              "lines": [
-                "Trustworthy",
-                "Loyal",
-                "Helpful",
-                "Friendly",
-                "Courteous",
-                "Kind",
-                "Obedient",
-                "Cheerful",
-                "Thrifty",
-                "Brave",
-                "Clean",
-                "Reverent"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Law: A Scout is",
+                "lines": [
+                  "Trustworthy",
+                  "Loyal",
+                  "Helpful",
+                  "Friendly",
+                  "Courteous",
+                  "Kind",
+                  "Obedient",
+                  "Cheerful",
+                  "Thrifty",
+                  "Brave",
+                  "Clean",
+                  "Reverent"
+                ]
+              }
+            ]
           },
           "notes": "Part of official requirement 2. The twelve points are grouped in threes so the order is easy to rehearse."
         },
@@ -189,17 +193,19 @@
               "Morally straight means you are honest and have strong character.",
               "Now sort each action under the right part."
             ],
-            "poster": {
-              "title": "Scout Oath",
-              "lines": [
-                "On my honor I will do my best",
-                "to do my duty to God and my country",
-                "and to obey the Scout Law;",
-                "to help other people at all times;",
-                "to keep myself physically strong,",
-                "mentally awake, and morally straight."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Oath",
+                "lines": [
+                  "On my honor I will do my best",
+                  "to do my duty to God and my country",
+                  "and to obey the Scout Law;",
+                  "to help other people at all times;",
+                  "to keep myself physically strong,",
+                  "mentally awake, and morally straight."
+                ]
+              }
+            ]
           },
           "notes": "Part of official requirement 2. The three duties follow the official activity: duty to God and country, to other people, and to self."
         },
@@ -254,23 +260,25 @@
               "Brave means doing what is right, even when you feel afraid.",
               "There are 12 points in all. Today you will use three of them."
             ],
-            "poster": {
-              "title": "Scout Law: A Scout is",
-              "lines": [
-                "Trustworthy",
-                "Loyal",
-                "Helpful",
-                "Friendly",
-                "Courteous",
-                "Kind",
-                "Obedient",
-                "Cheerful",
-                "Thrifty",
-                "Brave",
-                "Clean",
-                "Reverent"
-              ]
-            }
+            "posters": [
+              {
+                "title": "Scout Law: A Scout is",
+                "lines": [
+                  "Trustworthy",
+                  "Loyal",
+                  "Helpful",
+                  "Friendly",
+                  "Courteous",
+                  "Kind",
+                  "Obedient",
+                  "Cheerful",
+                  "Thrifty",
+                  "Brave",
+                  "Clean",
+                  "Reverent"
+                ]
+              }
+            ]
           },
           "notes": "Official requirement 3. The quiz samples three of the 12 points; implementers may add more questions later."
         },
@@ -1171,24 +1179,30 @@
               "The Outdoor Code is a Scout promise about the outdoors.",
               "Now sort each trail habit: does it follow Leave No Trace?"
             ],
-            "poster": {
-              "title": "Outdoor Code and Leave No Trace",
-              "lines": [
-                "The Outdoor Code. I will do my best to:",
-                "be clean and take my trash home;",
-                "be careful with fire;",
-                "be kind to people outside;",
-                "take care of nature.",
-                "Leave No Trace for Kids:",
-                "Know before you go. Learn about the place first.",
-                "Choose the right path. Stay on the trail.",
-                "Trash your trash. Take your trash home.",
-                "Leave what you find. Rocks and flowers stay.",
-                "Be careful with fire. Never leave it alone.",
-                "Respect wildlife. Watch animals from far away.",
-                "Be kind to other people. Share the trail."
-              ]
-            }
+            "posters": [
+              {
+                "title": "Outdoor Code",
+                "lines": [
+                  "The Outdoor Code. I will do my best to:",
+                  "be clean and take my trash home;",
+                  "be careful with fire;",
+                  "be kind to people outside;",
+                  "take care of nature."
+                ]
+              },
+              {
+                "title": "Leave No Trace for Kids",
+                "lines": [
+                  "Know before you go. Learn about the place first.",
+                  "Choose the right path. Stay on the trail.",
+                  "Trash your trash. Take your trash home.",
+                  "Leave what you find. Rocks and flowers stay.",
+                  "Be careful with fire. Never leave it alone.",
+                  "Respect wildlife. Watch animals from far away.",
+                  "Be kind to other people. Share the trail."
+                ]
+              }
+            ]
           },
           "notes": "Learning half of official requirement 6; 6b is the walk itself. Official reference sheet: Outdoor Code and Leave No Trace Principles for Kids."
         },

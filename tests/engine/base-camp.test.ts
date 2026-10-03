@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { createBaseCamp } from '../../src/world/base-camp';
+import { isClear, PLAYER_RADIUS } from '../../src/world/collide';
 import { personPlaceholder } from '../../src/world/props';
 import { findInteractableInRange } from '../../src/world/zone';
 
@@ -61,6 +62,18 @@ describe('Base Camp zone', () => {
       const p = new THREE.Vector3().setFromMatrixPosition(m);
       expect(Math.max(Math.abs(p.x), Math.abs(p.z))).toBeGreaterThan(25);
     }
+  });
+
+  it('blocks the player at the trees, rocks, fire, flagpole and cabin, but never at the spawn or the Den Chief', () => {
+    const colliders = zone.colliders!;
+    expect(colliders.length).toBeGreaterThanOrEqual(40);
+    expect(isClear(zone.spawn.x, zone.spawn.z, PLAYER_RADIUS, colliders)).toBe(true);
+    const chief = zone.interactables[0]!;
+    expect(isClear(chief.position.x, chief.position.z, PLAYER_RADIUS, colliders)).toBe(true);
+    expect(isClear(0, 0, PLAYER_RADIUS, colliders)).toBe(false); // the fire
+    expect(isClear(-8, -8, PLAYER_RADIUS, colliders)).toBe(false); // the flagpole
+    expect(isClear(-17, -12, PLAYER_RADIUS, colliders)).toBe(false); // the cabin
+    expect(isClear(10, 7, PLAYER_RADIUS, colliders)).toBe(false); // a rock
   });
 
   it('stays well inside the draw-call budget with the player in it (limit 40)', () => {

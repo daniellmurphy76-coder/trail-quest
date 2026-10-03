@@ -14,7 +14,7 @@ import type { Object3D } from 'three';
 import { getActivity, IMPLEMENTED_TYPES } from '../activities/registry';
 import { assets } from '../engine/assets';
 import type { ActivityContext, RankId, ZoneId } from '../activities/types';
-import { getRequirement, listRankContent, loadRankContent } from '../content/load';
+import { getRequirement, lessonPosters, listRankContent, loadRankContent } from '../content/load';
 import type { RankContent } from '../content/types';
 import { todayLocal } from '../quests/dates';
 import {
@@ -32,9 +32,12 @@ import { showDialog } from '../ui/dialog';
 import { askNewPin, askPin } from '../ui/pinpad';
 import { showPoster } from '../ui/poster';
 import { showToast } from '../ui/toast';
+import { installEffects } from './effects';
+import { events } from './events';
 import { GREETING_DELAY_MS, shouldAutoGreet } from './guided-start';
 import { line, lineLevelOf, PARENT_TEXT, RANK_FALLBACK_LABELS, type LineLevel, type LineVars } from './lines';
 import { overlayCount, watchOverlays } from './overlays';
+import { cosmeticById, evaluateUnlocks, UNLOCK_LINE_BY_GROUP, withCosmetics, wornButUnearned } from './rewards';
 import { createSession, type Session } from './session';
 import { activeStreak } from './streak';
 import { showApprovalScreen } from './screens/approval';
@@ -43,8 +46,8 @@ import { showBadgeCard } from './screens/badge';
 import { ControlsHintGate, controlsMode, createControlsHint } from './screens/controls-hint';
 import { createDock } from './screens/dock';
 import { createHud, trailProgress } from './screens/hud';
-import { posterOf } from './screens/lesson';
 import { showParentMode } from './screens/parent';
+import { applySoundSetting, initSound } from './sound-bindings';
 import { showProfilePicker } from './screens/profile-picker';
 import { showProfileSetup } from './screens/profile-setup';
 import { showScoutBook } from './screens/scout-book';
@@ -52,6 +55,7 @@ import { createStartButton, startLabel, startMode, startVisible } from './screen
 import { showSummary } from './screens/summary';
 import { showTrailPanel } from './screens/trail-panel';
 import { showTrailSign } from './screens/trail-sign';
+import { showUnlockCard } from './screens/unlock';
 import { createWorld, type World } from './world';
 import { createWorldHost, type WorldHost } from './world-host';
 
@@ -111,6 +115,8 @@ export function startApp(options: AppOptions = {}): App {
   const today = (): string => todayOverride ?? todayLocal();
 
   const world = createWorld(canvas, ui);
+  // Confetti on a badge, a finished trail and a new cosmetic. It listens to the event bus only.
+  installEffects(ui, events);
 
   let activeId: string | undefined;
   let session: Session | null = null;
@@ -138,9 +144,27 @@ export function startApp(options: AppOptions = {}): App {
 
   // ---- HUD ----------------------------------------------------------------------------------
 
-  const hud = createHud(ui, () => {
-    openTrailPanel().catch(reportProblem);
+  // ---- sound: effects only, remembered per Scout -----------------------------------------------
+  const sound = initSound({
+    isEnabled: () => applySoundSetting(getProfile()),
+    currentZone: () => world.currentZoneId(),
+    onToggle(on) {
+      const profile = getProfile();
+      if (profile) {
+        profile.sound = on;
+        writeSave();
+      }
+      refreshHud();
+    },
   });
+
+  const hud = createHud(
+    ui,
+    () => {
+      openTrailPanel().catch(reportProblem);
+    },
+    { onToggleSound: () => sound.toggle() },
+  );
 
   function refreshHud(): void {
     const profile = getProfile();
@@ -152,6 +176,7 @@ export function startApp(options: AppOptions = {}): App {
             xp: profile.xp,
             streak: activeStreak(profile.streak, today()),
             progress: session ? trailProgress(session.view()) : null,
+            soundEnabled: applySoundSetting(profile),
           }
         : null,
     );
@@ -302,6 +327,7 @@ export function startApp(options: AppOptions = {}): App {
       showToast(ui, line('travelBusy', activeLevel), 3000);
       return;
     }
+    events.emit({ type: 'travel', zone: 'base-camp' });
     void goHome();
   });
 
@@ -328,7 +354,13 @@ export function startApp(options: AppOptions = {}): App {
       now: () => Date.now(),
       wait: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 
-      showDialog: ({ text, choices }) => showDialog(ui, { speaker: need().guideName, text, choices }),
+      // Every Den Chief page tells the event bus it opened and moved on (for the sound layer).
+      async showDialog({ text, choices }) {
+        events.emit({ type: 'dialog-open' });
+        const picked = await showDialog(ui, { speaker: need().guideName, text, choices });
+        events.emit({ type: 'dialog-advance' });
+        return picked;
+      },
       showPoster: ({ title, lines, hint }) => showPoster(ui, { title, lines, hint }),
       async runActivity(stop, stage) {
         const profile = need();
@@ -338,8 +370,9 @@ export function startApp(options: AppOptions = {}): App {
         const zone = spec.type === 'collect' || spec.type === 'navigate' ? spec.params.zone : stop.zone;
         await travel(zone);
         const host = getWorldHost();
-        // A lesson with a poster (the whole Scout Oath) lets the activity offer a "Show me" peek.
-        const poster = posterOf(getRequirement(content, stop.requirementId)?.requirement.lesson);
+        // A lesson with posters (the Scout Oath, then the Scout Law) lets the activity offer a "Show me"
+        // peek: `posters` has every one in order, `poster` is the first for activities that know only one.
+        const posters = lessonPosters(getRequirement(content, stop.requirementId)?.requirement);
         const ctx: ActivityContext = {
           profileId: profile.id,
           rank: profile.rank,
@@ -347,7 +380,7 @@ export function startApp(options: AppOptions = {}): App {
           speak: noSpeak,
           world: host,
           stage,
-          ...(poster ? { poster } : {}),
+          ...(posters.length > 0 ? { poster: posters[0], posters } : {}),
         };
         try {
           return await getActivity(spec.type).run(ui, spec.params, ctx);
@@ -363,6 +396,12 @@ export function startApp(options: AppOptions = {}): App {
       setPin: (pin) => storePin(pin),
       showBadge: ({ adventureName }) => showBadgeCard(ui, { adventureName, level, vars: lineVars() }),
       showSummary: (info) => showSummary(ui, { info, level, vars: lineVars() }),
+      showUnlock: (info) => showUnlockCard(ui, { info, level, vars: lineVars() }),
+      showToast: (text) => {
+        showToast(ui, text, 3500);
+      },
+      // A cheer from the Scout's avatar when a stop is done (the session never touches the world).
+      celebrate: () => world.player.celebrate(),
       // The ZONE-TRAVEL HOOK (see session.ts): the trail sign has been shown, now really walk there.
       travelToZone: (zone) => travel(zone),
     });
@@ -395,8 +434,11 @@ export function startApp(options: AppOptions = {}): App {
     writeSave();
     session = buildSession(content);
     activeLevel = lineLevelOf(content.readingLevel);
-    world.setGuideName(profile.guideName);
-    world.setPlayerAvatar(profile.avatar, profile.rank);
+    events.emit({ type: 'profile-active', profileId: profile.id });
+    grantEarned(content);
+    const current = getProfile() ?? profile;
+    world.setGuideName(current.guideName);
+    world.setPlayerAvatar(current.avatar, current.rank);
     world.setDenChiefHandler(() => talkToGuide());
     if (arrive) {
       hintGate = new ControlsHintGate();
@@ -405,6 +447,31 @@ export function startApp(options: AppOptions = {}): App {
     }
     refreshBaseCamp();
     return true;
+  }
+
+  /**
+   * Catch the active Scout up on rewards when they sit down: cosmetics they earned while the game
+   * was closed (or in Parent mode, where a parent approves a mission) are saved and announced with a
+   * toast. A look made before rewards existed keeps what it wears: those options are marked earned
+   * quietly, never taken away.
+   */
+  function grantEarned(content: RankContent): void {
+    const profile = getProfile();
+    if (!profile) return;
+    const fresh = evaluateUnlocks(profile, content);
+    const earned = withCosmetics(profile, fresh);
+    const next = withCosmetics(earned, wornButUnearned(earned));
+    if (next !== profile) {
+      const index = save.profiles.findIndex((p) => p.id === profile.id);
+      if (index >= 0) save.profiles[index] = next;
+      writeSave();
+    }
+    if (fresh.length === 0) return;
+    for (const id of fresh) events.emit({ type: 'cosmetic-unlocked', id });
+    const first = cosmeticById(fresh[0]!);
+    if (!first) return;
+    const key = fresh.length === 1 ? UNLOCK_LINE_BY_GROUP[first.group] : 'unlockMany';
+    showToast(ui, line(key, activeLevel, { ...lineVars(), unlock: first.label }), 5000);
   }
 
   function deactivate(): void {
@@ -472,7 +539,7 @@ export function startApp(options: AppOptions = {}): App {
       rankLabel,
       startProfileId: activeId,
     });
-    return result.imported;
+    return result.imported || result.removedActiveProfile;
   }
 
   // ---- choosing who plays -------------------------------------------------------------------
@@ -533,7 +600,12 @@ export function startApp(options: AppOptions = {}): App {
         start: mode === 'hidden' ? undefined : { label: startLabel(mode, level) },
         places: { current: world.currentZoneId() },
         onEditAvatar: async () => {
-          const next = await showAvatarEditor(ui, { initial: profile.avatar, rank: profile.rank });
+          const next = await showAvatarEditor(ui, {
+            initial: profile.avatar,
+            rank: profile.rank,
+            unlocks: profile.unlocks,
+            level,
+          });
           if (!next) return;
           profile.avatar = next;
           writeSave();
@@ -542,6 +614,7 @@ export function startApp(options: AppOptions = {}): App {
         onScoutBook: () => showScoutBook(ui, { rank: profile.rank, level }),
       });
       if (typeof choice === 'object') {
+        events.emit({ type: 'travel', zone: choice.travel });
         await travel(choice.travel); // a free-roam hop from the Places section
       } else if (choice === 'start') {
         // The Den Chief lives at Base Camp: walk home first when the Scout is somewhere else.

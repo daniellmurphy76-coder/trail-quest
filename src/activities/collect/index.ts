@@ -1,7 +1,8 @@
 import { h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { button } from '../../ui/widgets';
-import { feedbackSlot } from '../shared';
+import { events } from '../../game/events';
+import { emitComplete, feedbackSlot } from '../shared';
 import type {
   ActivityContext,
   ActivityController,
@@ -185,6 +186,7 @@ function playCollect(host: HTMLElement, params: CollectParams, world: WorldActiv
     function onFound(pickup: Pickup): void {
       if (finished || pickup.reached) return;
       pickup.reached = true;
+      events.emit({ type: 'pickup' });
       foundTotal += 1;
       const target = targets.find((t) => t.id === pickup.targetId)!;
       found.set(target.id, (found.get(target.id) ?? 0) + 1);
@@ -214,6 +216,7 @@ function playCollect(host: HTMLElement, params: CollectParams, world: WorldActiv
       clearInterval(timer);
       panel.close();
       world.clear();
+      if (completed) emitComplete('collect');
       resolve(completed ? { completed: true, attempts: total, score: 1 } : { completed: false, attempts: foundTotal });
     }
   });

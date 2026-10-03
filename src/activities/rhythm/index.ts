@@ -1,7 +1,7 @@
 import { h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
 import { button } from '../../ui/widgets';
-import { cardHeader, feedbackSlot } from '../shared';
+import { cardHeader, emitComplete, emitTap, feedbackSlot } from '../shared';
 import type { ActivityController, ActivityResult, RhythmParams } from '../types';
 import {
   COUNT_IN_BEATS,
@@ -116,6 +116,7 @@ function runRhythm(host: HTMLElement, params: RhythmParams): Promise<ActivityRes
       finished = true;
       ticker.stop();
       overlay.close();
+      if (completed) emitComplete('rhythm');
       resolve(
         completed ? { completed: true, attempts: taps, score: onBeatTaps / reps } : { completed: false, attempts: taps },
       );
@@ -226,6 +227,7 @@ function runRhythm(host: HTMLElement, params: RhythmParams): Promise<ActivityRes
     }
 
     function record(now: number): void {
+      emitTap(); // a rep: a tap that is only waiting out the count-in makes no sound
       const verdict = judgeTap(now, startTime, bpm);
       taps += 1;
       if (verdict.onBeat) onBeatTaps += 1;
@@ -238,6 +240,7 @@ function runRhythm(host: HTMLElement, params: RhythmParams): Promise<ActivityRes
     }
 
     function begin(now: number): void {
+      emitTap();
       startTime = now + COUNT_IN_BEATS * interval;
       setPhase('countin');
       live.textContent = 'Get ready.';

@@ -1,0 +1,239 @@
+/*
+ * Printable progress sheet (see progress-sheet.ts). On screen it is a plain white preview that sits
+ * over Parent mode; when printing, everything else is hidden and the sheet is black on white with
+ * one adventure per page. No colour carries meaning: status is always written as a word.
+ */
+
+/* ---------- Screen preview ---------- */
+
+.tq-print-sheet.tq-overlay {
+  z-index: 20; /* over Parent mode (10) */
+  align-items: center;
+  background: #fff;
+  color: #000;
+  font-size: 18px;
+}
+
+.tq-print-sheet > * {
+  width: 100%;
+  max-width: 860px;
+}
+
+.tq-print-sheet__bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+  padding: 8px 0 12px;
+  background: #fff;
+  border-bottom: 3px solid #000;
+}
+
+.tq-print-sheet__bar p {
+  margin: 0;
+  flex: 1 1 14em;
+}
+
+.tq-print-sheet h1 {
+  margin: 0 0 8px;
+  font-size: 1.5em;
+  line-height: 1.2;
+}
+
+.tq-print-sheet h2 {
+  margin: 0;
+  font-size: 1.25em;
+  line-height: 1.2;
+}
+
+.tq-print-sheet p {
+  margin: 0;
+}
+
+.tq-print-sheet__who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  margin: 0 0 8px;
+}
+
+.tq-print-sheet__who dt,
+.tq-print-sheet__who dd {
+  display: inline;
+  margin: 0;
+}
+
+.tq-print-sheet__who dt {
+  font-weight: 700;
+}
+
+.tq-print-sheet__who dt::after {
+  content: ": ";
+}
+
+.tq-print-sheet__affiliation,
+.tq-print-sheet__sub,
+.tq-print-sheet__note {
+  margin-bottom: 8px;
+}
+
+.tq-print-sheet__adventure {
+  margin-top: 24px;
+}
+
+.tq-print-sheet__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-top: 8px;
+}
+
+.tq-print-sheet__table th,
+.tq-print-sheet__table td {
+  padding: 6px 8px;
+  border: 1px solid #000;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.tq-print-sheet__table th:nth-child(1),
+.tq-print-sheet__table td:nth-child(1) {
+  width: 3.5em;
+  font-weight: 700;
+}
+
+.tq-print-sheet__table th:nth-child(3),
+.tq-print-sheet__table td:nth-child(3) {
+  width: 9.5em;
+}
+
+.tq-print-sheet__table th:nth-child(4),
+.tq-print-sheet__table td:nth-child(4) {
+  width: 5.5em;
+  text-align: center;
+}
+
+.tq-print-sheet__status {
+  font-weight: 700;
+}
+
+.tq-print-sheet__date {
+  font-weight: 400;
+}
+
+/* An empty square for the den leader to tick. A real border, so it prints without "background graphics". */
+.tq-print-sheet__box {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #000;
+  vertical-align: middle;
+}
+
+.tq-print-sheet__footer {
+  margin-top: 24px;
+  padding-top: 8px;
+  border-top: 2px solid #000;
+}
+
+/* ---------- Printing ---------- */
+
+@media print {
+  @page {
+    margin: 0.6in;
+  }
+
+  /* The canvas and anything else outside the UI layer. */
+  body > *:not(#ui) {
+    display: none !important;
+  }
+
+  /* Everything in the UI layer except the sheet. */
+  #ui > *:not(.tq-print-sheet) {
+    display: none !important;
+  }
+
+  /* The game page is a fixed, non-scrolling stage; a printed page must flow. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  #ui {
+    position: static !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+  }
+
+  #ui > .tq-print-sheet,
+  .tq-print-sheet.tq-overlay {
+    position: static !important;
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-family: system-ui, sans-serif;
+    font-size: 11pt;
+    line-height: 1.35;
+  }
+
+  .tq-print-sheet > * {
+    max-width: none;
+  }
+
+  .tq-print-sheet__bar {
+    display: none !important;
+  }
+
+  .tq-print-sheet h1 {
+    font-size: 18pt;
+  }
+
+  .tq-print-sheet h2 {
+    font-size: 14pt;
+  }
+
+  /* One adventure per page. */
+  .tq-print-sheet__adventure {
+    margin-top: 16pt;
+  }
+
+  .tq-print-sheet__adventure + .tq-print-sheet__adventure {
+    margin-top: 0;
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .tq-print-sheet__table {
+    margin-top: 6pt;
+  }
+
+  .tq-print-sheet__table thead {
+    display: table-header-group;
+  }
+
+  .tq-print-sheet__table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .tq-print-sheet__box {
+    width: 16pt;
+    height: 16pt;
+    border-width: 1.5pt;
+  }
+
+  .tq-print-sheet__footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

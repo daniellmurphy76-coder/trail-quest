@@ -2,7 +2,7 @@ import { h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
 import { button, srOnly } from '../../ui/widgets';
-import { cardHeader, feedbackSlot, peekButton } from '../shared';
+import { cardHeader, emitAnswer, emitComplete, emitTap, feedbackSlot, peekButton, postersOf } from '../shared';
 import type { ActivityContext, ActivityController, ActivityResult, SequenceParams } from '../types';
 import { shuffleSteps } from './shuffle';
 
@@ -16,7 +16,7 @@ interface Tile {
  * Steps appear shuffled as big tap tiles. Tapping the right next step moves it into the numbered
  * "Your order" lane; a wrong one shakes and stays. No fail: tap again as often as you like.
  * Completes when every step is placed. score = 1 - wrongTaps / steps, clamped to 0..1.
- * When the context carries a poster, a "Show me" button peeks at it without touching the score.
+ * When the context carries posters, a "Show me" button peeks at them without touching the score.
  */
 function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityContext): Promise<ActivityResult> {
   const steps = params.steps;
@@ -36,6 +36,7 @@ function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityCon
       if (finished) return;
       finished = true;
       overlay.close();
+      if (completed) emitComplete('sequence');
       resolve(
         completed
           ? { completed, attempts, score: Math.min(1, Math.max(0, 1 - wrongTaps / steps.length)) }
@@ -71,7 +72,9 @@ function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityCon
     function tap(tile: Tile): void {
       if (finished || placed >= steps.length) return;
       attempts += 1;
+      emitTap();
       if (tile.text === steps[placed]) {
+        emitAnswer(true);
         const target = laneSlots[placed]!;
         target.li.classList.add('is-filled');
         target.label.replaceChildren(tile.text);
@@ -90,6 +93,7 @@ function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityCon
           overlay.focus(tiles[Math.min(at, tiles.length - 1)]?.btn);
         }
       } else {
+        emitAnswer(false);
         wrongTaps += 1;
         shake(tile.btn);
         showResultBanner(slot, 'notyet', 'Try a different step.', { autoHideMs: 1600 });
@@ -98,7 +102,7 @@ function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityCon
 
     overlay.card.append(
       cardHeader('Put the steps in order', () => finish(false)),
-      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt), peekButton(host, ctx.poster)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt), peekButton(host, postersOf(ctx))),
       h('p', { class: 'tq-hint' }, 'Tap the step that comes next.'),
       tileList,
       slot,

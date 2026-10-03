@@ -3,7 +3,7 @@ import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
 import { button, srOnly } from '../../ui/widgets';
 import { shuffleSteps } from '../sequence/shuffle';
-import { cardHeader, feedbackSlot } from '../shared';
+import { cardHeader, emitAnswer, emitComplete, emitTap, feedbackSlot } from '../shared';
 import type { ActivityController, ActivityResult, SortParams } from '../types';
 import './sort.css';
 
@@ -77,6 +77,7 @@ function runSort(host: HTMLElement, params: SortParams): Promise<ActivityResult>
       if (finished) return;
       finished = true;
       overlay.close();
+      if (completed) emitComplete('sort');
       resolve(
         completed
           ? { completed, attempts, score: Math.min(1, Math.max(0, 1 - wrongPlacements / items.length)) }
@@ -156,6 +157,7 @@ function runSort(host: HTMLElement, params: SortParams): Promise<ActivityResult>
         return;
       }
       if (finished || !pool.includes(chip)) return;
+      emitTap();
       if (selected === chip) {
         select(null);
         return;
@@ -172,7 +174,9 @@ function runSort(host: HTMLElement, params: SortParams): Promise<ActivityResult>
         return;
       }
       attempts += 1;
+      emitTap();
       if (chip.item.bin !== bin.id) {
+        emitAnswer(false);
         wrongPlacements += 1;
         select(chip); // stays picked: tap another bin right away
         shake(chip.btn);
@@ -181,6 +185,7 @@ function runSort(host: HTMLElement, params: SortParams): Promise<ActivityResult>
       }
 
       // Right bin: the chip moves in as a checked, non-interactive entry.
+      emitAnswer(true);
       const at = pool.indexOf(chip);
       pool.splice(at, 1);
       chip.li.remove();

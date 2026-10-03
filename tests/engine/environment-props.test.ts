@@ -201,7 +201,7 @@ describe('scatterPlants', () => {
     expect(plants.children).toHaveLength(1);
     const tufts = tuftsOf(plants);
     expect(tufts.isInstancedMesh).toBe(true);
-    expect(tufts.count).toBe(120);
+    expect(tufts.count).toBe(72); // 120 asked for, 60 percent kept: the plant scatter was cut by 40 percent
     expect(tufts.castShadow).toBe(false);
     expect(tufts.receiveShadow).toBe(true);
     expect(drawCalls(plants)).toBe(1);
