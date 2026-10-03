@@ -60,7 +60,8 @@ The game is built around a 3 to 5 minute daily session, Duolingo-style, not open
 ```
 content/ranks/            one JSON file per rank (wolf.json, arrow-of-light.json)
 content/schema/           JSON Schema for rank files
-src/main.ts               entry point
+src/main.ts               entry point (thin; calls startApp)
+src/game/                 app boot, world wiring, Today's Trail session, Den Chief lines, screens, parent mode
 src/engine/               renderer, loop, input, assets, camera
 src/world/                zones, terrain, props
 src/player/               controller, animation

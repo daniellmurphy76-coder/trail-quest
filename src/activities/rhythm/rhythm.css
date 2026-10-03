@@ -1,0 +1,145 @@
+/*
+ * Rhythm activity. Uses the --tq-* tokens from ui.css. The card is split into two halves:
+ * the prompt, ring and counter on top, and one huge tap pad on the bottom. The pad's 120px
+ * minimum height is set in index.ts (PAD_MIN_HEIGHT_PX) so it holds even before this file loads.
+ * Every text size here is 1em or bigger so it stays at or above the 20px minimum.
+ */
+
+.tq-card.tq-rhythm {
+  min-height: min(100%, 620px);
+}
+
+.tq-rhythm__top {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tq-rhythm__exercise {
+  margin: 0;
+}
+
+.tq-rhythm__stage {
+  --tq-ring: clamp(96px, 18vh, 150px);
+  display: grid;
+  place-items: center;
+  min-height: calc(var(--tq-ring) * 1.3);
+}
+
+.tq-rhythm__ring {
+  display: grid;
+  place-items: center;
+  width: var(--tq-ring);
+  aspect-ratio: 1;
+  border: 10px solid var(--tq-primary);
+  border-radius: 50%;
+  background: var(--tq-surface-2);
+  color: var(--tq-ink);
+  font-size: 1.6em;
+  font-weight: 700;
+  line-height: 1;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* The accent halo is decoration only. The words on screen say what to do. */
+.tq-rhythm__ring.is-beat {
+  box-shadow: 0 0 0 8px var(--tq-accent);
+}
+
+.tq-rhythm__count {
+  margin: 0;
+  text-align: center;
+  font-size: 1.4em;
+  font-weight: 700;
+}
+
+.tq-rhythm__count-unit {
+  font-size: 1em;
+  font-weight: 400;
+}
+
+/* Reserve the room so the pad does not jump when the first banner appears. */
+.tq-rhythm .tq-rhythm__feedback {
+  min-height: 72px;
+}
+
+.tq-rhythm .tq-rhythm__feedback:empty {
+  display: block;
+}
+
+.tq-rhythm__result .tq-banner__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
+}
+
+.tq-rhythm__result .tq-banner__text {
+  margin: 0;
+}
+
+/* "Close!" is not a fail: a dashed border and a different icon set it apart from "On beat!". */
+.tq-rhythm__result--close {
+  border-style: dashed;
+}
+
+/* ---------- The tap pad: the whole lower half of the card ---------- */
+
+.tq-rhythm .tq-rhythm__pad {
+  flex: 1 1 0;
+  width: 100%;
+  text-align: center;
+}
+
+.tq-rhythm__pad-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.tq-rhythm__pad-label {
+  font-size: 1.6em;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.tq-rhythm__pad-hint {
+  font-weight: 400;
+}
+
+.tq-rhythm__pad.is-hit {
+  animation: tq-rhythm-hit 160ms ease-out;
+}
+
+@keyframes tq-rhythm-hit {
+  from {
+    transform: scale(0.97);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ---------- Done ---------- */
+
+.tq-rhythm__done {
+  flex: 1 1 0;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-rhythm__pad.is-hit {
+    animation: none;
+  }
+
+  .tq-rhythm__ring {
+    will-change: auto;
+  }
+}

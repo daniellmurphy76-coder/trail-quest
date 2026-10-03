@@ -15,7 +15,7 @@ import {
 } from '../content/load';
 import { ZONE_BY_CATEGORY, type Adventure, type RankContent, type Requirement } from '../content/types';
 import type { Profile, RequirementStatus, StopKind } from '../save/types';
-import type { TodaysTrail, TrailPlanner, TrailStop } from './types';
+import type { PlanOptions, TodaysTrail, TrailPlanner, TrailStop } from './types';
 
 /** How the UI should run a stop. 'approval' is the parent PIN screen, not an activity. */
 export type StopStage = NonNullable<ActivityContext['stage']> | 'approval';
@@ -35,6 +35,17 @@ function flatten(content: RankContent): Entry[] {
     }
   }
   return entries;
+}
+
+/**
+ * The learn activity the game can actually run: `learnActivityOf`, unless `options.implemented`
+ * is given and does not list its type. An unavailable learn activity counts as none at all.
+ */
+function availableLearnOf(requirement: Requirement, options: PlanOptions): ActivitySpec | undefined {
+  const learn = learnActivityOf(requirement);
+  if (!learn) return undefined;
+  if (options.implemented && !options.implemented.has(learn.type)) return undefined;
+  return learn;
 }
 
 function statusOf(profile: Profile, requirement: Requirement): RequirementStatus {
@@ -79,10 +90,10 @@ function incompleteRequired(profile: Profile, content: RankContent): Adventure[]
   );
 }
 
-function pickNewStep(profile: Profile, adventures: Adventure[]): TrailStop | undefined {
+function pickNewStep(profile: Profile, adventures: Adventure[], options: PlanOptions): TrailStop | undefined {
   for (const adventure of adventures) {
     for (const requirement of adventure.requirements) {
-      const learn = learnActivityOf(requirement);
+      const learn = availableLearnOf(requirement, options);
       if (!learn) continue;
       const progress = profile.requirements[requirement.id];
       if (progress?.learnedAt !== undefined || progress?.status === 'done') continue;
@@ -97,6 +108,7 @@ function pickFieldCheck(
   profile: Profile,
   content: RankContent,
   adventures: Adventure[],
+  options: PlanOptions,
 ): TrailStop | undefined {
   // A mission waiting on the parent comes first, wherever it is.
   const searchOrder = [
@@ -122,7 +134,7 @@ function pickFieldCheck(
   // Prefer missions the kid has already learned (or that have nothing to learn first).
   const ready = open.find(
     (requirement) =>
-      learnActivityOf(requirement) === undefined ||
+      availableLearnOf(requirement, options) === undefined ||
       profile.requirements[requirement.id]?.learnedAt !== undefined,
   );
   const pick = ready ?? open[0];
@@ -139,11 +151,12 @@ function pickReview(
   today: string,
   kind: 'warm-up' | 'bonus',
   exclude: ReadonlySet<string>,
+  options: PlanOptions,
 ): TrailStop | undefined {
   const entries = flatten(content);
   const byId = new Map(entries.map((entry) => [entry.requirement.id, entry]));
   const reviewableLearn = (entry: Entry): ActivitySpec | undefined => {
-    const learn = learnActivityOf(entry.requirement);
+    const learn = availableLearnOf(entry.requirement, options);
     return learn && isReviewable(learn) ? learn : undefined;
   };
 
@@ -186,8 +199,9 @@ export function planBonusStop(
   content: RankContent,
   today: string,
   excludeRequirementIds: readonly string[] = [],
+  options: PlanOptions = {},
 ): TrailStop | undefined {
-  return pickReview(profile, content, today, 'bonus', new Set(excludeRequirementIds));
+  return pickReview(profile, content, today, 'bonus', new Set(excludeRequirementIds), options);
 }
 
 /** How the UI should run this stop, given the profile's current progress. */
@@ -204,17 +218,22 @@ export function stageForStop(profile: Profile, stop: TrailStop): StopStage {
  * If there is nothing new at all (no new-step and no field-check) the trail is a single
  * bonus review. The trail is empty only when content has nothing learned to review.
  */
-export function planTrail(profile: Profile, content: RankContent, today: string): TodaysTrail {
+export function planTrail(
+  profile: Profile,
+  content: RankContent,
+  today: string,
+  options: PlanOptions = {},
+): TodaysTrail {
   const adventures = incompleteRequired(profile, content);
-  const newStep = pickNewStep(profile, adventures);
-  const fieldCheck = pickFieldCheck(profile, content, adventures);
+  const newStep = pickNewStep(profile, adventures, options);
+  const fieldCheck = pickFieldCheck(profile, content, adventures, options);
 
   let stops: TrailStop[];
   if (!newStep && !fieldCheck) {
-    const bonus = pickReview(profile, content, today, 'bonus', new Set());
+    const bonus = pickReview(profile, content, today, 'bonus', new Set(), options);
     stops = bonus ? [bonus] : [];
   } else {
-    const warmUp = pickReview(profile, content, today, 'warm-up', new Set());
+    const warmUp = pickReview(profile, content, today, 'warm-up', new Set(), options);
     stops = [warmUp, newStep, fieldCheck].filter((stop): stop is TrailStop => stop !== undefined);
   }
   return { date: today, profileId: profile.id, stops, completedStops: 0 };

@@ -1,0 +1,118 @@
+/*
+ * Craft activity: a bench panel with one slot per ingredient, and a grid of big chips below it.
+ * Uses the tokens and keyframes from src/ui/ui.css.
+ */
+
+.tq-bench {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--tq-surface-2);
+  border: 3px solid var(--tq-ink);
+  border-radius: var(--tq-radius);
+}
+
+.tq-bench.is-done {
+  border-color: var(--tq-ok);
+}
+
+.tq-bench__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.tq-bench__result {
+  margin: 0;
+}
+
+.tq-bench__count {
+  margin: 0;
+  font-weight: 700;
+}
+
+.tq-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11em), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-slot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 12px;
+  background: var(--tq-surface);
+  border: 3px dashed var(--tq-ink);
+  border-radius: var(--tq-radius);
+}
+
+.tq-slot.is-filled {
+  border-style: solid;
+  border-color: var(--tq-ok);
+  background: color-mix(in srgb, var(--tq-ok) 12%, var(--tq-surface));
+  animation: tq-pop 280ms ease-out;
+}
+
+.tq-slot__mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
+  font-weight: 700;
+  color: var(--tq-ink);
+  background: var(--tq-surface-2);
+  border: 2px solid var(--tq-ink);
+  border-radius: 50%;
+}
+
+.tq-slot.is-filled .tq-slot__mark {
+  color: var(--tq-primary-ink);
+  background: var(--tq-primary);
+  border-color: var(--tq-primary);
+}
+
+.tq-slot__text {
+  font-weight: 700;
+}
+
+.tq-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10em), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-chips:empty {
+  display: none;
+}
+
+.tq-chip {
+  width: 100%;
+  min-height: 72px;
+  justify-content: center;
+  text-align: center;
+  background: var(--tq-surface);
+}
+
+.tq-chip.is-shaking {
+  animation: tq-shake 360ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-chip.is-shaking,
+  .tq-slot.is-filled {
+    animation: none;
+  }
+}

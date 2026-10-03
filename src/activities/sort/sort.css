@@ -1,0 +1,153 @@
+/*
+ * Sort activity. Builds on the tokens and keyframes in src/ui/ui.css (tq-pop, tq-shake).
+ * Status is never color-only: bins change border style, chips get a marker, placed items get a check.
+ */
+
+.tq-sort {
+  --tq-card-max: 960px;
+}
+
+/* ---------- Bins ---------- */
+
+.tq-bins {
+  display: grid;
+  grid-template-columns: repeat(var(--tq-bin-count, 2), minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 600px) {
+  .tq-bins {
+    grid-template-columns: 1fr; /* stacked on narrow screens */
+  }
+}
+
+.tq-bin {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 132px;
+  padding: 10px;
+  background: var(--tq-surface-2);
+  border: 3px dashed var(--tq-ink);
+  border-radius: var(--tq-radius);
+  cursor: pointer;
+}
+
+.tq-bin__btn {
+  width: 100%;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+
+.tq-bin__cta {
+  display: none;
+  font-size: 0.8em;
+  font-weight: 400;
+}
+
+.tq-bins.is-picking .tq-bin {
+  border-style: solid;
+}
+
+.tq-bins.is-picking .tq-bin__cta {
+  display: block;
+}
+
+.tq-bin.is-over {
+  border-style: solid;
+  border-width: 6px;
+  box-shadow: 0 0 0 4px var(--tq-accent);
+}
+
+.tq-bin__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-placed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--tq-ok) 12%, var(--tq-surface));
+  border: 3px solid var(--tq-ok);
+  border-radius: 12px;
+  animation: tq-pop 280ms ease-out;
+}
+
+.tq-placed__mark {
+  flex: 0 0 auto;
+  color: var(--tq-ok);
+}
+
+/* ---------- Chips ---------- */
+
+.tq-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9em), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-chips:empty {
+  display: none;
+}
+
+.tq-chip {
+  position: relative;
+  width: 100%;
+  min-height: 64px;
+  text-align: center;
+  background: var(--tq-surface);
+  cursor: grab;
+  touch-action: none; /* lets a finger drag a chip instead of scrolling the page */
+}
+
+.tq-chip__mark {
+  flex: 0 0 auto;
+}
+
+.tq-chip__mark:empty {
+  display: none;
+}
+
+.tq-chip.is-selected {
+  border-color: var(--tq-primary);
+  background: color-mix(in srgb, var(--tq-primary) 14%, var(--tq-surface));
+}
+
+.tq-chip.is-dragging {
+  z-index: 30;
+  cursor: grabbing;
+  box-shadow: 0 12px 0 rgba(31, 42, 31, 0.28);
+}
+
+.tq-chip.is-shaking {
+  animation: tq-shake 360ms ease-out;
+}
+
+/* ---------- Feedback ---------- */
+
+/* Reserve room for the banner so the bins and chips never jump under a finger. */
+.tq-sort .tq-feedback:empty {
+  display: block;
+  min-height: 5em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-chip.is-shaking,
+  .tq-placed {
+    animation: none;
+  }
+}

@@ -1,7 +1,10 @@
 import { comingSoonActivity } from './comingSoon';
+import { craftActivity } from './craft';
 import { fieldMissionActivity } from './fieldMission';
 import { quizActivity } from './quiz';
+import { rhythmActivity } from './rhythm';
 import { sequenceActivity } from './sequence';
+import { sortActivity } from './sort';
 import type { ActivityController, ActivityType } from './types';
 
 export { comingSoonActivity };
@@ -10,6 +13,9 @@ export { comingSoonActivity };
 const implemented: { [K in ActivityType]?: ActivityController<K> } = {
   quiz: quizActivity,
   sequence: sequenceActivity,
+  sort: sortActivity,
+  rhythm: rhythmActivity,
+  craft: craftActivity,
   fieldMission: fieldMissionActivity,
 };
 
@@ -34,3 +40,12 @@ export function getActivity<T extends ActivityType>(type: T): ActivityController
   }
   return placeholder as ActivityController<T>;
 }
+
+/**
+ * The activity types that have a real controller, derived from the table above so it can never
+ * drift. Pass it to the trail planner (`PlanOptions.implemented`) so a trail never offers a stop
+ * the game cannot run yet.
+ */
+export const IMPLEMENTED_TYPES: ReadonlySet<ActivityType> = new Set(
+  (Object.keys(implemented) as ActivityType[]).filter((type) => implemented[type] !== undefined),
+);

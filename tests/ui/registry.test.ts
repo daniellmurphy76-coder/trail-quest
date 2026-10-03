@@ -21,11 +21,11 @@ describe('getActivity', () => {
   });
 
   it('returns a coming-soon controller for a type that is not built yet', async () => {
-    const sort = getActivity('sort');
-    expect(sort.type).toBe('sort');
-    expect(isActivityImplemented('sort')).toBe(false);
+    const sort = getActivity('collect');
+    expect(sort.type).toBe('collect');
+    expect(isActivityImplemented('collect')).toBe(false);
     const ctx = makeCtx();
-    const result = sort.run(host, { prompt: 'x', bins: [], items: [] }, ctx);
+    const result = sort.run(host, { prompt: 'x', zone: 'nature-trail', targets: [] }, ctx);
     expect(host.textContent).toContain('This stop is still being built. Come back soon!');
     expect(ctx.speak).toHaveBeenCalledWith('This stop is still being built. Come back soon!');
     buttonByText(host, 'Next').click();
@@ -33,8 +33,8 @@ describe('getActivity', () => {
     expect(host.querySelector('.tq-overlay')).toBeNull();
   });
 
-  it('covers all five unbuilt types, each keeping its own type name', () => {
-    const unbuilt: ActivityType[] = ['sort', 'collect', 'navigate', 'rhythm', 'craft'];
+  it('covers all unbuilt types, each keeping its own type name', () => {
+    const unbuilt: ActivityType[] = ['collect', 'navigate'];
     for (const type of unbuilt) {
       expect(isActivityImplemented(type)).toBe(false);
       expect(getActivity(type).type).toBe(type);

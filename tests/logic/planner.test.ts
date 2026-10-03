@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ActivityType } from '../../src/activities/types';
 import { requiredAdventuresInOrder } from '../../src/content/load';
 import type { RankContent } from '../../src/content/types';
 import {
@@ -303,5 +304,110 @@ describe('planner: purity', () => {
     const b = planner.plan(profile, content, TODAY);
     expect(a).toEqual(b);
     expect(a.stops.length).toBeGreaterThan(0);
+  });
+});
+
+describe('planner: implemented option', () => {
+  const only = (...types: ActivityType[]): ReadonlySet<ActivityType> => new Set(types);
+  const planWith = (
+    implemented: ReadonlySet<ActivityType> | undefined,
+    requirements: Progress,
+    review = {},
+  ) => planTrail(makeProfile({ requirements, review }), fixtureRank, TODAY, { implemented });
+
+  it('changes nothing when omitted or when every type is listed', () => {
+    const everything = only('quiz', 'sequence', 'sort', 'collect', 'navigate', 'rhythm', 'craft', 'fieldMission');
+    const requirements = { [ID.campQuiz]: doneReq(), [ID.campChore]: learnedReq() };
+    const plain = planFor(requirements);
+    expect(planTrail(makeProfile({ requirements }), fixtureRank, TODAY, {})).toEqual(plain);
+    expect(planWith(everything, requirements)).toEqual(plain);
+    expect(planWith(undefined, requirements)).toEqual(plain);
+  });
+
+  it('never offers a new step whose learn activity is unavailable', () => {
+    // Without the option the next step after the chore is the Bobcat sort.
+    const requirements = { [ID.campQuiz]: doneReq(), [ID.campChore]: learnedReq() };
+    expect(planFor(requirements).stops.find((s) => s.kind === 'new-step')!.requirementId).toBe(ID.campSort);
+
+    const trail = planWith(only('quiz', 'sequence', 'fieldMission'), requirements);
+    const newStep = trail.stops.find((s) => s.kind === 'new-step')!;
+    // Sort, collect, navigate and craft are skipped; the Trek chore has a quiz practice.
+    expect(newStep.requirementId).toBe(ID.trekChore);
+    expect(newStep.activity.type).toBe('quiz');
+    expect(ids(trail)).not.toContain(ID.campSort);
+  });
+
+  it('plans from a requirement when its type is the only one available', () => {
+    const trail = planWith(only('collect'), {});
+    expect(trail.stops.find((s) => s.kind === 'new-step')!.requirementId).toBe(ID.trekCollect);
+  });
+
+  it('treats a field mission with an unavailable practice as ready for handout', () => {
+    // Everything learnable in Bobcat is done, so the chore (sequence practice) and the errand
+    // are both open. The chore comes first in content order but is unlearned.
+    const requirements = { [ID.campQuiz]: doneReq(), [ID.campSort]: doneReq() };
+    const unlearned = planWith(undefined, requirements).stops.find((s) => s.kind === 'field-check')!;
+    expect(unlearned.requirementId).toBe(ID.campErrand);
+
+    const trail = planWith(only('quiz', 'fieldMission'), requirements);
+    const fieldCheck = trail.stops.find((s) => s.kind === 'field-check')!;
+    expect(fieldCheck.requirementId).toBe(ID.campChore);
+    expect(fieldCheck.activity.type).toBe('fieldMission');
+    expect(stageForStop(makeProfile(), fieldCheck)).toBe('handout');
+    // And its practice is not offered as a new step.
+    expect(trail.stops.some((s) => s.kind === 'new-step' && s.requirementId === ID.campChore)).toBe(false);
+  });
+
+  it('skips unavailable types when choosing a warm-up', () => {
+    const requirements = { [ID.campQuiz]: doneReq(), [ID.campSort]: doneReq() };
+    const review = { [ID.campSort]: card(1, '2026-09-30'), [ID.campQuiz]: card(1, '2026-10-02') };
+    // The sort is more overdue, but it cannot run, so the quiz is the warm-up.
+    expect(planWith(undefined, requirements, review).stops[0].requirementId).toBe(ID.campSort);
+    const trail = planWith(only('quiz', 'sequence', 'fieldMission'), requirements, review);
+    expect(trail.stops[0]).toMatchObject({ kind: 'warm-up', requirementId: ID.campQuiz });
+  });
+
+  it('skips unavailable types in the most-recently-learned fallback too', () => {
+    const requirements = { [ID.campQuiz]: doneReq('2026-09-20'), [ID.campSort]: doneReq('2026-09-25') };
+    const trail = planWith(only('quiz', 'fieldMission'), requirements);
+    expect(trail.stops[0]).toMatchObject({ kind: 'warm-up', requirementId: ID.campQuiz });
+  });
+
+  it('skips a field mission practice that is unavailable when reviewing', () => {
+    const requirements = { [ID.campChore]: learnedReq() };
+    const review = { [ID.campChore]: card(0, '2026-10-02') };
+    expect(planWith(undefined, requirements, review).stops[0]).toMatchObject({ kind: 'warm-up', requirementId: ID.campChore });
+    expect(kinds(planWith(only('quiz', 'fieldMission'), requirements, review))).not.toContain('warm-up');
+  });
+
+  it('applies to the single bonus review and to planBonusStop', () => {
+    const progress = allRequiredDone();
+    const review = { [ID.campSort]: card(1, '2026-09-30') };
+    const implemented = only('quiz', 'sequence', 'fieldMission');
+    const trail = planWith(implemented, progress, review);
+    expect(trail.stops).toHaveLength(1);
+    expect(trail.stops[0].kind).toBe('bonus');
+    expect(trail.stops[0].requirementId).not.toBe(ID.campSort);
+    expect(['quiz', 'sequence']).toContain(trail.stops[0].activity.type);
+
+    const profile = makeProfile({ requirements: progress, review });
+    const bonus = planBonusStop(profile, fixtureRank, TODAY, [], { implemented })!;
+    expect(['quiz', 'sequence']).toContain(bonus.activity.type);
+    expect(planBonusStop(profile, fixtureRank, TODAY, [], { implemented: only('collect') })).toBeUndefined();
+  });
+
+  it('only ever plans learn activities of listed types (field-check stops carry the mission itself)', () => {
+    const implemented = only('quiz', 'fieldMission');
+    const trail = planWith(implemented, { [ID.campQuiz]: doneReq() });
+    for (const stop of trail.stops) {
+      if (stop.kind !== 'field-check') expect(implemented.has(stop.activity.type)).toBe(true);
+    }
+    expect(trail.stops.length).toBeGreaterThan(0);
+  });
+
+  it('is repeatable and does not mutate a frozen profile', () => {
+    const profile = deepFreeze(makeProfile({ requirements: { [ID.campQuiz]: doneReq() } }));
+    const options = { implemented: only('quiz', 'fieldMission') };
+    expect(planTrail(profile, fixtureRank, TODAY, options)).toEqual(planTrail(profile, fixtureRank, TODAY, options));
   });
 });

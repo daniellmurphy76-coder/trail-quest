@@ -2,7 +2,10 @@
  * Dev-only test page for the activity catalog and the overlay kit. Open /dev/activities.html
  * (add ?run=<id> to start a sample right away). Every text here is invented and clearly fake.
  */
+import { SAMPLE_CRAFT } from '../activities/craft/sample';
 import { getActivity } from '../activities/registry';
+import { SAMPLE_RHYTHM } from '../activities/rhythm/sample';
+import { SAMPLE_SORT } from '../activities/sort/sample';
 import type { ActivityContext, ActivitySpec, FieldMissionParams } from '../activities/types';
 import { showDialog } from '../ui/dialog';
 import { clear, h } from '../ui/dom';
@@ -108,15 +111,15 @@ const activities: Entry[] = [
   }),
   activityEntry('mission-handout', 'Field mission: handout', { type: 'fieldMission', params: MISSION }, 'handout'),
   activityEntry('mission-checkin', 'Field mission: check-in (checklist)', { type: 'fieldMission', params: MISSION }, 'check-in'),
-  activityEntry('coming-soon', 'Coming soon: sort (not built yet)', {
-    type: 'sort',
+  activityEntry('sort', 'Sort: pack it or leave it', { type: 'sort', params: SAMPLE_SORT }),
+  activityEntry('rhythm', 'Rhythm: Zip bounces', { type: 'rhythm', params: SAMPLE_RHYTHM }),
+  activityEntry('craft', "Craft: Zip's day bag", { type: 'craft', params: SAMPLE_CRAFT }),
+  activityEntry('coming-soon', 'Coming soon: collect (not built yet)', {
+    type: 'collect',
     params: {
-      prompt: 'Sample sort.',
-      bins: [
-        { id: 'a', label: 'Bin A' },
-        { id: 'b', label: 'Bin B' },
-      ],
-      items: [{ label: 'Thing 1', bin: 'a' }],
+      prompt: 'Sample collect.',
+      zone: 'nature-trail',
+      targets: [{ id: 'leaf', label: 'Leaf', count: 1 }],
     },
   }),
 ];
