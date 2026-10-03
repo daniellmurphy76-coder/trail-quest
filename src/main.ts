@@ -1,88 +1,136 @@
 import * as THREE from 'three';
 import './style.css';
-import { mulberry32 } from './engine/seed';
+import { FollowCamera, type FollowTarget } from './engine/camera';
+import { Input } from './engine/input';
+import { WorldLabels } from './engine/labels';
+import { GameLoop } from './engine/loop';
+import { Renderer } from './engine/renderer';
+import { Player } from './player/controller';
+import { createBaseCamp } from './world/base-camp';
+import { findInteractableInRange, type Interactable } from './world/zone';
 
-// Phase 0 placeholder scene. Will be refactored into src/engine, src/world and src/player.
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ui = document.getElementById('ui') as HTMLDivElement;
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// ---- scene --------------------------------------------------------------------------------------
 
+const SKY = 0x87ceeb;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 45, 95);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x4a7c3a, 1.1));
-const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-sun.position.set(30, 50, 20);
-scene.add(sun);
+const zone = createBaseCamp({ onTalkToDenChief: () => showToast("Den Chief: Hi! Today's Trail is coming soon.") });
+scene.add(zone.root);
 
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(200, 200),
-  new THREE.MeshLambertMaterial({ color: 0x4caf50 }),
-);
-ground.rotation.x = -Math.PI / 2;
-scene.add(ground);
+const player = new Player({ bodyColor: 0xf2c14e });
+player.setPosition(zone.spawn, Math.PI); // facing -z, toward the campfire
+scene.add(player.root);
 
-// Placeholder trees: cone on cylinder, placed from a seeded PRNG so every load looks the same.
-const trunkGeo = new THREE.CylinderGeometry(0.3, 0.4, 2, 8);
-const leafGeo = new THREE.ConeGeometry(1.6, 4, 8);
-const trunkMat = new THREE.MeshLambertMaterial({ color: 0x7b5230 });
-const leafMat = new THREE.MeshLambertMaterial({ color: 0x2f6b3a });
-const rand = mulberry32(2026);
-for (let i = 0; i < 20; i++) {
-  const angle = rand() * Math.PI * 2;
-  const radius = 8 + rand() * 40; // keep a clearing around the scout
-  const scale = 0.8 + rand() * 0.8;
-  const tree = new THREE.Group();
-  const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-  trunk.position.y = 1;
-  const leaves = new THREE.Mesh(leafGeo, leafMat);
-  leaves.position.y = 4;
-  tree.add(trunk, leaves);
-  tree.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-  tree.scale.setScalar(scale);
-  scene.add(tree);
-}
+const follow = new FollowCamera();
+const followTarget: FollowTarget = {
+  position: player.root.position,
+  get facing() {
+    return player.facing;
+  },
+  get isMoving() {
+    return player.isMoving;
+  },
+};
+follow.snapTo({ position: player.position, facing: player.facing, isMoving: false });
 
-const scout = new THREE.Mesh(
-  new THREE.CapsuleGeometry(0.5, 1, 4, 12),
-  new THREE.MeshLambertMaterial({ color: 0xf2c14e }),
-);
-scene.add(scout);
+// ---- engine -------------------------------------------------------------------------------------
 
-const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 400);
-camera.position.set(0, 5, 9);
-camera.lookAt(0, 1, 0);
+const renderer = new Renderer(canvas);
+renderer.onResize((w, h) => follow.setAspect(w / h));
 
-function resize(): void {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-}
-window.addEventListener('resize', resize);
-resize();
+const input = new Input({ target: canvas, ui });
 
-// Small top-left pill with a build stamp.
+// ---- overlay ------------------------------------------------------------------------------------
+
 const pill = document.createElement('div');
-pill.textContent = `Trail Quest · Phase 0 · ${import.meta.env.MODE}`;
-pill.style.cssText =
-  'position:absolute;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));' +
-  'padding:6px 14px;border-radius:999px;background:rgba(0,0,0,0.55);color:#fff;font-size:20px;';
+pill.className = 'tq-pill';
+pill.textContent = 'Trail Quest · Phase 2';
 ui.appendChild(pill);
 
-// THREE.Clock is deprecated since r183 and warns in the console; Timer gives the same delta.
-const timer = new THREE.Timer();
-let t = 0;
-function frame(now: number): void {
-  timer.update(now);
-  const dt = timer.getDelta();
-  t += dt;
-  scout.position.y = 1 + Math.sin(t * 2.5) * 0.12;
-  scout.rotation.y += dt * 0.6;
-  renderer.render(scene, camera);
-  requestAnimationFrame(frame);
+const labels = new WorldLabels(ui, follow.camera);
+for (const item of zone.interactables) {
+  if (item.nameTag) {
+    labels.add({ text: item.nameTag, position: item.position, offsetY: 0.5, className: 'tq-nametag' });
+  }
 }
-requestAnimationFrame(frame);
+// The prompt sits just above the name tag, stacked in screen pixels so it never overlaps at any distance.
+const prompt = labels.add({
+  text: '',
+  position: new THREE.Vector3(),
+  offsetY: 0.5,
+  screenOffsetY: -52,
+  className: 'tq-prompt',
+});
+prompt.visible = false;
+
+let toastEl: HTMLDivElement | null = null;
+let toastTimer = 0;
+
+/** Temporary message. A real dialog UI replaces this later. */
+function showToast(text: string): void {
+  if (!toastEl) {
+    toastEl = document.createElement('div');
+    toastEl.className = 'tq-toast';
+    toastEl.setAttribute('role', 'status');
+    ui.appendChild(toastEl);
+  }
+  toastEl.textContent = text;
+  toastEl.hidden = false;
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    if (toastEl) toastEl.hidden = true;
+  }, 3000);
+}
+
+function promptText(item: Interactable): string {
+  switch (input.lastDevice) {
+    case 'keyboard':
+      return 'Press E';
+    case 'gamepad':
+      return 'Press A';
+    default:
+      return item.label; // the touch button already says it; this is only a fallback
+  }
+}
+
+/** Show the prompt and action label for whatever is in reach, and fire it on an action press. */
+function handleInteraction(near: Interactable | null, actionPressed: boolean): void {
+  const touch = input.lastDevice === 'touch';
+  input.setActionLabel(near ? near.label : '');
+  prompt.visible = near !== null && !touch;
+  if (near) {
+    prompt.position.copy(near.position);
+    prompt.setText(promptText(near));
+    if (actionPressed) near.onInteract();
+  }
+}
+
+// ---- loop ---------------------------------------------------------------------------------------
+
+const loop = new GameLoop({
+  onUpdate(dt) {
+    const state = input.update();
+    player.viewYaw = follow.viewYaw;
+    player.update(dt, state, zone);
+    zone.update(dt);
+    const near = findInteractableInRange(player.position.x, player.position.z, zone.interactables);
+    handleInteraction(near, state.actionPressed);
+  },
+  onRender(alpha, frameDt) {
+    player.interpolate(alpha);
+    follow.update(frameDt, followTarget);
+    labels.update(renderer.width, renderer.height);
+    renderer.render(scene, follow.camera);
+  },
+});
+loop.start();
+
+// Dev-only handle so the browser tools can read draw calls and drive the player.
+if (import.meta.env.DEV) {
+  Object.assign(window, { __tq: { renderer, scene, zone, player, follow, input, loop } });
+}
