@@ -1,0 +1,481 @@
+{
+  "version": 1,
+  "models": {
+    "tree.pine": {
+      "path": "assets/models/kenney-nature-kit/tree_pineDefaultA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.2345,
+      "yOffset": 0.1617
+    },
+    "tree.pine.tall": {
+      "path": "assets/models/kenney-nature-kit/tree_pineTallA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.9226,
+      "yOffset": 0.1961
+    },
+    "tree.pine.round": {
+      "path": "assets/models/kenney-nature-kit/tree_pineRoundA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4.0251,
+      "yOffset": 0.2013
+    },
+    "tree.round": {
+      "path": "assets/models/kenney-nature-kit/tree_default.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 2.6934,
+      "yOffset": 0.1347
+    },
+    "tree.oak": {
+      "path": "assets/models/kenney-nature-kit/tree_oak.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.4251,
+      "yOffset": 0.1713
+    },
+    "tree.fall": {
+      "path": "assets/models/kenney-nature-kit/tree_oak_fall.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.4251,
+      "yOffset": 0.1713
+    },
+    "rock.large": {
+      "path": "assets/models/kenney-nature-kit/stone_largeA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 2.7574,
+      "yOffset": 0.1379
+    },
+    "rock.tall": {
+      "path": "assets/models/kenney-nature-kit/stone_tallA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 2.4098,
+      "yOffset": 0.1205
+    },
+    "rock.small": {
+      "path": "assets/models/kenney-nature-kit/stone_smallA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.0488,
+      "yOffset": 0.1524
+    },
+    "rock.flat": {
+      "path": "assets/models/kenney-nature-kit/stone_smallFlatA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 2.8238,
+      "yOffset": 0.1412
+    },
+    "plant.bush": {
+      "path": "assets/models/kenney-nature-kit/plant_bush.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4.5455,
+      "yOffset": 0.2273
+    },
+    "plant.bush.large": {
+      "path": "assets/models/kenney-nature-kit/plant_bushLarge.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 7.4804,
+      "yOffset": 0.374
+    },
+    "plant.grass": {
+      "path": "assets/models/kenney-nature-kit/grass.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.0598,
+      "yOffset": 0.153
+    },
+    "plant.grass.large": {
+      "path": "assets/models/kenney-nature-kit/grass_large.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4.401,
+      "yOffset": 0.2201
+    },
+    "plant.flower.red": {
+      "path": "assets/models/kenney-nature-kit/flower_redA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 2.3932,
+      "yOffset": 0.1197
+    },
+    "plant.flower.yellow": {
+      "path": "assets/models/kenney-nature-kit/flower_yellowA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.6364,
+      "yOffset": 0.1818
+    },
+    "plant.flower.purple": {
+      "path": "assets/models/kenney-nature-kit/flower_purpleA.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 2.8866,
+      "yOffset": 0.1443
+    },
+    "plant.mushroom": {
+      "path": "assets/models/kenney-nature-kit/mushroom_redGroup.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 2.3953,
+      "yOffset": 0.1198
+    },
+    "path.straight": {
+      "path": "assets/models/kenney-nature-kit/ground_pathStraight.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.23
+    },
+    "path.bend": {
+      "path": "assets/models/kenney-nature-kit/ground_pathBend.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.23
+    },
+    "path.end": {
+      "path": "assets/models/kenney-nature-kit/ground_pathEnd.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.23
+    },
+    "path.cross": {
+      "path": "assets/models/kenney-nature-kit/ground_pathCross.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.23
+    },
+    "path.stone": {
+      "path": "assets/models/kenney-nature-kit/path_stone.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.05
+    },
+    "path.wood": {
+      "path": "assets/models/kenney-nature-kit/path_wood.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.05
+    },
+    "bridge": {
+      "path": "assets/models/kenney-nature-kit/bridge_wood.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.2
+    },
+    "fence.simple": {
+      "path": "assets/models/kenney-nature-kit/fence_simple.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.2
+    },
+    "fence.gate": {
+      "path": "assets/models/kenney-nature-kit/fence_gate.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.2
+    },
+    "fence.planks": {
+      "path": "assets/models/kenney-nature-kit/fence_planks.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.2
+    },
+    "fence.corner": {
+      "path": "assets/models/kenney-nature-kit/fence_corner.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4,
+      "yOffset": 0.2
+    },
+    "stump": {
+      "path": "assets/models/kenney-nature-kit/stump_round.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4.3584,
+      "yOffset": 0.2179
+    },
+    "log.single": {
+      "path": "assets/models/kenney-nature-kit/log.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.0986,
+      "yOffset": 0.1549
+    },
+    "log.large": {
+      "path": "assets/models/kenney-nature-kit/log_large.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 2.8,
+      "yOffset": 0.14
+    },
+    "log.stack": {
+      "path": "assets/models/kenney-nature-kit/log_stack.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 3.3803,
+      "yOffset": 0.169
+    },
+    "tent": {
+      "path": "assets/models/kenney-nature-kit/tent_detailedClosed.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4.3432,
+      "yOffset": 0.2172
+    },
+    "tent.small": {
+      "path": "assets/models/kenney-nature-kit/tent_smallClosed.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4.714,
+      "yOffset": 0.2357
+    },
+    "tent.open": {
+      "path": "assets/models/kenney-nature-kit/tent_detailedOpen.glb",
+      "pack": "kenney-nature-kit",
+      "scale": 4.3432,
+      "yOffset": 0.2172
+    },
+    "campfire": {
+      "path": "assets/models/kenney-survival-kit/campfire-pit.glb",
+      "pack": "kenney-survival-kit",
+      "scale": 8.6403,
+      "yOffset": 0
+    },
+    "signpost": {
+      "path": "assets/models/kenney-survival-kit/signpost.glb",
+      "pack": "kenney-survival-kit",
+      "scale": 5.2165,
+      "yOffset": 0
+    },
+    "signpost.single": {
+      "path": "assets/models/kenney-survival-kit/signpost-single.glb",
+      "pack": "kenney-survival-kit",
+      "scale": 5.2165,
+      "yOffset": 0
+    },
+    "character.scout.a": {
+      "path": "assets/models/kenney-mini-characters/character-female-b.glb",
+      "pack": "kenney-mini-characters",
+      "scale": 2.4884,
+      "yOffset": 0,
+      "animations": {
+        "idle": "idle",
+        "walk": "walk",
+        "run": "sprint",
+        "cheer": "emote-yes",
+        "pickup": "pick-up"
+      }
+    },
+    "character.scout.b": {
+      "path": "assets/models/kenney-mini-characters/character-female-e.glb",
+      "pack": "kenney-mini-characters",
+      "scale": 2.5123,
+      "yOffset": 0,
+      "animations": {
+        "idle": "idle",
+        "walk": "walk",
+        "run": "sprint",
+        "cheer": "emote-yes",
+        "pickup": "pick-up"
+      }
+    },
+    "character.scout.c": {
+      "path": "assets/models/kenney-mini-characters/character-female-f.glb",
+      "pack": "kenney-mini-characters",
+      "scale": 2.6813,
+      "yOffset": 0,
+      "animations": {
+        "idle": "idle",
+        "walk": "walk",
+        "run": "sprint",
+        "cheer": "emote-yes",
+        "pickup": "pick-up"
+      }
+    },
+    "character.scout.d": {
+      "path": "assets/models/kenney-mini-characters/character-male-a.glb",
+      "pack": "kenney-mini-characters",
+      "scale": 2.6813,
+      "yOffset": 0,
+      "animations": {
+        "idle": "idle",
+        "walk": "walk",
+        "run": "sprint",
+        "cheer": "emote-yes",
+        "pickup": "pick-up"
+      }
+    },
+    "character.denchief": {
+      "path": "assets/models/kenney-mini-characters/character-male-e.glb",
+      "pack": "kenney-mini-characters",
+      "scale": 2.6629,
+      "yOffset": 0,
+      "animations": {
+        "idle": "idle",
+        "walk": "walk",
+        "run": "sprint",
+        "cheer": "emote-yes",
+        "pickup": "pick-up"
+      }
+    },
+    "pickup.sun-protection": {
+      "path": "assets/models/kenney-mini-characters/aid-sunglasses.glb",
+      "pack": "kenney-mini-characters",
+      "scale": 2.7273,
+      "yOffset": 0
+    },
+    "building.library": {
+      "path": "assets/models/kenney-city-kit-commercial/building-c.glb",
+      "pack": "kenney-city-kit-commercial",
+      "scale": 5.5,
+      "yOffset": 0
+    },
+    "building.school": {
+      "path": "assets/models/kenney-city-kit-commercial/building-e.glb",
+      "pack": "kenney-city-kit-commercial",
+      "scale": 5.5,
+      "yOffset": 0
+    },
+    "building.firestation": {
+      "path": "assets/models/kenney-city-kit-commercial/building-a.glb",
+      "pack": "kenney-city-kit-commercial",
+      "scale": 5.5,
+      "yOffset": 0
+    },
+    "building.store": {
+      "path": "assets/models/kenney-city-kit-commercial/building-k.glb",
+      "pack": "kenney-city-kit-commercial",
+      "scale": 5.5,
+      "yOffset": 0
+    },
+    "building.house.a": {
+      "path": "assets/models/kenney-city-kit-suburban/building-type-a.glb",
+      "pack": "kenney-city-kit-suburban",
+      "scale": 5.5,
+      "yOffset": 0
+    },
+    "building.house.b": {
+      "path": "assets/models/kenney-city-kit-suburban/building-type-m.glb",
+      "pack": "kenney-city-kit-suburban",
+      "scale": 5.5,
+      "yOffset": 0
+    },
+    "building.house.c": {
+      "path": "assets/models/kenney-city-kit-suburban/building-type-r.glb",
+      "pack": "kenney-city-kit-suburban",
+      "scale": 5.5,
+      "yOffset": 0
+    },
+    "street.straight": {
+      "path": "assets/models/kenney-city-kit-roads/road-straight.glb",
+      "pack": "kenney-city-kit-roads",
+      "scale": 5.5,
+      "yOffset": -0.07
+    },
+    "street.crossing": {
+      "path": "assets/models/kenney-city-kit-roads/road-crossing.glb",
+      "pack": "kenney-city-kit-roads",
+      "scale": 5.5,
+      "yOffset": -0.07
+    },
+    "street.intersection": {
+      "path": "assets/models/kenney-city-kit-roads/road-intersection.glb",
+      "pack": "kenney-city-kit-roads",
+      "scale": 5.5,
+      "yOffset": -0.07
+    },
+    "street.bend": {
+      "path": "assets/models/kenney-city-kit-roads/road-bend.glb",
+      "pack": "kenney-city-kit-roads",
+      "scale": 5.5,
+      "yOffset": -0.07
+    },
+    "street.end": {
+      "path": "assets/models/kenney-city-kit-roads/road-end.glb",
+      "pack": "kenney-city-kit-roads",
+      "scale": 5.5,
+      "yOffset": -0.07
+    },
+    "street.lamp": {
+      "path": "assets/models/kenney-city-kit-roads/light-square.glb",
+      "pack": "kenney-city-kit-roads",
+      "scale": 8.3333,
+      "yOffset": 0
+    },
+    "street.sign.stop": {
+      "path": "assets/models/kenney-city-kit-roads/road-sign-stop.glb",
+      "pack": "kenney-city-kit-roads",
+      "scale": 5.2624,
+      "yOffset": 0
+    },
+    "animal.bird": {
+      "path": "assets/models/quaternius-animals/bird.glb",
+      "pack": "quaternius-animals",
+      "scale": 1.3079,
+      "yOffset": 0.0115
+    },
+    "animal.rabbit": {
+      "path": "assets/models/quaternius-animals/bunny.glb",
+      "pack": "quaternius-animals",
+      "scale": 0.2615,
+      "yOffset": 0.0501,
+      "animations": {
+        "idle": "idle",
+        "walk": "walk",
+        "jump": "jump"
+      }
+    },
+    "animal.frog": {
+      "path": "assets/models/quaternius-animals/frog.glb",
+      "pack": "quaternius-animals",
+      "scale": 0.1994,
+      "yOffset": 0.0029,
+      "animations": {
+        "idle": "idle",
+        "walk": "walk",
+        "jump": "jump"
+      }
+    },
+    "animal.squirrel": {
+      "path": "assets/models/quaternius-animals/raccoon.glb",
+      "pack": "quaternius-animals",
+      "scale": 0.5727,
+      "yOffset": -0.0028,
+      "animations": {
+        "idle": "idle",
+        "walk": "walk",
+        "run": "run"
+      }
+    },
+    "pickup.backpack": {
+      "path": "assets/models/quaternius-gear/backpack.glb",
+      "pack": "quaternius-gear",
+      "scale": 1.052,
+      "yOffset": 0.5
+    },
+    "pickup.first-aid-kit": {
+      "path": "assets/models/quaternius-gear/first-aid-kit.glb",
+      "pack": "quaternius-gear",
+      "scale": 0.5309,
+      "yOffset": 0.3279
+    },
+    "pickup.water-bottle": {
+      "path": "assets/models/quaternius-gear/water-bottle.glb",
+      "pack": "quaternius-gear",
+      "scale": 0.8362,
+      "yOffset": 0.0009
+    },
+    "pickup.flashlight": {
+      "path": "assets/models/quaternius-gear/torch.glb",
+      "pack": "quaternius-gear",
+      "scale": 0.5573,
+      "yOffset": 0.8065
+    },
+    "pickup.map-compass": {
+      "path": "assets/models/quaternius-gear/compass.glb",
+      "pack": "quaternius-gear",
+      "scale": 0.9913,
+      "yOffset": 0.3031
+    },
+    "pickup.fire-starters": {
+      "path": "assets/models/quaternius-gear/matchbox.glb",
+      "pack": "quaternius-gear",
+      "scale": 0.9182,
+      "yOffset": 0.2745
+    },
+    "pickup.trail-food": {
+      "path": "assets/models/quaternius-gear/apple.glb",
+      "pack": "quaternius-gear",
+      "scale": 0.8218,
+      "yOffset": 0.324
+    },
+    "cabin": {
+      "path": "assets/models/quaternius-buildings/cabin.glb",
+      "pack": "quaternius-buildings",
+      "scale": 6,
+      "yOffset": 0.0369
+    }
+  }
+}

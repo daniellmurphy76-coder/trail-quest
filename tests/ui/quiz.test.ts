@@ -21,14 +21,14 @@ const choice = (text: string): HTMLButtonElement =>
   Array.from(host.querySelectorAll<HTMLButtonElement>('.tq-btn--choice')).find((b) => b.textContent?.includes(text))!;
 
 describe('quizActivity', () => {
-  it('speaks each prompt when the question appears', async () => {
+  it('shows each prompt as text when the question appears, and never speaks', async () => {
     const ctx = makeCtx();
     const result = quizActivity.run(host, PARAMS, ctx);
-    expect(ctx.speak).toHaveBeenCalledTimes(1);
-    expect(ctx.speak).toHaveBeenLastCalledWith(PARAMS.questions[0]!.prompt);
+    expect(host.textContent).toContain(PARAMS.questions[0]!.prompt);
     choice('2').click();
     buttonByText(host, 'Next').click();
-    expect(ctx.speak).toHaveBeenLastCalledWith(PARAMS.questions[1]!.prompt);
+    expect(host.textContent).toContain(PARAMS.questions[1]!.prompt);
+    expect(ctx.speak).not.toHaveBeenCalled();
     buttonByText(host, 'Back').click();
     await result;
   });
@@ -122,17 +122,6 @@ describe('quizActivity', () => {
     expect(host.textContent).toContain('Yes!');
     press(document, 'Enter'); // Next is the default button
     expect(host.textContent).toContain('Question 2 of 3');
-    buttonByText(host, 'Back').click();
-    await result;
-  });
-
-  it('gives every question text a Read button that speaks even if auto read-aloud is off', async () => {
-    const ctx = makeCtx();
-    const result = quizActivity.run(host, PARAMS, ctx);
-    ctx.speak.mockClear();
-    const read = Array.from(host.querySelectorAll('button')).find((b) => b.textContent?.includes('Read'))!;
-    read.click();
-    expect(ctx.speak).toHaveBeenCalledWith(PARAMS.questions[0]!.prompt, { force: true });
     buttonByText(host, 'Back').click();
     await result;
   });

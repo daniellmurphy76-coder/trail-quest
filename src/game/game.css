@@ -56,6 +56,232 @@
   box-shadow: 0 0 0 7px var(--tq-accent);
 }
 
+/* Three progress dots under the Today's Trail button: a filled dot is a finished stop. The words
+   beside them ("1 of 3", then a check mark and "Done") mean it is never colour alone. */
+.tq-hud__progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.tq-hud__progress[hidden] {
+  display: none;
+}
+
+.tq-hud__dots {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.tq-dot {
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--tq-ink);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.tq-dot.is-filled {
+  background: var(--tq-primary);
+}
+
+/* ---------- Compass ---------- */
+
+/* #ui > * turns pointer events on; the compass must never eat a touch meant for the game. */
+#ui > .tq-compass {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 5; /* under overlays (z-index 10) */
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 24px);
+  padding: 6px 18px 6px 10px;
+  font-family: system-ui, sans-serif;
+  font-size: var(--tq-font-size);
+  line-height: 1.2;
+  color: var(--tq-ink);
+  background: var(--tq-surface);
+  border: 3px solid var(--tq-ink);
+  border-radius: 999px;
+  box-shadow: var(--tq-shadow);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tq-compass[hidden],
+.tq-compass [hidden] {
+  display: none !important;
+}
+
+.tq-compass__arrow {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+}
+
+.tq-compass__arrow path {
+  fill: var(--tq-primary);
+  stroke: var(--tq-ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.tq-compass__text {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+}
+
+/* Wide screens: the HUD (left) and a collect or navigate panel (right) flank the compass, so a long
+   waypoint name is cut short here. The panel always says it in full. */
+@media (min-width: 721px) {
+  .tq-compass__label {
+    display: block;
+    max-width: 11em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Narrow screens: the HUD fills the top-left, so the compass drops under it. */
+@media (max-width: 720px) {
+  #ui > .tq-compass {
+    top: calc(max(12px, env(safe-area-inset-top, 0px)) + 204px);
+  }
+}
+
+/* ---------- Dock: Start button and controls hint, bottom centre ---------- */
+
+#ui > .tq-dock {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 5; /* under overlays (z-index 10) */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  font-family: system-ui, sans-serif;
+  font-size: var(--tq-font-size);
+  line-height: 1.3;
+  color: var(--tq-ink);
+  transform: translateX(-50%);
+  pointer-events: none; /* only the card and the button take touches, never the empty strip */
+}
+
+.tq-dock > * {
+  pointer-events: auto;
+}
+
+.tq-dock :focus-visible {
+  outline: 4px solid var(--tq-ink);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px var(--tq-accent);
+}
+
+/* On touch the joystick sits bottom-left (24px in, 120px wide) and the action button bottom-right
+   (24px in, 72px wide). Keep the dock between them, and above them on a narrow phone. */
+@media (pointer: coarse) {
+  #ui > .tq-dock {
+    max-width: min(
+      560px,
+      calc(100vw - 336px - 2 * max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)))
+    );
+  }
+}
+
+@media (pointer: coarse) and (max-width: 640px) {
+  #ui > .tq-dock {
+    bottom: calc(168px + env(safe-area-inset-bottom, 0px));
+    max-width: calc(100vw - 32px);
+  }
+}
+
+.tq-start {
+  min-height: 72px;
+  padding: 14px 40px;
+  font-size: 1.25em;
+}
+
+.tq-start[hidden] {
+  display: none;
+}
+
+/* The same button at the top of the trail panel. */
+.tq-start--panel {
+  width: 100%;
+  min-height: 64px;
+}
+
+.tq-hint-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  max-width: 100%;
+  padding: 10px 14px;
+  color: var(--tq-ink);
+  background: var(--tq-surface);
+  border: 3px solid var(--tq-ink);
+  border-radius: var(--tq-radius);
+  box-shadow: var(--tq-shadow);
+  cursor: pointer;
+}
+
+.tq-hint-card[hidden] {
+  display: none;
+}
+
+.tq-hint-card__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tq-hint-card__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.tq-hint-card__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* A key cap drawn in CSS: a rounded square with a thick bottom edge, like a real key. */
+.tq-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.7em;
+  height: 1.7em;
+  box-sizing: border-box;
+  padding: 0 0.35em;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tq-ink);
+  background: #ffffff;
+  border: 2px solid var(--tq-ink);
+  border-bottom-width: 5px;
+  border-radius: 8px;
+}
+
 /* ---------- Forms (profile setup) ---------- */
 
 .tq-setup,
@@ -269,6 +495,62 @@
 
 .tq-trail-item__kind {
   font-weight: 700;
+}
+
+/* ---------- Places (free-roam hops in the trail panel) ---------- */
+
+.tq-places {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 3px solid var(--tq-surface-2);
+}
+
+.tq-places__title {
+  margin: 0;
+  font-size: 1.1em;
+}
+
+.tq-places__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12em), 1fr));
+  gap: 10px;
+}
+
+.tq-place {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* The zone the Scout is in: dashed and quiet, and the words say "You are here". */
+.tq-place[aria-current='location'] {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+/* ---------- Zone travel veil ---------- */
+
+/* #ui > * turns pointer events on, so the veil opts out until it is up (then it blocks stray taps). */
+#ui > .tq-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 8; /* over the HUD, compass and panels (5 and 6), under overlays (10) so the trail sign stays readable */
+  background: var(--tq-ink);
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+#ui > .tq-veil.is-up {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ui > .tq-veil {
+    transition: none;
+  }
 }
 
 /* ---------- Trail sign ---------- */

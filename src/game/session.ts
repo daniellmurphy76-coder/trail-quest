@@ -109,11 +109,23 @@ export interface TrailView {
   items: { kind: StopKind; title: string; status: TrailItemStatus }[];
 }
 
+/**
+ * How a conversation with the Den Chief ended:
+ *   'trail'       the Scout played today's trail;
+ *   'bonus'       the Scout took a bonus stop;
+ *   'look-around' the Scout chose "Look around first" and is free to explore;
+ *   'none'        nothing was started (nothing to do today, or a bonus was turned down), or the
+ *                 Den Chief was already busy.
+ */
+export type TalkOutcome = 'trail' | 'bonus' | 'look-around' | 'none';
+
 export interface Session {
   /** What happens when the player talks to the Den Chief. Ignored while one is already running. */
-  talk(): Promise<void>;
+  talk(): Promise<TalkOutcome>;
   /** Today's stops with their status, for the trail panel. */
   view(): TrailView;
+  /** True when today's trail is done and a bonus stop is waiting (the Start button says "Bonus stop"). */
+  bonusAvailable(): boolean;
   readonly busy: boolean;
 }
 
@@ -126,6 +138,11 @@ export interface GreetingInput {
   stopCount: number;
 }
 
+/** True until the Scout has finished a session: the Den Chief explains the game on the first one. */
+export function isFirstSession(profile: Profile): boolean {
+  return profile.sessions.length === 0;
+}
+
 /**
  * Which greeting the Den Chief gives: the trail is already done today (offer a bonus), there is
  * nothing to do, the very first session, a returning Scout with a streak, or just returning.
@@ -133,7 +150,7 @@ export interface GreetingInput {
 export function chooseGreeting({ profile, today, stopCount }: GreetingInput): GreetingKind {
   if (isTrailDoneToday(profile, today)) return 'done';
   if (stopCount === 0) return 'nothing';
-  if (profile.sessions.length === 0) return 'first';
+  if (isFirstSession(profile)) return 'first';
   if (activeStreak(profile.streak, today) >= 1) return 'streak';
   return 'returning';
 }
@@ -371,21 +388,23 @@ export function createSession(deps: SessionDeps): Session {
     if (choice === 'bonus' && bonus) await bonusLoop(bonus, date);
   }
 
-  async function offerBonus(): Promise<void> {
+  async function offerBonus(): Promise<TalkOutcome> {
     const date = deps.today();
     const bonus = nextBonus(date);
     if (!bonus) {
       await deps.showDialog({ text: say('greetDoneNoBonus') });
-      return;
+      return 'none';
     }
     const choice = await deps.showDialog({
       text: say('greetDone'),
-      choices: ['Bonus stop', 'Not now'],
+      choices: [say('startBonus'), 'Not now'],
     });
-    if (choice === 0) await bonusLoop(bonus, date);
+    if (choice !== 0) return 'none';
+    await bonusLoop(bonus, date);
+    return 'bonus';
   }
 
-  async function talk(): Promise<void> {
+  async function talk(): Promise<TalkOutcome> {
     const date = deps.today();
     const profile = deps.getProfile();
     const done = isTrailDoneToday(profile, date);
@@ -395,11 +414,13 @@ export function createSession(deps: SessionDeps): Session {
     if (kind === 'done') return offerBonus();
     if (kind === 'nothing') {
       await deps.showDialog({ text: say('greetNothing') });
-      return;
+      return 'none';
     }
     const key: LineKey = kind === 'first' ? 'greetFirst' : kind === 'streak' ? 'greetStreak' : 'greetReturning';
-    const choice = await deps.showDialog({ text: say(key), choices: ["Let's go!", 'Not now'] });
-    if (choice === 0) await runTrail();
+    const choice = await deps.showDialog({ text: say(key), choices: [say('choiceGo'), say('choiceLook')] });
+    if (choice !== 0) return 'look-around';
+    await runTrail();
+    return 'trail';
   }
 
   return {
@@ -407,13 +428,17 @@ export function createSession(deps: SessionDeps): Session {
       return busy;
     },
     async talk() {
-      if (busy) return;
+      if (busy) return 'none';
       busy = true;
       try {
-        await talk();
+        return await talk();
       } finally {
         busy = false;
       }
+    },
+    bonusAvailable() {
+      const date = deps.today();
+      return isTrailDoneToday(deps.getProfile(), date) && nextBonus(date) !== undefined;
     },
     view(): TrailView {
       const date = deps.today();

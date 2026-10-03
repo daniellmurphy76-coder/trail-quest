@@ -43,7 +43,7 @@ describe('craftActivity', () => {
     expect(host.querySelector('.tq-bench__count')?.textContent).toBe('0 of 4 packed');
     expect(host.querySelectorAll('.tq-chip')).toHaveLength(7);
     for (const item of [...PARAMS.ingredients, ...PARAMS.distractors!]) expect(chip(item.label)).toBeDefined();
-    expect(ctx.speak).toHaveBeenCalledWith(PARAMS.prompt);
+    expect(ctx.speak).not.toHaveBeenCalled();
     buttonByText(host, 'Back').click();
     await result;
   });

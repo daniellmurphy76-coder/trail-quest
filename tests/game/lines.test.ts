@@ -69,7 +69,18 @@ describe('Den Chief lines', () => {
   });
 
   it('fills every placeholder and leaves none behind', () => {
-    const vars = { name: 'Rowan', guide: 'Den Chief', streak: 4, xp: 30, title: 'A test title', adventure: 'Test Camp', zone: 'Nature Trail' };
+    const vars = {
+      name: 'Rowan',
+      guide: 'Den Chief',
+      streak: 4,
+      xp: 30,
+      title: 'A test title',
+      adventure: 'Test Camp',
+      zone: 'Nature Trail',
+      done: 1,
+      total: 3,
+      steps: 12,
+    };
     for (const key of KEYS) {
       for (const level of ['grade2', 'grade5'] as const) {
         expect(line(key, level, vars), `${key}.${level}`).not.toMatch(/[{}]/);
@@ -88,6 +99,38 @@ describe('Den Chief lines', () => {
     expect(line('badgeEarned', 'grade5', { adventure: 'Test Camp' })).toBe('You earned the Test Camp badge!');
     expect(line('approvalTitle', 'grade2', { title: 'Test chore' })).toBe('Ask your parent to approve: Test chore');
     expect(line('travel', 'grade2', { zone: ZONE_LABELS['nature-trail'] })).toBe('Walking to the Nature Trail…');
+  });
+
+  it('teaches the game in the first greeting: what a trail is, three stops, the campfire grows', () => {
+    const wolf = line('greetFirst', 'grade2', { name: 'Rowan', guide: 'Den Chief' });
+    expect(wolf).toBe('Hi Rowan, I am Den Chief! A trail is three quick stops. Do them all to grow your campfire!');
+    const arrow = line('greetFirst', 'grade5', { name: 'Rowan', guide: 'Den Chief' });
+    expect(arrow).toMatch(/trail is three quick stops/);
+    expect(arrow).toMatch(/campfire grow/);
+    // Two or three short sentences after the hello, never a lecture.
+    expect(sentences(wolf)).toHaveLength(3);
+    expect(sentences(arrow)).toHaveLength(3);
+  });
+
+  it('words the two choices, the Start button and the HUD the way the brief does', () => {
+    for (const level of ['grade2', 'grade5'] as const) {
+      expect(line('choiceGo', level)).toBe("Let's go!");
+      expect(line('choiceLook', level)).toBe('Look around first');
+      expect(line('startTrail', level)).toBe("Start today's trail");
+      expect(line('startBonus', level)).toBe('Bonus stop');
+      expect(line('hudTrail', level)).toBe("Today's Trail");
+      expect(line('hudProgress', level, { done: 1, total: 3 })).toBe('1 of 3');
+      expect(line('hudProgressDone', level)).toBe('\u2713 Done');
+      expect(line('compassSteps', level, { steps: 12 })).toBe('12 steps');
+      expect(line('compassStep', level)).toBe('1 step');
+    }
+  });
+
+  it('writes the controls hint for keyboard and touch', () => {
+    expect(LINES.hintWalkKeys.grade2).toBe('Walk: arrow keys or [W] [A] [S] [D].');
+    expect(LINES.hintTalkKeys.grade2).toBe('Talk: [E]');
+    expect(LINES.hintWalkTouch.grade2).toBe('Walk: drag the circle.');
+    expect(LINES.hintTalkTouch.grade2).toBe('Talk: tap the big button.');
   });
 
   it('maps reading levels to the two wordings', () => {

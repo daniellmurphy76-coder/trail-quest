@@ -6,7 +6,7 @@ import { badgeSvg, showBadgeCard } from '../../src/game/screens/badge';
 import { createHud } from '../../src/game/screens/hud';
 import { showParentMode } from '../../src/game/screens/parent';
 import { showProfilePicker } from '../../src/game/screens/profile-picker';
-import { defaultReadAloud, showProfileSetup } from '../../src/game/screens/profile-setup';
+import { showProfileSetup } from '../../src/game/screens/profile-setup';
 import { showSummary } from '../../src/game/screens/summary';
 import { showTrailPanel } from '../../src/game/screens/trail-panel';
 import { showTrailSign } from '../../src/game/screens/trail-sign';
@@ -20,7 +20,6 @@ beforeEach(() => {
   host = makeHost();
 });
 
-const speak = vi.fn();
 const RANKS = [
   { rank: 'wolf' as const, label: 'Test Wolf', grade: 2 },
   { rank: 'arrow-of-light' as const, label: 'Test Arrow', grade: 5 },
@@ -33,7 +32,7 @@ function typeInto(input: HTMLInputElement, value: string): void {
 
 describe('profile setup', () => {
   it('asks who is playing, with a big name field and the rank cards from the content', () => {
-    void showProfileSetup(host, { ranks: RANKS, speak, allowCancel: false });
+    void showProfileSetup(host, { ranks: RANKS, allowCancel: false });
     expect(host.textContent).toContain('Who is playing?');
     expect(host.textContent).toContain('Test Wolf · grade 2');
     expect(host.textContent).toContain('Test Arrow · grade 5');
@@ -45,40 +44,24 @@ describe('profile setup', () => {
     expect(host.textContent).not.toContain('Back');
   });
 
-  it('resolves the new profile options and defaults read-aloud from the rank', async () => {
-    const result = showProfileSetup(host, { ranks: RANKS, speak, allowCancel: false });
+  it('resolves the new profile options, with no read-aloud setting anywhere', async () => {
+    const result = showProfileSetup(host, { ranks: RANKS, allowCancel: false });
     typeInto(host.querySelector<HTMLInputElement>('input[name="scout-name"]')!, '  Rowan ');
-    const readAloud = host.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    expect(host.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(host.textContent).not.toContain('Read to me');
 
     buttonByText(host, 'Test Arrow').click();
-    expect(readAloud.checked).toBe(defaultReadAloud('arrow-of-light'));
-    expect(readAloud.checked).toBe(false);
     buttonByText(host, 'Test Wolf').click();
-    expect(readAloud.checked).toBe(true);
     expect(buttonByText(host, 'Test Wolf').getAttribute('aria-pressed')).toBe('true');
     expect(buttonByText(host, 'Test Wolf').textContent).toContain('Picked');
 
     buttonByText(host, "Let's start").click();
-    await expect(result).resolves.toEqual({ name: 'Rowan', rank: 'wolf', guideName: 'Den Chief', readAloud: true });
+    await expect(result).resolves.toEqual({ name: 'Rowan', rank: 'wolf', guideName: 'Den Chief' });
     expect(host.querySelector('.tq-overlay')).toBeNull();
   });
 
-  it('keeps a read-aloud choice the kid made, even when the rank changes', async () => {
-    const result = showProfileSetup(host, { ranks: RANKS, speak, allowCancel: false });
-    typeInto(host.querySelector<HTMLInputElement>('input[name="scout-name"]')!, 'Rowan');
-    typeInto(host.querySelector<HTMLInputElement>('input[name="guide-name"]')!, 'Captain Sam');
-    buttonByText(host, 'Test Wolf').click();
-    const readAloud = host.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
-    readAloud.checked = false;
-    readAloud.dispatchEvent(new Event('change', { bubbles: true }));
-    buttonByText(host, 'Test Arrow').click();
-    expect(readAloud.checked).toBe(false);
-    buttonByText(host, "Let's start").click();
-    await expect(result).resolves.toMatchObject({ rank: 'arrow-of-light', guideName: 'Captain Sam', readAloud: false });
-  });
-
   it('asks for a name and a rank before it lets the kid start', async () => {
-    const result = showProfileSetup(host, { ranks: RANKS, speak, allowCancel: false });
+    const result = showProfileSetup(host, { ranks: RANKS, allowCancel: false });
     buttonByText(host, "Let's start").click();
     expect(host.querySelector('[role="alert"]')!.textContent).toContain('Type your name');
     typeInto(host.querySelector<HTMLInputElement>('input[name="scout-name"]')!, 'Rowan');
@@ -91,7 +74,7 @@ describe('profile setup', () => {
   });
 
   it('has a Back button when there are other Scouts, which resolves null', async () => {
-    const result = showProfileSetup(host, { ranks: RANKS, speak, allowCancel: true });
+    const result = showProfileSetup(host, { ranks: RANKS, allowCancel: true });
     buttonByText(host, 'Back').click();
     await expect(result).resolves.toBeNull();
   });
@@ -104,7 +87,7 @@ describe('profile picker', () => {
   ];
 
   it('shows a card for each Scout with rank, streak flame and a big Play button', () => {
-    void showProfilePicker(host, { profiles, speak });
+    void showProfilePicker(host, { profiles });
     expect(host.querySelectorAll('.tq-profile')).toHaveLength(2);
     expect(host.textContent).toContain('Rowan');
     expect(host.textContent).toContain('Wolf');
@@ -115,15 +98,15 @@ describe('profile picker', () => {
   });
 
   it('resolves play, add and parent choices', async () => {
-    let result = showProfilePicker(host, { profiles, speak });
+    let result = showProfilePicker(host, { profiles });
     host.querySelectorAll<HTMLButtonElement>('.tq-profile .tq-btn--primary')[1]!.click();
     await expect(result).resolves.toEqual({ kind: 'play', profileId: 'b' });
 
-    result = showProfilePicker(host, { profiles, speak });
+    result = showProfilePicker(host, { profiles });
     buttonByText(host, 'Add a Scout').click();
     await expect(result).resolves.toEqual({ kind: 'add' });
 
-    result = showProfilePicker(host, { profiles, speak });
+    result = showProfilePicker(host, { profiles });
     buttonByText(host, 'Parent').click();
     await expect(result).resolves.toEqual({ kind: 'parent' });
   });
@@ -152,7 +135,6 @@ describe('trail panel', () => {
   it('lists the stops with an icon and a word for each status, plus Switch Scout and Parent', async () => {
     const result = showTrailPanel(host, {
       level: 'grade2',
-      speak,
       view: {
         state: 'ready',
         items: [
@@ -176,16 +158,16 @@ describe('trail panel', () => {
   });
 
   it('says so when the trail is done or empty', () => {
-    void showTrailPanel(host, { level: 'grade2', speak, view: { state: 'done-today', items: [] } });
+    void showTrailPanel(host, { level: 'grade2', view: { state: 'done-today', items: [] } });
     expect(host.textContent).toContain('All done for today!');
     expect(host.querySelectorAll('.tq-trail-item')).toHaveLength(0);
   });
 
   it('resolves parent and close', async () => {
-    let result = showTrailPanel(host, { level: 'grade5', speak, view: { state: 'empty', items: [] } });
+    let result = showTrailPanel(host, { level: 'grade5', view: { state: 'empty', items: [] } });
     buttonByText(host, 'Parent').click();
     await expect(result).resolves.toBe('parent');
-    result = showTrailPanel(host, { level: 'grade5', speak, view: { state: 'empty', items: [] } });
+    result = showTrailPanel(host, { level: 'grade5', view: { state: 'empty', items: [] } });
     buttonByText(host, 'Close').click();
     await expect(result).resolves.toBe('close');
   });
@@ -209,7 +191,7 @@ describe('approval screen', () => {
   };
 
   it('asks the kid to get a parent and shows the mission and the parent note', async () => {
-    const result = showApprovalScreen(host, { info, level: 'grade2', vars: { name: 'Rowan' }, speak });
+    const result = showApprovalScreen(host, { info, level: 'grade2', vars: { name: 'Rowan' } });
     expect(host.textContent).toContain('Ask your parent to approve: Test camp errand');
     expect(host.textContent).toContain('Check that the test errand is finished.');
     expect(host.textContent).toContain('Do test step one.');
@@ -218,7 +200,7 @@ describe('approval screen', () => {
   });
 
   it('resolves false on Not now', async () => {
-    const result = showApprovalScreen(host, { info: { ...info, parentNote: undefined }, level: 'grade5', vars: {}, speak });
+    const result = showApprovalScreen(host, { info: { ...info, parentNote: undefined }, level: 'grade5', vars: {} });
     expect(host.querySelector('.tq-parent-note')).toBeNull();
     buttonByText(host, 'Not now').click();
     await expect(result).resolves.toBe(false);
@@ -232,7 +214,7 @@ describe('badge card', () => {
     expect(svg.querySelectorAll('circle')).toHaveLength(2);
     expect(svg.querySelector('image')).toBeNull();
 
-    const done = showBadgeCard(host, { adventureName: 'Test Camp', level: 'grade2', vars: {}, speak });
+    const done = showBadgeCard(host, { adventureName: 'Test Camp', level: 'grade2', vars: {} });
     expect(host.textContent).toContain('You earned the Test Camp badge!');
     expect(host.querySelector('svg')).not.toBeNull();
     buttonByText(host, 'Great!').click();
@@ -252,7 +234,7 @@ describe('summary', () => {
   };
 
   it('shows stops, XP, the lit campfire, badges and the goodbye', async () => {
-    const result = showSummary(host, { info, level: 'grade2', vars: { name: 'Rowan' }, speak });
+    const result = showSummary(host, { info, level: 'grade2', vars: { name: 'Rowan' } });
     const text = host.textContent ?? '';
     expect(text).toContain('3 of 3');
     expect(text).toContain('60 XP');
@@ -268,7 +250,6 @@ describe('summary', () => {
       info: { ...info, streakLit: false, bonusAvailable: false, badges: [] },
       level: 'grade5',
       vars: {},
-      speak,
     });
     expect(host.textContent).not.toContain('Bonus stop');
     expect(host.textContent).not.toContain('Your campfire is lit');

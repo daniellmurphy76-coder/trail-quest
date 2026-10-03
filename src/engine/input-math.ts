@@ -77,6 +77,28 @@ export function isInJoystickZone(clientX: number, screenWidth: number, fraction 
   return clientX >= 0 && clientX < screenWidth * fraction;
 }
 
+export type JoystickView = 'hidden' | 'rest' | 'drag';
+
+export interface JoystickViewInput {
+  /** The touch controls are showing: a coarse-pointer device, or a touch has been seen. */
+  touchControls: boolean;
+  /** A finger is down and moving the stick. */
+  dragging: boolean;
+  /** Game input is on (no dialog or screen is open). */
+  enabled: boolean;
+}
+
+/**
+ * Where the joystick ring is. On touch devices it rests in the bottom-left corner, faint, so a
+ * kid can see there is a stick before touching anything. While a finger drags it, the ring moves
+ * to the finger. It is hidden on laptops and whenever a screen is open.
+ */
+export function joystickView({ touchControls, dragging, enabled }: JoystickViewInput): JoystickView {
+  if (!enabled) return 'hidden';
+  if (dragging) return 'drag';
+  return touchControls ? 'rest' : 'hidden';
+}
+
 export interface ActionStep {
   /** Held down (or was pressed and released since the last step). */
   down: boolean;

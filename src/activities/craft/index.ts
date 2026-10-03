@@ -1,10 +1,10 @@
 import { h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
-import { button, readButton, srOnly } from '../../ui/widgets';
+import { button, srOnly } from '../../ui/widgets';
 import { shuffleSteps } from '../sequence/shuffle';
 import { cardHeader, feedbackSlot } from '../shared';
-import type { ActivityContext, ActivityController, ActivityResult, CraftParams } from '../types';
+import type { ActivityController, ActivityResult, CraftParams } from '../types';
 import './craft.css';
 
 interface Item {
@@ -39,7 +39,7 @@ function mixItems(items: readonly Item[]): Item[] {
  * distractor shakes it and says "Not yet"; the chip stays. No fail: tap as often as you like.
  * Completes when every ingredient is packed. score = 1 - wrongTaps / ingredients, clamped to 0..1.
  */
-function runCraft(host: HTMLElement, params: CraftParams, ctx: ActivityContext): Promise<ActivityResult> {
+function runCraft(host: HTMLElement, params: CraftParams): Promise<ActivityResult> {
   const total = params.ingredients.length;
   if (total === 0) return Promise.resolve({ completed: false, attempts: 0 });
 
@@ -133,8 +133,7 @@ function runCraft(host: HTMLElement, params: CraftParams, ctx: ActivityContext):
           bench.classList.add('is-done');
           chipList.hidden = true;
           hint.hidden = true;
-          readItems.hidden = true;
-          showResultBanner(slot, 'yes', `You made the ${params.result}!`, { speak: ctx.speak });
+          showResultBanner(slot, 'yes', `You made the ${params.result}!`);
           const next = button('Finish', { variant: 'primary', onClick: () => finish(true) });
           actions.append(next);
           overlay.setDefault(next);
@@ -146,25 +145,22 @@ function runCraft(host: HTMLElement, params: CraftParams, ctx: ActivityContext):
       } else {
         wrongTaps += 1;
         shake(chip.btn);
-        showResultBanner(slot, 'notyet', `That does not belong in the ${params.result}.`, { speak: ctx.speak });
+        showResultBanner(slot, 'notyet', `That does not belong in the ${params.result}.`);
       }
     }
 
     const hint = h('p', { class: 'tq-hint' }, `Tap what goes in the ${params.result}.`);
-    const readItems = readButton(() => chips.map((c) => c.item.label).join('. '), ctx.speak, 'Read the items');
 
     overlay.card.append(
       cardHeader('Make it at the bench', () => finish(false)),
-      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt), readButton(params.prompt, ctx.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt)),
       bench,
       hint,
       chipList,
-      h('div', { class: 'tq-actions' }, readItems),
       slot,
       actions,
     );
     overlay.focus(chips[0]?.btn);
-    ctx.speak(params.prompt);
   });
 }
 

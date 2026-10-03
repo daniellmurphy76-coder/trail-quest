@@ -1,7 +1,6 @@
 import { append, h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
-import type { Speak } from '../../ui/speech';
-import { button, readButton } from '../../ui/widgets';
+import { button } from '../../ui/widgets';
 import { line, PARENT_TEXT, type LineLevel, type LineVars } from '../lines';
 import type { ApprovalInfo } from '../session';
 
@@ -9,7 +8,6 @@ export interface ApprovalScreenOptions {
   info: ApprovalInfo;
   level: LineLevel;
   vars: LineVars;
-  speak: Speak;
 }
 
 /**
@@ -26,7 +24,7 @@ export function showApprovalScreen(host: HTMLElement, options: ApprovalScreenOpt
       overlay.close();
       resolve(value);
     };
-    const { info, level, speak } = options;
+    const { info, level } = options;
     const title = line('approvalTitle', level, { ...options.vars, title: info.title });
     const help = line('approvalHelp', level, options.vars);
     const overlay = mountOverlay(host, {
@@ -40,7 +38,7 @@ export function showApprovalScreen(host: HTMLElement, options: ApprovalScreenOpt
 
     append(overlay.card, [
       h('p', { class: 'tq-eyebrow' }, 'Field mission'),
-      h('div', { class: 'tq-prompt' }, h('h2', null, title), readButton(`${title}. ${help}`, speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, title)),
       h('p', null, help),
       info.steps.length > 0 ? h('ol', { class: 'tq-steps' }, ...info.steps.map((step) => h('li', null, h('span', null, step)))) : null,
       h(
@@ -54,6 +52,5 @@ export function showApprovalScreen(host: HTMLElement, options: ApprovalScreenOpt
     ]);
     overlay.setDefault(go);
     overlay.focus(go);
-    speak(title);
   });
 }

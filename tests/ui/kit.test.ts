@@ -2,7 +2,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clear, h } from '../../src/ui/dom';
 import { showResultBanner } from '../../src/ui/feedback';
-import { createSpeaker, prepareSpeechOnFirstGesture } from '../../src/ui/speech';
 import { showToast } from '../../src/ui/toast';
 import { makeHost } from './helpers';
 
@@ -93,66 +92,8 @@ describe('showResultBanner', () => {
     expect(host.querySelector('.tq-banner')).toBeNull();
   });
 
-  it('can carry a Read button that speaks the word and text', () => {
-    const speak = vi.fn();
-    showResultBanner(host, 'notyet', 'Try again.', { speak });
-    (host.querySelector('button') as HTMLButtonElement).click();
-    expect(speak).toHaveBeenCalledWith('Not yet Try again.', { force: true });
-  });
-});
-
-describe('createSpeaker', () => {
-  it('does nothing when speech is unavailable', () => {
-    vi.stubGlobal('speechSynthesis', undefined);
-    expect(() => createSpeaker(() => true)('Hello')).not.toThrow();
-  });
-
-  function stubSpeech() {
-    const spoken: { text: string; rate: number; lang: string; voice: unknown }[] = [];
-    const calls: string[] = [];
-    const voices = [
-      { lang: 'fr-FR', name: 'Fr' },
-      { lang: 'en-GB', name: 'Gb' },
-      { lang: 'en-US', name: 'Us' },
-    ];
-    vi.stubGlobal('SpeechSynthesisUtterance', function (this: Record<string, unknown>, text: string) {
-      this.text = text;
-    });
-    vi.stubGlobal('speechSynthesis', {
-      getVoices: () => voices,
-      cancel: () => calls.push('cancel'),
-      speak: (u: { text: string; rate: number; lang: string; voice: unknown }) => {
-        calls.push('speak');
-        spoken.push(u);
-      },
-    });
-    return { spoken, calls, voices };
-  }
-
-  it('cancels first, speaks at rate 0.95 with an en-US voice', () => {
-    const { spoken, calls, voices } = stubSpeech();
-    createSpeaker(() => true)('Hello there');
-    expect(calls).toEqual(['cancel', 'speak']);
-    expect(spoken[0]?.text).toBe('Hello there');
-    expect(spoken[0]?.rate).toBe(0.95);
-    expect(spoken[0]?.lang).toBe('en-US');
-    expect(spoken[0]?.voice).toBe(voices[2]);
-  });
-
-  it('stays quiet when disabled, unless forced', () => {
-    const { spoken } = stubSpeech();
-    const speak = createSpeaker(() => false);
-    speak('Hello');
-    expect(spoken).toHaveLength(0);
-    speak('Hello', { force: true });
-    expect(spoken).toHaveLength(1);
-  });
-
-  it('warms speech on the first pointerdown only', () => {
-    const { spoken } = stubSpeech();
-    prepareSpeechOnFirstGesture();
-    document.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    document.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    expect(spoken).toHaveLength(1);
+  it('has no buttons: a banner is only words and an icon', () => {
+    showResultBanner(host, 'notyet', 'Try again.');
+    expect(host.querySelector('button')).toBeNull();
   });
 });

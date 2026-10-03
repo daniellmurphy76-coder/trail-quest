@@ -72,6 +72,38 @@ body {
   padding: 2px 12px;
 }
 
+/* The "go here" arrow bobbing over the Den Chief. An accent glyph with a dark outline, no box. */
+.tq-label.tq-objective {
+  padding: 0;
+  background: none;
+  color: #f2b705;
+  font-size: 44px;
+  line-height: 1;
+  text-shadow:
+    -2px 0 #1f2a1f,
+    2px 0 #1f2a1f,
+    0 -2px #1f2a1f,
+    0 2px #1f2a1f;
+  animation: tq-objective-bob 900ms ease-in-out infinite;
+}
+
+/* The individual `translate` property composes with the transform WorldLabels sets each frame. */
+@keyframes tq-objective-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-label.tq-objective {
+    animation: none;
+  }
+}
+
 /* Virtual joystick: a ring where the finger landed and a knob that follows it. */
 .tq-joy {
   position: absolute;
@@ -89,6 +121,19 @@ body {
 
 .tq-joy.is-on {
   display: block;
+}
+
+/*
+ * At rest on touch devices: a faint ring in the bottom-left corner, so a kid can see there is a
+ * stick before touching anything. A drag still starts anywhere on the left 60% of the screen and
+ * moves the ring to the finger (is-on); the two classes are never set together.
+ */
+.tq-joy.is-rest {
+  display: block;
+  left: calc(24px + env(safe-area-inset-left, 0px));
+  top: auto;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  opacity: 0.6;
 }
 
 .tq-joy-knob {

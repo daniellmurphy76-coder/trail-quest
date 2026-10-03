@@ -43,3 +43,8 @@ export function press(target: EventTarget, key: string): void {
 
 /** Lets pending promise callbacks run. */
 export const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
+/** A pointer tap or mouse click, which (unlike element.click()) carries detail 1 like a real one. */
+export function tap(target: Element): void {
+  target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+}

@@ -1,7 +1,23 @@
 import * as THREE from 'three';
+import { assets } from '../engine/assets';
+import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
-import { campfire, flagpole, lodge, personPlaceholder, rock, tree, type Spot } from './props';
+import { createGround, createGroundApron } from './ground';
+import {
+  campfire,
+  flagpole,
+  instancedModel,
+  lodge,
+  personPlaceholder,
+  rock,
+  scatterModels,
+  scatterPlants,
+  tree,
+  type AvoidCircle,
+  type Placement,
+  type Spot,
+} from './props';
 import type { Interactable, Zone } from './zone';
 
 export interface BaseCampOptions {
@@ -14,40 +30,67 @@ const WALK_HALF = 25;
 const TREE_COUNT = 40;
 const SEED = 2026;
 
+const GRASS_COLOR = 0x5f9e45;
+const DIRT_COLOR = 0xb89a6a;
+/** Solid dirt out to this radius around the campfire, then it fades to grass over the feather. */
+const CLEARING_RADIUS = 8;
+const CLEARING_FEATHER = 3;
+const PLANT_COUNT = 150;
+
 const DEN_CHIEF_COLOR = 0x2f6fd0; // blue, easy to tell from the scout's gold
 const DEN_CHIEF_HEIGHT = 2.3;
+/** The Den Chief model is a little taller than the scouts, who stand 1.8 units in the manifest. */
+const DEN_CHIEF_MODEL_SCALE = 2.1 / 1.8;
 
-/** Base Camp: the hub. Flat clearing, a ring of trees, a campfire, a flagpole, a lodge, and the Den Chief. */
+/** Models that replace or add to the primitive props once they load. */
+const TREE_MODELS = ['tree.pine', 'tree.pine.tall', 'tree.round', 'tree.oak'] as const;
+const ROCK_MODELS = ['rock.large', 'rock.tall', 'rock.small'] as const;
+const BASE_CAMP_MODELS = [
+  ...TREE_MODELS,
+  ...ROCK_MODELS,
+  'campfire',
+  'tent',
+  'tent.small',
+  'cabin',
+  'signpost',
+  'character.denchief',
+] as const;
+
+/** Yaw that turns a model whose front is +z to look at (tx, tz) from (x, z). */
+function yawToward(x: number, z: number, tx: number, tz: number): number {
+  return Math.atan2(tx - x, tz - z);
+}
+
+/**
+ * Base Camp: the hub. A dirt clearing in rolling grass, a ring of trees, a campfire, a flagpole, a
+ * lodge, and the Den Chief. The zone carries no lights: the world's environment (sun, sky light,
+ * fog) lights every zone, and the campfire adds its own warm point light.
+ */
 export function createBaseCamp(opts: BaseCampOptions): Zone {
   const root = new THREE.Group();
   root.name = 'base-camp';
   const rng = mulberry32(SEED);
 
-  // Lighting lives with the zone so each zone can set its own mood.
-  root.add(new THREE.HemisphereLight(0xe4f4ff, 0x4a7c3a, 1.1));
-  const sun = new THREE.DirectionalLight(0xfff4e0, 1.4);
-  sun.position.set(30, 50, 20);
-  root.add(sun);
-
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE).rotateX(-Math.PI / 2),
-    new THREE.MeshLambertMaterial({ color: 0x4caf50 }),
+  // Ground and plants use their own random streams, so the trees and rocks never move when the
+  // ground or the plants change.
+  root.add(createGroundApron(GRASS_COLOR));
+  root.add(
+    createGround({
+      size: GROUND_SIZE,
+      rng: mulberry32(SEED + 2),
+      grass: GRASS_COLOR,
+      dirt: DIRT_COLOR,
+      path: { center: { x: 0, z: 0 }, radius: CLEARING_RADIUS, feather: CLEARING_FEATHER },
+    }),
   );
-  root.add(ground);
-
-  const clearing = new THREE.Mesh(
-    new THREE.CircleGeometry(9, 40).rotateX(-Math.PI / 2),
-    new THREE.MeshLambertMaterial({ color: 0xc9ad78 }),
-  );
-  clearing.position.y = 0.02;
-  root.add(clearing);
 
   // Ring of trees just outside the walkable square, so the edge reads as a forest wall.
   const treeSpots: Spot[] = [];
   for (let i = 0; i < TREE_COUNT; i++) {
     treeSpots.push(perimeterPoint((i + rng() * 0.7) / TREE_COUNT, WALK_HALF + 1.5 + rng() * 2));
   }
-  root.add(tree(rng, treeSpots));
+  const primitiveTrees = tree(rng, treeSpots);
+  root.add(primitiveTrees);
 
   const rockSpots: Spot[] = [
     { x: 10, z: 7 },
@@ -57,7 +100,8 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
     { x: -6, z: 17 },
     { x: 19, z: 3 },
   ];
-  root.add(rock(rng, rockSpots));
+  const primitiveRocks = rock(rng, rockSpots);
+  root.add(primitiveRocks);
 
   const fire = campfire();
   root.add(fire.root);
@@ -78,6 +122,34 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
   denChief.rotation.y = Math.atan2(spawn.x - denChief.position.x, spawn.z - denChief.position.z);
   root.add(denChief);
 
+  // Plants gather around the clearing's edge and at the feet of props, and keep off the dirt, the
+  // spawn point, and the doorsteps. They are decoration only: nothing here blocks the player.
+  const tentSpots = [
+    { x: 6, z: -16.5 },
+    { x: 13.5, z: -15.5 },
+  ];
+  const smallTentSpot = { x: -1.5, z: -18.5 };
+  const keepClear: AvoidCircle[] = [
+    { x: 0, z: 0, radius: CLEARING_RADIUS + 2 },
+    { x: spawn.x, z: spawn.z, radius: 2.5 },
+    { x: pole.position.x, z: pole.position.z, radius: 1.8 },
+    { x: cabin.position.x, z: cabin.position.z, radius: 7 },
+    { x: -5.5, z: 3.5, radius: 1.6 }, // signpost
+    ...rockSpots.map((r) => ({ x: r.x, z: r.z, radius: 1.8 })),
+    ...tentSpots.map((t) => ({ ...t, radius: 3.2 })),
+    { ...smallTentSpot, radius: 2.6 },
+  ];
+  const plantRng = mulberry32(SEED + 3);
+  root.add(
+    scatterPlants(
+      plantRng,
+      PLANT_COUNT,
+      { minX: -(WALK_HALF - 0.5), maxX: WALK_HALF - 0.5, minZ: -(WALK_HALF - 0.5), maxZ: WALK_HALF - 0.5 },
+      keepClear,
+      { edgeFalloff: 3.5 },
+    ),
+  );
+
   const talk: Interactable = {
     id: 'den-chief',
     // y is the label height (see Interactable): just above the Den Chief's head.
@@ -88,12 +160,83 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
     onInteract: opts.onTalkToDenChief,
   };
 
+  // ---- progressive swap: primitives stay until the models arrive -----------------------------------
+  // Draw calls after the swap (about 31): ground 2 (apron + ground), trees up to 4, rocks up to 3,
+  // campfire 5 (model 2, flames 2, embers 1), flagpole 3, cabin 1, tents 2, signpost 1, plants up
+  // to 8, Den Chief 2 plus its blob shadow 1. Primitives only: about 26. The sun's shadow pass
+  // draws the casting props a second time, about 20 more.
+  let denChiefAnimator: ReturnType<typeof assets.animator>;
+
+  const swapInModels = (): void => {
+    const modelRng = mulberry32(SEED + 1); // separate stream, so the primitive layout never shifts
+
+    const trees = scatterModels('trees', TREE_MODELS, treeSpots, modelRng, [0.85, 1.3]);
+    if (trees) {
+      root.remove(primitiveTrees);
+      root.add(trees);
+    }
+
+    const rocks = scatterModels('rocks', ROCK_MODELS, rockSpots, modelRng, [0.8, 1.4]);
+    if (rocks) {
+      root.remove(primitiveRocks);
+      root.add(rocks);
+    }
+
+    fire.useModel();
+
+    if (assets.has('cabin')) {
+      const model = assets.instance('cabin');
+      model.position.copy(cabin.position);
+      model.rotation.y = cabin.rotation.y;
+      setShadowCasting(model, true, true);
+      root.remove(cabin);
+      root.add(model);
+    }
+
+    // Camp extras that only exist once the art is here: tents ringed around the fire, a signpost.
+    const tentPlacements: Placement[] = tentSpots.map((p) => ({ ...p, yaw: yawToward(p.x, p.z, 0, 0) }));
+    const tents = instancedModel('tent', tentPlacements);
+    if (tents) root.add(tents);
+    const smallTent = instancedModel('tent.small', [
+      { ...smallTentSpot, yaw: yawToward(smallTentSpot.x, smallTentSpot.z, 0, 0) },
+    ]);
+    if (smallTent) root.add(smallTent);
+
+    if (assets.has('signpost')) {
+      const sign = assets.instance('signpost');
+      sign.position.set(-5.5, 0, 3.5);
+      sign.rotation.y = 0.3;
+      setShadowCasting(sign, true, true);
+      root.add(sign);
+    }
+
+    if (assets.has('character.denchief')) {
+      const model = assets.instance('character.denchief');
+      model.scale.setScalar(DEN_CHIEF_MODEL_SCALE);
+      setShadowCasting(model, true, true);
+      denChief.body.visible = false; // the blob shadow stays
+      denChief.add(model);
+      denChiefAnimator = assets.animator('character.denchief', model);
+      denChiefAnimator?.play('idle', 0);
+    }
+  };
+
+  assets
+    .load(BASE_CAMP_MODELS)
+    .then(swapInModels)
+    .catch((err: unknown) => {
+      console.warn('[base-camp] could not swap in models, keeping placeholder art', err);
+    });
+
   return {
     id: 'base-camp',
     root,
     bounds: squareBounds(WALK_HALF),
     spawn,
     interactables: [talk],
-    update: (dt: number) => fire.update(dt),
+    update: (dt: number) => {
+      fire.update(dt);
+      denChiefAnimator?.update(dt);
+    },
   };
 }

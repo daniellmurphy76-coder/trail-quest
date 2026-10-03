@@ -10,10 +10,10 @@ export interface FollowTarget {
 }
 
 export const CAMERA_FOV = 50;
-export const CAMERA_DISTANCE = 7;
-export const CAMERA_HEIGHT = 4;
+export const CAMERA_DISTANCE = 7.5;
+export const CAMERA_HEIGHT = 3;
 /** The camera looks at a point this far above the player's feet. */
-export const CAMERA_LOOK_HEIGHT = 1.2;
+export const CAMERA_LOOK_HEIGHT = 1.8;
 
 // Damping rates, "per second". Bigger is snappier.
 const POSITION_K = 6;

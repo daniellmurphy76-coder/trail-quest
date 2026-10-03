@@ -185,10 +185,6 @@
   background: var(--tq-surface);
 }
 
-.tq-btn--read {
-  flex: 0 0 auto;
-}
-
 .tq-btn--choice {
   width: 100%;
   min-height: 64px;
@@ -212,14 +208,14 @@
   font-weight: 700;
 }
 
-/* ---------- Dialog (speech bubble) ---------- */
+/* ---------- Dialog (dialogue box) ---------- */
 
 .tq-overlay--dialog {
   background: rgba(31, 42, 31, 0.25);
 }
 
 .tq-overlay--dialog > .tq-card {
-  margin: auto auto 28px; /* sits low, like a speech bubble over the scene */
+  margin: auto auto 28px; /* sits low, like a dialogue box over the scene */
   padding-top: 32px;
 }
 
@@ -263,6 +259,11 @@
 
 .tq-dialog__text {
   font-size: 1.1em;
+}
+
+/* The not-yet-typed words stay in the layout, invisible, so the lines never jump while typing. */
+.tq-dialog__rest {
+  visibility: hidden;
 }
 
 .tq-dialog__choices {

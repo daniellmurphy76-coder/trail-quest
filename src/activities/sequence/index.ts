@@ -1,9 +1,9 @@
 import { h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
-import { button, readButton, srOnly } from '../../ui/widgets';
+import { button, srOnly } from '../../ui/widgets';
 import { cardHeader, feedbackSlot } from '../shared';
-import type { ActivityContext, ActivityController, ActivityResult, SequenceParams } from '../types';
+import type { ActivityController, ActivityResult, SequenceParams } from '../types';
 import { shuffleSteps } from './shuffle';
 
 interface Tile {
@@ -17,7 +17,7 @@ interface Tile {
  * "Your order" lane; a wrong one shakes and stays. No fail: tap again as often as you like.
  * Completes when every step is placed. score = 1 - wrongTaps / steps, clamped to 0..1.
  */
-function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityContext): Promise<ActivityResult> {
+function runSequence(host: HTMLElement, params: SequenceParams): Promise<ActivityResult> {
   const steps = params.steps;
   if (steps.length === 0) return Promise.resolve({ completed: false, attempts: 0 });
 
@@ -79,8 +79,7 @@ function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityCon
         tiles.splice(at, 1);
         tile.li.remove();
         if (placed === steps.length) {
-          showResultBanner(slot, 'yes', 'All the steps are in order.', { speak: ctx.speak });
-          readSteps.hidden = true;
+          showResultBanner(slot, 'yes', 'All the steps are in order.');
           const next = button('Next', { variant: 'primary', onClick: () => finish(true) });
           actions.append(next);
           overlay.setDefault(next);
@@ -96,21 +95,17 @@ function runSequence(host: HTMLElement, params: SequenceParams, ctx: ActivityCon
       }
     }
 
-    const readSteps = readButton(() => tiles.map((t) => t.text).join('. '), ctx.speak, 'Read the steps');
-
     overlay.card.append(
       cardHeader('Put the steps in order', () => finish(false)),
-      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt), readButton(params.prompt, ctx.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt)),
       h('p', { class: 'tq-hint' }, 'Tap the step that comes next.'),
       tileList,
-      h('div', { class: 'tq-actions' }, readSteps),
       slot,
       h('p', { class: 'tq-lane__title' }, 'Your order'),
       lane,
       actions,
     );
     overlay.focus(tiles[0]?.btn);
-    ctx.speak(params.prompt);
   });
 }
 

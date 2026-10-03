@@ -3,10 +3,15 @@ import { h } from './dom';
 export interface OverlayOptions {
   /** Accessible name for the dialog. */
   label: string;
-  /** 'dialog' puts the card low on the screen like a speech bubble. Default 'card' is centered. */
+  /** 'dialog' puts the card low on the screen like a dialogue box. Default 'card' is centered. */
   variant?: 'card' | 'dialog';
   /** Extra class for the card, for example 'tq-pin'. */
   cardClass?: string;
+  /**
+   * Called on Enter or Space before the overlay presses a button. Return true to take the key
+   * (nothing is pressed), for example to finish a text reveal first.
+   */
+  onConfirmKey?: (event: KeyboardEvent) => boolean | void;
   /** Called for keys the overlay does not handle itself. Return true if you handled the key. */
   onKey?: (event: KeyboardEvent) => boolean | void;
   /** Called when Escape is pressed. Omit to ignore Escape. */
@@ -81,6 +86,11 @@ export function mountOverlay(host: HTMLElement, options: OverlayOptions): Overla
     }
 
     if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+      if (options.onConfirmKey && options.onConfirmKey(event) === true) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const target =
         event.target instanceof HTMLElement && root.contains(event.target)
           ? event.target

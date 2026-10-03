@@ -50,7 +50,7 @@ describe('sortActivity', () => {
     const ctx = makeCtx();
     const result = sortActivity.run(host, PARAMS, ctx);
     expect(host.textContent).toContain(PARAMS.prompt);
-    expect(ctx.speak).toHaveBeenCalledWith(PARAMS.prompt);
+    expect(ctx.speak).not.toHaveBeenCalled();
     expect(host.querySelectorAll('.tq-bin')).toHaveLength(2);
     expect(host.querySelector('.tq-bins')?.getAttribute('style')).toContain('--tq-bin-count: 2');
     expect(host.textContent).toContain('Pack it');
@@ -86,7 +86,7 @@ describe('sortActivity', () => {
     expect(tent.getAttribute('aria-pressed')).toBe('true');
     expect(tent.querySelector('.tq-chip__mark')?.textContent).toBeTruthy();
     expect(host.querySelector('.tq-hint')?.textContent).toContain('Pretend tent');
-    expect(ctx.speak).toHaveBeenLastCalledWith(expect.stringContaining('Pretend tent'));
+    expect(ctx.speak).not.toHaveBeenCalled();
 
     tent.click();
     expect(tent.classList.contains('is-selected')).toBe(false);

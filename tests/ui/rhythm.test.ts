@@ -165,7 +165,7 @@ afterEach(() => {
 });
 
 describe('rhythmActivity: start state', () => {
-  it('shows the prompt, the exercise name and a counter, and speaks the prompt and exercise', async () => {
+  it('shows the prompt, the exercise name and a counter, and stays silent', async () => {
     const ctx = makeCtx();
     const result = rhythmActivity.run(host, PARAMS, ctx);
     expect(host.textContent).toContain(PARAMS.prompt);
@@ -173,10 +173,7 @@ describe('rhythmActivity: start state', () => {
     expect(counter()).toBe('0 of 5');
     expect(host.textContent).toContain('Ready? Tap to start');
     expect(card().dataset.phase).toBe('ready');
-    expect(ctx.speak).toHaveBeenCalledTimes(1);
-    const spoken = ctx.speak.mock.calls[0]![0];
-    expect(spoken).toContain(PARAMS.prompt);
-    expect(spoken).toContain('Zip bounces');
+    expect(ctx.speak).not.toHaveBeenCalled();
     expect(frames.size).toBe(0); // nothing animates until the first tap
     buttonByText(host, 'Back').click();
     await result;
@@ -187,16 +184,6 @@ describe('rhythmActivity: start state', () => {
     expect(host.querySelectorAll('.tq-rhythm__pad')).toHaveLength(1);
     expect(pad().tagName).toBe('BUTTON');
     expect(Number.parseInt(pad().style.minHeight, 10)).toBeGreaterThanOrEqual(120);
-    buttonByText(host, 'Back').click();
-    await result;
-  });
-
-  it('gives the prompt a Read button that speaks even when auto read-aloud is off', async () => {
-    const ctx = makeCtx();
-    const result = rhythmActivity.run(host, PARAMS, ctx);
-    ctx.speak.mockClear();
-    buttonByText(host, 'Read').click();
-    expect(ctx.speak).toHaveBeenCalledWith(expect.stringContaining(PARAMS.prompt), { force: true });
     buttonByText(host, 'Back').click();
     await result;
   });
@@ -390,10 +377,11 @@ describe('rhythmActivity: finishing', () => {
     await expect(result).resolves.toEqual({ completed: true, attempts: 5, score: 0 });
   });
 
-  it('speaks the cheer, reminds the kid it is practice, and drops Back so the result is not lost', async () => {
+  it('shows the cheer, reminds the kid it is practice, and drops Back so the result is not lost', async () => {
     const { beat0, result, ctx } = start();
     for (let i = 0; i < 5; i += 1) tapAt(beat0 + i * BEAT);
-    expect(ctx.speak).toHaveBeenLastCalledWith(expect.stringContaining('Great job!'));
+    expect(host.textContent).toContain('Great job!');
+    expect(ctx.speak).not.toHaveBeenCalled();
     expect(host.textContent).toContain('This is just practice.');
     expect(maybeButton(host, 'Back')).toBeNull();
     expect(host.querySelector('.tq-rhythm__pad')).toBeNull();

@@ -1,5 +1,4 @@
 import { h, type Child } from './dom';
-import type { Speak } from './speech';
 
 /** Decorative icon character. Hidden from screen readers; the label next to it carries the meaning. */
 export function icon(char: string): HTMLSpanElement {
@@ -36,25 +35,6 @@ export function button(label: Child, options: ButtonOptions = {}): HTMLButtonEle
     options.icon ? icon(options.icon) : null,
     label,
   );
-}
-
-/**
- * The read-aloud button every text box gets: a speaker icon plus the word "Read". It always
- * speaks when tapped, even if automatic read-aloud is off for the profile.
- */
-export function readButton(
-  getText: string | (() => string),
-  speak: Speak,
-  label = 'Read',
-): HTMLButtonElement {
-  const btn = button(label, {
-    variant: 'secondary',
-    icon: '\u{1F50A}',
-    class: 'tq-btn--read',
-    onClick: () => speak(typeof getText === 'function' ? getText() : getText, { force: true }),
-  });
-  if (label === 'Read') btn.setAttribute('aria-label', 'Read aloud');
-  return btn;
 }
 
 let idCounter = 0;

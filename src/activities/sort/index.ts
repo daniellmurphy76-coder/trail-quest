@@ -1,10 +1,10 @@
 import { h } from '../../ui/dom';
 import { showResultBanner } from '../../ui/feedback';
 import { mountOverlay } from '../../ui/overlay';
-import { button, readButton, srOnly } from '../../ui/widgets';
+import { button, srOnly } from '../../ui/widgets';
 import { shuffleSteps } from '../sequence/shuffle';
 import { cardHeader, feedbackSlot } from '../shared';
-import type { ActivityContext, ActivityController, ActivityResult, SortParams } from '../types';
+import type { ActivityController, ActivityResult, SortParams } from '../types';
 import './sort.css';
 
 type SortItem = SortParams['items'][number];
@@ -46,7 +46,7 @@ function orderItems(items: readonly SortItem[]): SortItem[] {
  * score = 1 - wrongPlacements / items, clamped to 0..1. attempts = every placement tried.
  * Items that point at a bin id that does not exist are skipped, so a content slip cannot trap a kid.
  */
-function runSort(host: HTMLElement, params: SortParams, ctx: ActivityContext): Promise<ActivityResult> {
+function runSort(host: HTMLElement, params: SortParams): Promise<ActivityResult> {
   const binIds = new Set(params.bins.map((b) => b.id));
   const items = params.items.filter((item) => binIds.has(item.bin));
   if (params.bins.length === 0 || items.length === 0) return Promise.resolve({ completed: false, attempts: 0 });
@@ -119,8 +119,7 @@ function runSort(host: HTMLElement, params: SortParams, ctx: ActivityContext): P
     const header = cardHeader('', () => finish(false));
     const eyebrow = header.querySelector('.tq-eyebrow')!;
     const hint = h('p', { class: 'tq-hint', attrs: { 'aria-live': 'polite' } }, IDLE_HINT);
-    const readItems = readButton(() => pool.map((c) => c.item.label).join('. '), ctx.speak, 'Read the items');
-    const hintRow = h('div', { class: 'tq-prompt' }, hint, readItems);
+    const hintRow = h('div', { class: 'tq-prompt' }, hint);
 
     function updateProgress(): void {
       eyebrow.textContent = `Sorted ${items.length - pool.length} of ${items.length}`;
@@ -162,7 +161,6 @@ function runSort(host: HTMLElement, params: SortParams, ctx: ActivityContext): P
         return;
       }
       select(chip);
-      ctx.speak(hint.textContent ?? '');
       // A keyboard press has detail 0: carry focus to the bins so Enter or Space can finish the move.
       if (event.detail === 0) overlay.focus(bins[0]?.btn);
     }
@@ -201,7 +199,7 @@ function runSort(host: HTMLElement, params: SortParams, ctx: ActivityContext): P
 
       if (pool.length === 0) {
         hintRow.hidden = true;
-        showResultBanner(slot, 'yes', 'Everything is in its bin.', { speak: ctx.speak });
+        showResultBanner(slot, 'yes', 'Everything is in its bin.');
         const done = button('Finish', { variant: 'primary', onClick: () => finish(true) });
         overlay.card.append(h('div', { class: 'tq-actions' }, done));
         overlay.setDefault(done);
@@ -288,14 +286,13 @@ function runSort(host: HTMLElement, params: SortParams, ctx: ActivityContext): P
     updateProgress();
     overlay.card.append(
       header,
-      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt), readButton(params.prompt, ctx.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt)),
       hintRow,
       binsEl,
       chipList,
       slot,
     );
     overlay.focus(pool[0]?.btn);
-    ctx.speak(params.prompt);
   });
 }
 

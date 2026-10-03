@@ -4,6 +4,7 @@ import type { RankContent } from '../../src/content/types';
 import {
   chooseGreeting,
   createSession,
+  isFirstSession,
   TRAVEL_SIGN_MS,
   type ActivityStage,
   type SessionDeps,
@@ -451,13 +452,34 @@ describe('session: greetings', () => {
     expect(chooseGreeting({ profile: makeProfile({ streak: { current: 1, best: 1, lastTrailDate: TODAY, embers: 0 } }), ...base, stopCount: 0 })).toBe('done');
   });
 
-  it('greets the very first session by name, with the guide name', async () => {
+  it('greets the very first session by name and explains the game: a trail, three stops, the campfire', async () => {
     const h = harness({ profile: { ...threeStops(), name: 'Rowan', guideName: 'Captain Sam' } });
     await createSession(h.deps).talk();
     const greeting = h.dialogs[0]!;
-    expect(greeting.text).toContain('Hi Rowan!');
-    expect(greeting.text).toContain('Captain Sam');
-    expect(greeting.choices).toEqual(["Let's go!", 'Not now']);
+    expect(greeting.text).toContain('Hi Rowan, I am Captain Sam!');
+    expect(greeting.text).toContain('A trail is three quick stops.');
+    expect(greeting.text).toContain('campfire');
+    expect(greeting.choices).toEqual(["Let's go!", 'Look around first']);
+  });
+
+  it('detects the first session: nothing finished yet', () => {
+    expect(isFirstSession(makeProfile())).toBe(true);
+    expect(isFirstSession(makeProfile({ sessions: [{ date: '2026-10-01', stops: [], xpEarned: 0, durationSec: 60 }] }))).toBe(false);
+  });
+
+  it('gives a later day the same two choices, with the hello and not the explanation', async () => {
+    const h = harness({
+      profile: {
+        ...threeStops(),
+        name: 'Rowan',
+        sessions: [{ date: '2026-10-02', stops: [], xpEarned: 0, durationSec: 60 }],
+        streak: { current: 0, best: 2, embers: 0 },
+      },
+    });
+    await createSession(h.deps).talk();
+    expect(h.dialogs[0]!.text).toContain('Welcome back, Rowan!');
+    expect(h.dialogs[0]!.text).not.toContain('A trail is');
+    expect(h.dialogs[0]!.choices).toEqual(["Let's go!", 'Look around first']);
   });
 
   it('greets a returning Scout with the streak', async () => {
@@ -478,7 +500,7 @@ describe('session: greetings', () => {
     const content: RankContent = { ...fixtureRank, readingLevel: 'grade5' };
     const h = harness({ profile: threeStops(), content });
     await createSession(h.deps).talk();
-    expect(h.dialogs[0]!.text).toContain("Today's Trail has a few quick stops");
+    expect(h.dialogs[0]!.text).toContain('A trail is three quick stops: warm-up, new step, field check.');
   });
 
   it('offers a bonus stop when the trail is already done today', async () => {
@@ -513,12 +535,39 @@ describe('session: greetings', () => {
     expect(h.deps.runActivity).not.toHaveBeenCalled();
   });
 
-  it('starts nothing when the kid says not now', async () => {
+  it('starts nothing when the kid chooses to look around first, and says so', async () => {
     const h = harness({ profile: threeStops(), choose: () => 1 });
-    await createSession(h.deps).talk();
+    await expect(createSession(h.deps).talk()).resolves.toBe('look-around');
     expect(h.deps.runActivity).not.toHaveBeenCalled();
     expect(h.deps.persist).not.toHaveBeenCalled();
     expect(h.profile().sessions).toHaveLength(0);
+  });
+
+  it('tells the caller how the conversation ended', async () => {
+    // Played the trail.
+    const played = harness({ profile: threeStops() });
+    await expect(createSession(played.deps).talk()).resolves.toBe('trail');
+
+    // Nothing to do today, or a trail that is done with no bonus left: nothing started.
+    const done = harness({ profile: { streak: { current: 1, best: 1, lastTrailDate: TODAY, embers: 0 } } });
+    await expect(createSession(done.deps).talk()).resolves.toBe('none');
+
+    // A bonus offered and taken, then turned down.
+    const lit = { ...threeStops(), streak: { current: 3, best: 3, lastTrailDate: TODAY, embers: 0 } };
+    const taken = harness({ profile: lit });
+    await expect(createSession(taken.deps).talk()).resolves.toBe('bonus');
+    const declined = harness({ profile: lit, choose: () => 1 });
+    await expect(createSession(declined.deps).talk()).resolves.toBe('none');
+  });
+
+  it('reports whether a bonus stop is waiting, for the Start button', () => {
+    const lit = { ...threeStops(), streak: { current: 3, best: 3, lastTrailDate: TODAY, embers: 0 } };
+    expect(createSession(harness({ profile: lit }).deps).bonusAvailable()).toBe(true);
+    // Not done yet: the Start button says "Start today's trail", never "Bonus stop".
+    expect(createSession(harness({ profile: threeStops() }).deps).bonusAvailable()).toBe(false);
+    // Done, but nothing learned to review.
+    const bare = harness({ profile: { streak: { current: 1, best: 1, lastTrailDate: TODAY, embers: 0 } } });
+    expect(createSession(bare.deps).bonusAvailable()).toBe(false);
   });
 
   it('never plans a type the game cannot run', async () => {

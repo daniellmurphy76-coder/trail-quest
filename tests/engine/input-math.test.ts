@@ -5,6 +5,7 @@ import {
   clampToUnit,
   isInJoystickZone,
   joystickVector,
+  joystickView,
   keyboardAxis,
   mergeMoves,
 } from '../../src/engine/input-math';
@@ -147,5 +148,27 @@ describe('ActionEdge', () => {
     edge.set(true);
     edge.reset();
     expect(edge.step()).toEqual({ down: false, pressed: false });
+  });
+});
+
+describe('joystickView (the rest-position rule)', () => {
+  const on = { touchControls: true, dragging: false, enabled: true };
+
+  it('rests faint in the bottom-left corner on touch devices before anyone touches it', () => {
+    expect(joystickView(on)).toBe('rest');
+  });
+
+  it('is hidden on a laptop with no touch controls', () => {
+    expect(joystickView({ ...on, touchControls: false })).toBe('hidden');
+  });
+
+  it('moves under the finger while it drags, and goes back to rest when the finger lifts', () => {
+    expect(joystickView({ ...on, dragging: true })).toBe('drag');
+    expect(joystickView({ ...on, dragging: false })).toBe('rest');
+  });
+
+  it('is hidden whenever a dialog or screen has switched game input off, even mid-drag', () => {
+    expect(joystickView({ ...on, enabled: false })).toBe('hidden');
+    expect(joystickView({ ...on, enabled: false, dragging: true })).toBe('hidden');
   });
 });

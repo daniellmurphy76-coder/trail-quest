@@ -122,12 +122,59 @@ export interface ActivityResult {
 export type RankId = 'lion' | 'tiger' | 'wolf' | 'bear' | 'webelos' | 'arrow-of-light';
 export type ReadingLevel = 'grade1' | 'grade2' | 'grade3' | 'grade4' | 'grade5';
 
+export interface WorldPoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface WorldPlacedHandle {
+  remove(): void;
+}
+
+export interface WorldPlaceOptions {
+  /** Content id of the target or waypoint, e.g. "bird" or "footbridge". Used to pick a model. */
+  id: string;
+  label: string;
+  position: WorldPoint;
+  /** Ground distance at which the player reaches it. Default 1.5 for pickups, 2 for markers. */
+  radius?: number;
+  /** Fires once when the player first comes within `radius`. */
+  onReach: () => void;
+}
+
+/**
+ * What a world activity (collect, navigate) may do to the 3D scene. Implemented by the game
+ * over the engine; absent in the activity harness and in tests, which use a fake host.
+ */
+export interface WorldActivityHost {
+  zoneId(): ZoneId;
+  playerPosition(): WorldPoint;
+  /** Pre-authored walkable points in the current zone, in a stable order. May be empty. */
+  openSpots(): WorldPoint[];
+  /** Position of a named landmark in the current zone, if the zone defines it. */
+  landmark(id: string): WorldPoint | undefined;
+  /** Place a pickup (bobbing item with a name tag). */
+  spawnPickup(opts: WorldPlaceOptions): WorldPlacedHandle;
+  /** Place a waypoint beacon (tall marker with a name tag). */
+  spawnMarker(opts: WorldPlaceOptions): WorldPlacedHandle;
+  /** Point the HUD compass at a position, or clear it with null. */
+  setCompassTarget(position: WorldPoint | null): void;
+  /** Remove everything this activity placed and clear the compass. */
+  clear(): void;
+}
+
 export interface ActivityContext {
   profileId: string;
   rank: RankId;
   readingLevel: ReadingLevel;
-  /** Speak text aloud if the profile has read-aloud on. */
+  /**
+   * Always a no-op. The game has no voice: text is shown, never spoken. Kept on the
+   * contract so existing activities compile; new code should not call it.
+   */
   speak: (text: string) => void;
+  /** Present only when a 3D world is running; collect and navigate need it. */
+  world?: WorldActivityHost;
   /**
    * Why this activity is running. 'new' is the default.
    * 'review' is a warm-up repeat of something already learned.

@@ -7,10 +7,10 @@ import { getActivity } from '../activities/registry';
 import { SAMPLE_RHYTHM } from '../activities/rhythm/sample';
 import { SAMPLE_SORT } from '../activities/sort/sample';
 import type { ActivityContext, ActivitySpec, FieldMissionParams } from '../activities/types';
+import { createFakeWorldHost, type FakeWorldOptions } from '../activities/world-fake';
 import { showDialog } from '../ui/dialog';
 import { clear, h } from '../ui/dom';
 import { askNewPin, askPin } from '../ui/pinpad';
-import { createSpeaker, prepareSpeechOnFirstGesture } from '../ui/speech';
 import { showToast } from '../ui/toast';
 import { button } from '../ui/widgets';
 
@@ -18,9 +18,8 @@ const ui = document.getElementById('ui') as HTMLElement;
 const listEl = document.getElementById('list') as HTMLElement;
 const resultEl = document.getElementById('result') as HTMLElement;
 
-let readAloud = true;
-prepareSpeechOnFirstGesture();
-const speak = createSpeaker(() => readAloud);
+/** The game has no voice, so the activities get a `speak` that does nothing. */
+const speak = (): void => {};
 
 interface Entry {
   id: string;
@@ -36,6 +35,44 @@ function activityEntry(id: string, label: string, spec: ActivitySpec, stage?: Ac
       const ctx: ActivityContext = { profileId: 'dev', rank: 'wolf', readingLevel: 'grade2', speak, stage };
       // getActivity returns the matching controller; the spec carries its own params.
       return getActivity(spec.type).run(ui, spec.params, ctx);
+    },
+  };
+}
+
+/**
+ * A collect or navigate sample on a fake world: no 3D, no game. A "Walk to next" button stands in
+ * for walking up to the next pickup or waypoint; it goes away when the activity ends.
+ */
+function worldEntry(id: string, label: string, spec: ActivitySpec, world: FakeWorldOptions): Entry {
+  return {
+    id,
+    label,
+    run: () => {
+      const fake = createFakeWorldHost({ zoneId: 'nature-trail', ...world });
+      const status = h('span', { class: 'dev-walk__status' });
+      const walk = button('Walk to next', {
+        variant: 'primary',
+        icon: '\u{1F6B6}',
+        onClick: () => {
+          const reached = fake.walkToNext();
+          status.textContent = reached ? `Reached: ${reached}` : 'Walked to the compass target.';
+        },
+      });
+      walk.dataset.dev = 'walk-next';
+      const bar = h(
+        'div',
+        {
+          class: 'dev-walk',
+          style: 'position:absolute;left:12px;bottom:12px;z-index:7;display:flex;align-items:center;gap:12px;',
+        },
+        walk,
+        status,
+      );
+      ui.append(bar);
+      const ctx: ActivityContext = { profileId: 'dev', rank: 'wolf', readingLevel: 'grade2', speak, world: fake };
+      return getActivity(spec.type)
+        .run(ui, spec.params, ctx)
+        .finally(() => bar.remove());
     },
   };
 }
@@ -114,14 +151,91 @@ const activities: Entry[] = [
   activityEntry('sort', 'Sort: pack it or leave it', { type: 'sort', params: SAMPLE_SORT }),
   activityEntry('rhythm', 'Rhythm: Zip bounces', { type: 'rhythm', params: SAMPLE_RHYTHM }),
   activityEntry('craft', "Craft: Zip's day bag", { type: 'craft', params: SAMPLE_CRAFT }),
-  activityEntry('coming-soon', 'Coming soon: collect (not built yet)', {
-    type: 'collect',
-    params: {
-      prompt: 'Sample collect.',
-      zone: 'nature-trail',
-      targets: [{ id: 'leaf', label: 'Leaf', count: 1 }],
+  worldEntry(
+    'collect-a',
+    'Collect: Zip the Test Bunny (fake world)',
+    {
+      type: 'collect',
+      params: {
+        prompt: 'Help Zip find the pretend items.',
+        zone: 'nature-trail',
+        targets: [
+          { id: 'bunny', label: 'Test bunny', count: 1, hint: 'Pretend bunnies hide in the grass.' },
+          { id: 'acorn', label: 'Pretend acorn', count: 2, hint: 'Look under the pretend oak.' },
+          { id: 'feather', label: 'Test feather', count: 1 },
+        ],
+      },
     },
-  }),
+    {},
+  ),
+  worldEntry(
+    'collect-b',
+    'Collect: six pretend items (long list)',
+    {
+      type: 'collect',
+      params: {
+        prompt: 'Find all six pretend things for the pretend picnic.',
+        zone: 'nature-trail',
+        targets: ['Blanket', 'Basket', 'Lemonade', 'Sandwich', 'Napkin', 'Kite'].map((name) => ({
+          id: name.toLowerCase(),
+          label: `Pretend ${name.toLowerCase()}`,
+          count: 1,
+          hint: `A pretend ${name.toLowerCase()} is hiding somewhere nearby.`,
+        })),
+      },
+    },
+    {},
+  ),
+  worldEntry(
+    'navigate-marker',
+    'Navigate: beacon and compass (fake world)',
+    {
+      type: 'navigate',
+      params: {
+        prompt: 'Follow the beacon to the pretend places.',
+        zone: 'nature-trail',
+        waypoints: [
+          { id: 'test-bridge', label: 'Test bridge' },
+          { id: 'test-tower', label: 'Test tower' },
+          { id: 'test-cabin', label: 'Test cabin' },
+        ],
+      },
+    },
+    {
+      landmarks: {
+        'test-bridge': { x: -8, y: 0, z: 2 },
+        'test-tower': { x: 4, y: 0, z: -9 },
+        'test-cabin': { x: 9, y: 0, z: 5 },
+      },
+    },
+  ),
+  worldEntry(
+    'navigate-compass',
+    'Navigate: compass only (open spots)',
+    {
+      type: 'navigate',
+      params: {
+        prompt: 'Use the compass to find the pretend spots.',
+        zone: 'nature-trail',
+        waypoints: [
+          { id: 'spot-one', label: 'First pretend spot' },
+          { id: 'spot-two', label: 'Second pretend spot' },
+        ],
+        useCompass: true,
+      },
+    },
+    {},
+  ),
+  {
+    id: 'collect-no-world',
+    label: 'Collect: no 3D world (shows the camp card)',
+    run: () =>
+      getActivity('collect').run(
+        ui,
+        { prompt: 'Sample.', zone: 'nature-trail', targets: [{ id: 'bunny', label: 'Test bunny', count: 1 }] },
+        { profileId: 'dev', rank: 'wolf', readingLevel: 'grade2', speak },
+      ),
+  },
 ];
 
 const kit: Entry[] = [
@@ -132,8 +246,6 @@ const kit: Entry[] = [
       chosen: await showDialog(ui, {
         speaker: 'Zip',
         text: 'Hi! I am Zip the Test Bunny. I am not a real guide.',
-        speak,
-        autoSpeak: true,
       }),
     }),
   },
@@ -142,7 +254,7 @@ const kit: Entry[] = [
     label: 'Dialog: choices',
     run: async () => {
       const choices = ['Yes, let us go!', 'Tell me more.', 'Maybe later.'];
-      const chosen = await showDialog(ui, { speaker: 'Zip', text: 'Ready for the sample trail?', choices, speak });
+      const chosen = await showDialog(ui, { speaker: 'Zip', text: 'Ready for the sample trail?', choices });
       return { chosen, label: choices[chosen] };
     },
   },
@@ -203,14 +315,8 @@ function renderGroup(title: string, entries: Entry[]): HTMLElement[] {
   ];
 }
 
-const readToggle = h('input', { type: 'checkbox', checked: readAloud, id: 'read-aloud' });
-readToggle.addEventListener('change', () => {
-  readAloud = readToggle.checked;
-});
-
 listEl.append(
   h('h1', null, 'Activity harness'),
-  h('label', null, readToggle, 'Read aloud on'),
   ...renderGroup('Activities', activities),
   ...renderGroup('UI kit', kit),
 );

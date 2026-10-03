@@ -1,8 +1,8 @@
 import { h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
-import { button, readButton } from '../../ui/widgets';
+import { button } from '../../ui/widgets';
 import { cardHeader, feedbackSlot } from '../shared';
-import type { ActivityContext, ActivityController, ActivityResult, RhythmParams } from '../types';
+import type { ActivityController, ActivityResult, RhythmParams } from '../types';
 import {
   COUNT_IN_BEATS,
   beatPhase,
@@ -39,14 +39,11 @@ const PAD_LABEL: Record<Exclude<Phase, 'done'>, string> = {
  * Timing reads `performance.now()` at the moment of the tap. The pulse is only drawing: it runs
  * on requestAnimationFrame (or setInterval when that is missing) and stops when the activity ends.
  */
-function runRhythm(host: HTMLElement, params: RhythmParams, ctx: ActivityContext): Promise<ActivityResult> {
+function runRhythm(host: HTMLElement, params: RhythmParams): Promise<ActivityResult> {
   const reps = Math.floor(params.reps);
   if (!(reps >= 1)) return Promise.resolve({ completed: false, attempts: 0 });
   const bpm = normalizeBpm(params.bpm);
   const interval = bpmToIntervalMs(bpm);
-  const spoken = params.prompt.toLowerCase().includes(params.exercise.toLowerCase())
-    ? params.prompt
-    : `${params.prompt} ${params.exercise}.`;
 
   return new Promise<ActivityResult>((resolve) => {
     let phase: Phase = 'ready';
@@ -106,7 +103,7 @@ function runRhythm(host: HTMLElement, params: RhythmParams, ctx: ActivityContext
       'div',
       { class: 'tq-rhythm__top' },
       header,
-      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt), readButton(spoken, ctx.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, params.prompt)),
       h('p', { class: 'tq-rhythm__exercise' }, 'Move: ', h('strong', null, params.exercise)),
       h('div', { class: 'tq-rhythm__stage' }, ring),
       counter,
@@ -200,7 +197,6 @@ function runRhythm(host: HTMLElement, params: RhythmParams, ctx: ActivityContext
 
       const detail =
         onBeatTaps > 0 ? `${onBeatTaps} of ${reps} taps were on the beat.` : 'You kept going to the very end!';
-      const cheer = `Great job! ${detail}`;
       const finishBtn = button('Finish', { variant: 'primary', icon: '✔', onClick: () => finish(true) });
       pad.replaceWith(
         h(
@@ -216,7 +212,6 @@ function runRhythm(host: HTMLElement, params: RhythmParams, ctx: ActivityContext
               h('p', { class: 'tq-banner__word' }, 'Great job!'),
               h('p', { class: 'tq-banner__text' }, detail),
             ),
-            readButton(cheer, ctx.speak),
           ),
           h('p', { class: 'tq-note' }, 'This is just practice. Do the real thing too!'),
           h('div', { class: 'tq-actions' }, finishBtn),
@@ -228,7 +223,6 @@ function runRhythm(host: HTMLElement, params: RhythmParams, ctx: ActivityContext
       header = plain;
       overlay.setDefault(finishBtn);
       overlay.focus(finishBtn);
-      ctx.speak(cheer);
     }
 
     function record(now: number): void {
@@ -267,7 +261,6 @@ function runRhythm(host: HTMLElement, params: RhythmParams, ctx: ActivityContext
     overlay.card.append(top, pad);
     overlay.setDefault(pad);
     overlay.focus(pad);
-    ctx.speak(spoken);
   });
 }
 

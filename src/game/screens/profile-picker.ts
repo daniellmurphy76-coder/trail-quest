@@ -1,7 +1,6 @@
 import { h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
-import type { Speak } from '../../ui/speech';
-import { button, readButton } from '../../ui/widgets';
+import { button } from '../../ui/widgets';
 
 export interface PickerProfile {
   id: string;
@@ -15,7 +14,6 @@ export type PickerChoice = { kind: 'play'; profileId: string } | { kind: 'add' }
 
 export interface ProfilePickerOptions {
   profiles: readonly PickerProfile[];
-  speak: Speak;
 }
 
 export function streakText(days: number): string {
@@ -58,7 +56,7 @@ export function showProfilePicker(host: HTMLElement, options: ProfilePickerOptio
     });
 
     overlay.card.append(
-      h('div', { class: 'tq-prompt' }, h('h2', null, 'Who is playing?'), readButton('Who is playing?', options.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, 'Who is playing?')),
       h('ul', { class: 'tq-profiles' }, ...cards),
       h(
         'div',

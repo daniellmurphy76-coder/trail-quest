@@ -37,7 +37,7 @@ The game is built around a 3 to 5 minute daily session, Duolingo-style, not open
 
 - **Wolf profile, age 7 to 8.** Sentences of 10 words or fewer. Common one- and two-syllable words. Present tense, second person. One instruction per line.
 - **Arrow of Light profile, age 10 to 11.** Sentences of 15 words or fewer. Scouting terms allowed with a plain definition on first use.
-- Every text box has a read-aloud button (Web Speech API). Minimum type size 20px on laptop, 22px on iPad.
+- **No voice, ever.** No speech synthesis, no Read buttons, no read-aloud setting. Words appear in a dialogue box with a quick typewriter reveal that a tap or key press skips. Minimum type size 20px on laptop, 22px on iPad.
 - No fail states, no death, no timers that end a quest. Retry is always free and friendly.
 - Status is never color-only; pair color with an icon or a word.
 

@@ -2,11 +2,18 @@
  * Boots Trail Quest: loads the save, starts the 3D world, and runs the screens around it
  * (profile setup and picker, HUD, trail panel, parent mode) plus the daily session with the
  * Den Chief. The session logic itself is in session.ts; this file wires it to the real DOM,
- * storage, speech and activities.
+ * storage and activities.
+ *
+ * Guided start: when a Scout arrives the player stands two units from the Den Chief, facing
+ * them, and (when today's trail is not done) the Den Chief opens the greeting about a second
+ * later. At Base Camp a big Start button, a bobbing arrow over the Den Chief, a compass and a
+ * controls hint make the next step obvious without reading a manual.
  */
 import './game.css';
+import type { Object3D } from 'three';
 import { getActivity, IMPLEMENTED_TYPES } from '../activities/registry';
-import type { ActivityContext, RankId } from '../activities/types';
+import { assets } from '../engine/assets';
+import type { ActivityContext, RankId, ZoneId } from '../activities/types';
 import { listRankContent, loadRankContent } from '../content/load';
 import type { RankContent } from '../content/types';
 import { todayLocal } from '../quests/dates';
@@ -23,22 +30,26 @@ import {
 import type { Profile, SaveFile } from '../save/types';
 import { showDialog } from '../ui/dialog';
 import { askNewPin, askPin } from '../ui/pinpad';
-import { createSpeaker, prepareSpeechOnFirstGesture } from '../ui/speech';
 import { showToast } from '../ui/toast';
-import { lineLevelOf, PARENT_TEXT, type LineVars } from './lines';
-import { watchOverlays } from './overlays';
+import { GREETING_DELAY_MS, shouldAutoGreet } from './guided-start';
+import { line, lineLevelOf, PARENT_TEXT, type LineLevel, type LineVars } from './lines';
+import { overlayCount, watchOverlays } from './overlays';
 import { createSession, type Session } from './session';
 import { activeStreak } from './streak';
 import { showApprovalScreen } from './screens/approval';
 import { showBadgeCard } from './screens/badge';
-import { createHud } from './screens/hud';
+import { ControlsHintGate, controlsMode, createControlsHint } from './screens/controls-hint';
+import { createDock } from './screens/dock';
+import { createHud, trailProgress } from './screens/hud';
 import { showParentMode } from './screens/parent';
 import { showProfilePicker } from './screens/profile-picker';
 import { showProfileSetup } from './screens/profile-setup';
+import { createStartButton, startLabel, startMode, startVisible } from './screens/start-button';
 import { showSummary } from './screens/summary';
 import { showTrailPanel } from './screens/trail-panel';
 import { showTrailSign } from './screens/trail-sign';
 import { createWorld, type World } from './world';
+import { createWorldHost, type WorldHost } from './world-host';
 
 export interface AppOptions {
   /** Pin the date (YYYY-MM-DD) instead of using the clock. For testing streaks in dev. */
@@ -47,6 +58,10 @@ export interface AppOptions {
   ui?: HTMLElement;
   /** Where the save lives. Defaults to localStorage. */
   store?: KeyValueStore;
+  /** Let the Den Chief open the greeting by himself when a Scout arrives. Default true. */
+  autoGreet?: boolean;
+  /** How long after arriving the greeting opens, in milliseconds. Default 1000. */
+  greetingDelayMs?: number;
 }
 
 export interface App {
@@ -66,6 +81,22 @@ export interface App {
 
 const SAVE_FAILED = 'Your progress could not be saved. Storage may be full or blocked.';
 
+/** Models the world host may show for collect targets and navigate waypoints. */
+const WORLD_MODEL_IDS = [
+  'animal.bird',
+  'animal.rabbit',
+  'animal.frog',
+  'animal.squirrel',
+  'pickup.backpack',
+  'pickup.first-aid-kit',
+  'pickup.water-bottle',
+  'pickup.flashlight',
+  'pickup.map-compass',
+  'pickup.fire-starters',
+  'pickup.trail-food',
+  'pickup.sun-protection',
+];
+
 export function startApp(options: AppOptions = {}): App {
   const canvas = options.canvas ?? (document.getElementById('game') as HTMLCanvasElement);
   const ui = options.ui ?? (document.getElementById('ui') as HTMLElement);
@@ -75,16 +106,17 @@ export function startApp(options: AppOptions = {}): App {
   let todayOverride: string | undefined = options.today;
   const today = (): string => todayOverride ?? todayLocal();
 
-  prepareSpeechOnFirstGesture();
   const world = createWorld(canvas, ui);
-  watchOverlays(ui, world.input);
 
   let activeId: string | undefined;
   let session: Session | null = null;
   let panelOpen = false;
+  /** The Den Chief's wording for the Scout who is playing. */
+  let activeLevel: LineLevel = 'grade2';
 
   const getProfile = (): Profile | undefined => save.profiles.find((p) => p.id === activeId);
-  const speak = createSpeaker(() => getProfile()?.readAloud ?? false);
+  /** The game has no voice: activities still get a `speak`, and it does nothing. */
+  const noSpeak = (): void => {};
 
   const ranks = listRankContent();
   const rankLabel = (rank: RankId): string => ranks.find((c) => c.rank === rank)?.label ?? rank;
@@ -114,16 +146,159 @@ export function startApp(options: AppOptions = {}): App {
             rankLabel: rankLabel(profile.rank),
             xp: profile.xp,
             streak: activeStreak(profile.streak, today()),
+            progress: session ? trailProgress(session.view()) : null,
           }
         : null,
     );
   }
+
+  // ---- Base Camp: Start button, controls hint, objective --------------------------------------
+
+  const dock = createDock(ui);
+  let hintGate = new ControlsHintGate();
+  const hint = createControlsHint(dock, {
+    onDismiss() {
+      hintGate.dismiss();
+      syncHint();
+    },
+  });
+  const start = createStartButton(dock, () => talkToGuide());
+
+  let greetingTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function cancelGreeting(): void {
+    if (greetingTimer === undefined) return;
+    clearTimeout(greetingTimer);
+    greetingTimer = undefined;
+  }
+
+  /** About a second after a Scout arrives, the Den Chief says hello by himself (if there is a trail to play). */
+  function scheduleGreeting(): void {
+    cancelGreeting();
+    if (options.autoGreet === false || !session || session.view().state !== 'ready') return;
+    greetingTimer = setTimeout(() => {
+      greetingTimer = undefined;
+      const open = session
+        ? { viewState: session.view().state, busy: session.busy, overlayOpen: overlayCount(ui) > 0 }
+        : { viewState: null, busy: false, overlayOpen: false };
+      if (shouldAutoGreet(open)) talkToGuide();
+      else syncHint();
+    }, options.greetingDelayMs ?? GREETING_DELAY_MS);
+  }
+
+  /** Talk to the Den Chief: the Start button, pressing E, the Talk button and the auto greeting all come here. */
+  function talkToGuide(): void {
+    const current = session;
+    if (!current || current.busy) return;
+    cancelGreeting();
+    const talking = current.talk();
+    refreshBaseCamp(); // the Start button and the objective step aside at once
+    talking
+      .then((outcome) => {
+        // "Look around first": show how to walk and talk, and keep the objective in view.
+        if (outcome === 'look-around' && session === current) hintGate.force();
+      })
+      .catch(reportProblem)
+      // The trail may have ended in another zone ("Explore camp" is a camp): walk back first.
+      .then(() => (session === current && !atBaseCamp() ? goHome() : undefined))
+      .finally(() => {
+        if (session === current) refreshBaseCamp();
+      });
+  }
+
+  function prefersTouch(): boolean {
+    return typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  /** Show or hide the controls hint. Cheap, so it also runs on a short timer for the idle rule. */
+  function syncHint(): void {
+    const profile = getProfile();
+    const blocked =
+      !profile || !session || session.busy || overlayCount(ui) > 0 || greetingTimer !== undefined || !atBaseCamp();
+    const visible = hintGate.update({
+      blocked,
+      idleSeconds: world.idleSeconds,
+      sessionsCompleted: profile?.sessions.length ?? 0,
+    });
+    hint.set(visible, controlsMode(world.input.lastDevice, prefersTouch()), activeLevel);
+  }
+
+  /** Bring the HUD, the Start button, the objective marker and the hint in line with the game's state. */
+  function refreshBaseCamp(): void {
+    refreshHud();
+    const current = session;
+    if (!getProfile() || !current) {
+      start.set('hidden', false, activeLevel);
+      world.setObjectiveVisible(false);
+      syncHint();
+      return;
+    }
+    const view = current.view();
+    const mode = startMode(view.state, view.state === 'done-today' && current.bonusAvailable());
+    const visible = startVisible(mode, { overlayOpen: overlayCount(ui) > 0, busy: current.busy });
+    start.set(mode, visible && atBaseCamp(), activeLevel); // the Den Chief lives at Base Camp
+    // The arrow over the Den Chief and the compass: only while today's trail is waiting.
+    world.setObjectiveVisible(view.state === 'ready' && !current.busy);
+    syncHint();
+  }
+
+  // Input and Base Camp's own buttons follow the overlays: nothing here shows while a screen is open.
+  watchOverlays(ui, world.input, () => refreshBaseCamp());
+  world.onZoneChange(() => refreshBaseCamp()); // the Start button and the hint belong to Base Camp
+  setInterval(syncHint, 250);
 
   function lineVars(): LineVars {
     const profile = getProfile();
     if (!profile) return {};
     return { name: profile.name, guide: profile.guideName, streak: activeStreak(profile.streak, today()), xp: profile.xp };
   }
+
+  // ---- zones: travel and the world host -------------------------------------------------------
+
+  let worldHost: WorldHost | null = null;
+  /**
+   * What collect and navigate use to place pickups and markers. Made on first use.
+   * `resolveModel` maps a content id to a loaded `animal.*` or `pickup.*` model when available;
+   * pass `{ resolveModel: (id) => ... }` here to show a model instead of the primitive shape.
+   */
+  /** Pickups and markers use the matching CC0 model once the asset library has it loaded. */
+  function resolveWorldModel(id: string): Object3D | undefined {
+    for (const candidate of [`animal.${id}`, `pickup.${id}`, id]) {
+      if (assets.has(candidate)) return assets.instance(candidate);
+    }
+    return undefined;
+  }
+  void assets.load(WORLD_MODEL_IDS);
+
+  function getWorldHost(): WorldHost {
+    worldHost ??= createWorldHost(world, { resolveModel: resolveWorldModel });
+    return worldHost;
+  }
+
+  const atBaseCamp = (): boolean => world.currentZoneId() === 'base-camp';
+
+  /** Walk to a zone (fade, swap, fade). Clears whatever an activity left in the world first. Never rejects. */
+  async function travel(zone: ZoneId): Promise<void> {
+    if (world.currentZoneId() === zone) return;
+    worldHost?.clear();
+    try {
+      await world.travelTo(zone);
+    } catch (error) {
+      reportProblem(error);
+    }
+  }
+
+  const goHome = (): Promise<void> => travel('base-camp');
+
+  // The "Back to camp" trail sign: a free-roam trip home. Not while a stop is running; that stop's
+  // own Back button is how to leave it.
+  world.setReturnHandler(() => {
+    if (session?.busy) {
+      showToast(ui, line('travelBusy', activeLevel), 3000);
+      return;
+    }
+    void goHome();
+  });
 
   // ---- the session --------------------------------------------------------------------------
 
@@ -148,31 +323,39 @@ export function startApp(options: AppOptions = {}): App {
       now: () => Date.now(),
       wait: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 
-      showDialog: ({ text, choices }) =>
-        showDialog(ui, { speaker: need().guideName, text, choices, speak, autoSpeak: true }),
-      runActivity(stop, stage) {
+      showDialog: ({ text, choices }) => showDialog(ui, { speaker: need().guideName, text, choices }),
+      async runActivity(stop, stage) {
         const profile = need();
+        const spec = stop.activity;
+        // Collect and navigate play in the zone their content names; everything else where the stop
+        // lives. Normally the trail sign has already walked there, so this is a no-op.
+        const zone = spec.type === 'collect' || spec.type === 'navigate' ? spec.params.zone : stop.zone;
+        await travel(zone);
+        const host = getWorldHost();
         const ctx: ActivityContext = {
           profileId: profile.id,
           rank: profile.rank,
           readingLevel: content.readingLevel,
-          speak,
+          speak: noSpeak,
+          world: host,
           stage,
         };
-        return getActivity(stop.activity.type).run(ui, stop.activity.params, ctx);
+        try {
+          return await getActivity(spec.type).run(ui, spec.params, ctx);
+        } finally {
+          host.clear(); // nothing an activity placed outlives it
+        }
       },
-      showTrailSign(text) {
-        speak(text);
-        return showTrailSign(ui, text);
-      },
-      showApproval: (info) => showApprovalScreen(ui, { info, level, vars: lineVars(), speak }),
+      showTrailSign: (text) => showTrailSign(ui, text),
+      showApproval: (info) => showApprovalScreen(ui, { info, level, vars: lineVars() }),
       hasPin: () => hasPin(save),
       askPin: ({ title, subtitle }) => askPin(ui, { title, subtitle, verify: (pin) => verifyPin(save, pin) }),
       askNewPin: (request) => askNewPin(ui, request),
       setPin: (pin) => storePin(pin),
-      showBadge: ({ adventureName }) => showBadgeCard(ui, { adventureName, level, vars: lineVars(), speak }),
-      showSummary: (info) => showSummary(ui, { info, level, vars: lineVars(), speak }),
-      // travelToZone is the ZONE-TRAVEL HOOK (see session.ts): unset until real zones exist.
+      showBadge: ({ adventureName }) => showBadgeCard(ui, { adventureName, level, vars: lineVars() }),
+      showSummary: (info) => showSummary(ui, { info, level, vars: lineVars() }),
+      // The ZONE-TRAVEL HOOK (see session.ts): the trail sign has been shown, now really walk there.
+      travelToZone: (zone) => travel(zone),
     });
   }
 
@@ -187,8 +370,12 @@ export function startApp(options: AppOptions = {}): App {
     writeSave();
   }
 
-  /** Make a Scout the active player. False when there is no trail content for their rank. */
-  function activate(profile: Profile): boolean {
+  /**
+   * Make a Scout the active player. False when there is no trail content for their rank.
+   * `arrive` is the guided start (stand by the Den Chief, greeting after a second); it is off when
+   * an already-playing Scout is only being refreshed, for example after Parent mode.
+   */
+  function activate(profile: Profile, arrive = true): boolean {
     const content = loadRankContent(profile.rank);
     if (!content) {
       showToast(ui, `There is no trail for ${rankLabel(profile.rank)} yet.`, 4000);
@@ -198,19 +385,24 @@ export function startApp(options: AppOptions = {}): App {
     save.activeProfileId = profile.id;
     writeSave();
     session = buildSession(content);
+    activeLevel = lineLevelOf(content.readingLevel);
     world.setGuideName(profile.guideName);
-    world.setDenChiefHandler(() => {
-      session?.talk().catch(reportProblem);
-    });
-    refreshHud();
+    world.setDenChiefHandler(() => talkToGuide());
+    if (arrive) {
+      hintGate = new ControlsHintGate();
+      world.placeAtGuide();
+      scheduleGreeting();
+    }
+    refreshBaseCamp();
     return true;
   }
 
   function deactivate(): void {
+    cancelGreeting();
     activeId = undefined;
     session = null;
     world.setDenChiefHandler(() => {});
-    refreshHud();
+    refreshBaseCamp();
   }
 
   // ---- parent mode --------------------------------------------------------------------------
@@ -278,7 +470,6 @@ export function startApp(options: AppOptions = {}): App {
   async function runSetup(allowCancel: boolean): Promise<Profile | null> {
     const choice = await showProfileSetup(ui, {
       ranks: ranks.map((c) => ({ rank: c.rank, label: c.label, grade: c.grade })),
-      speak,
       allowCancel,
     });
     if (!choice) return null;
@@ -303,7 +494,6 @@ export function startApp(options: AppOptions = {}): App {
           rankLabel: rankLabel(p.rank),
           streakDays: activeStreak(p.streak, today()),
         })),
-        speak,
       });
       if (choice.kind === 'play') {
         const profile = save.profiles.find((p) => p.id === choice.profileId);
@@ -324,16 +514,29 @@ export function startApp(options: AppOptions = {}): App {
     if (!session || !profile || session.busy || panelOpen) return;
     panelOpen = true;
     try {
-      const level = lineLevelOf(loadRankContent(profile.rank)?.readingLevel ?? 'grade2');
-      const choice = await showTrailPanel(ui, { view: session.view(), level, speak });
-      if (choice === 'switch') {
+      const level = activeLevel;
+      const view = session.view();
+      const mode = startMode(view.state, view.state === 'done-today' && session.bonusAvailable());
+      const choice = await showTrailPanel(ui, {
+        view,
+        level,
+        start: mode === 'hidden' ? undefined : { label: startLabel(mode, level) },
+        places: { current: world.currentZoneId() },
+      });
+      if (typeof choice === 'object') {
+        await travel(choice.travel); // a free-roam hop from the Places section
+      } else if (choice === 'start') {
+        // The Den Chief lives at Base Camp: walk home first when the Scout is somewhere else.
+        await goHome();
+        talkToGuide();
+      } else if (choice === 'switch') {
         await chooseProfile();
       } else if (choice === 'parent') {
         const imported = await openParentMode();
         const stillThere = getProfile();
         // Parent mode may have approved, reset or imported. Start a fresh session from the save,
         // or go back to the picker when an import may have replaced the Scouts.
-        if (!imported && stillThere && activate(stillThere)) return;
+        if (!imported && stillThere && activate(stillThere, false)) return;
         await chooseProfile();
       }
     } finally {
@@ -356,7 +559,7 @@ export function startApp(options: AppOptions = {}): App {
     today,
     setToday(ymd) {
       todayOverride = ymd ?? undefined;
-      refreshHud();
+      refreshBaseCamp();
     },
     ready,
   };

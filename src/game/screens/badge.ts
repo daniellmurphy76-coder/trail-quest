@@ -1,7 +1,6 @@
 import { h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
-import type { Speak } from '../../ui/speech';
-import { button, readButton } from '../../ui/widgets';
+import { button } from '../../ui/widgets';
 import { line, type LineLevel, type LineVars } from '../lines';
 
 const SMALL_WORDS = new Set(['a', 'an', 'the', 'of', 'on', 'in', 'to', 'and', 'with', 'for', 'at']);
@@ -67,7 +66,6 @@ export interface BadgeCardOptions {
   adventureName: string;
   level: LineLevel;
   vars: LineVars;
-  speak: Speak;
 }
 
 /** "You earned the {adventure} badge!" with the placeholder badge. Resolves when the kid taps Great. */
@@ -87,11 +85,10 @@ export function showBadgeCard(host: HTMLElement, options: BadgeCardOptions): Pro
     });
     overlay.card.append(
       badgeSvg(options.adventureName),
-      h('div', { class: 'tq-prompt' }, h('h2', null, text), readButton(text, options.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, text)),
       h('div', { class: 'tq-actions' }, done),
     );
     overlay.setDefault(done);
     overlay.focus(done);
-    options.speak(text);
   });
 }

@@ -1,14 +1,10 @@
 import { h } from './dom';
-import { readButton } from './widgets';
-import type { Speak } from './speech';
 
 export type ResultKind = 'yes' | 'notyet';
 
 export interface ResultBannerOptions {
   /** Fade the banner away after this many milliseconds. Omit to keep it until replaced. */
   autoHideMs?: number;
-  /** When given, the banner carries a Read button that reads the word and the text. */
-  speak?: Speak;
 }
 
 export interface ResultBanner {
@@ -37,7 +33,6 @@ export function showResultBanner(
   // The host acts as a polite live region so screen readers announce the new banner.
   if (!host.hasAttribute('aria-live')) host.setAttribute('aria-live', 'polite');
 
-  const spoken = text ? `${word} ${text}` : word;
   const el = h(
     'div',
     { class: `tq-banner tq-banner--${kind}`, role: 'status' },
@@ -48,7 +43,6 @@ export function showResultBanner(
       h('p', { class: 'tq-banner__word' }, word),
       text ? h('p', { class: 'tq-banner__text' }, text) : null,
     ),
-    options.speak ? readButton(spoken, options.speak) : null,
   );
   host.appendChild(el);
 

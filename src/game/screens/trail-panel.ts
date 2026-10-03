@@ -1,16 +1,51 @@
+import type { ZoneId } from '../../activities/types';
 import { h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
-import type { Speak } from '../../ui/speech';
-import { button, readButton } from '../../ui/widgets';
+import { button } from '../../ui/widgets';
+import { ZONE_IDS, ZONE_LABELS } from '../../world/zone-ids';
 import { line, STOP_KIND_LABELS, TRAIL_STATUS_LABELS, type LineLevel } from '../lines';
 import type { TrailView } from '../session';
 
-export type TrailPanelChoice = 'close' | 'switch' | 'parent';
+/** What the Scout picked. `{ travel }` is a free-roam hop from the Places section. */
+export type TrailPanelChoice = 'close' | 'switch' | 'parent' | 'start' | { travel: ZoneId };
 
 export interface TrailPanelOptions {
   view: TrailView;
   level: LineLevel;
-  speak: Speak;
+  /** The Start button at the top of the panel, with its words. Omit when there is nothing to start. */
+  start?: { label: string };
+  /**
+   * The Places section: one button per zone for a free-roam hop. `current` is the zone the Scout
+   * is in (its button says "You are here" and does nothing). Omit to leave the section out.
+   */
+  places?: { current: ZoneId };
+}
+
+export const PLACES_TITLE = 'Places';
+export const PLACES_HERE = 'You are here';
+
+function placesSection(current: ZoneId, onPick: (zone: ZoneId) => void): HTMLElement {
+  return h(
+    'section',
+    { class: 'tq-places', attrs: { 'aria-label': PLACES_TITLE } },
+    h('h3', { class: 'tq-places__title' }, PLACES_TITLE),
+    h(
+      'div',
+      { class: 'tq-places__grid' },
+      ...ZONE_IDS.map((zone) => {
+        const here = zone === current;
+        const btn = button(here ? `${ZONE_LABELS[zone]} (${PLACES_HERE})` : ZONE_LABELS[zone], {
+          icon: here ? '\u{1F4CD}' : '→',
+          class: 'tq-place',
+          disabled: here,
+          onClick: () => onPick(zone),
+        });
+        btn.dataset.zone = zone;
+        if (here) btn.setAttribute('aria-current', 'location');
+        return btn;
+      }),
+    ),
+  );
 }
 
 const TITLE = "Today's Trail";
@@ -41,18 +76,10 @@ function itemRows(items: TrailView['items']): HTMLElement {
   );
 }
 
-/** What the Read button says: the list, one stop per sentence. */
-function spokenText(view: TrailView, level: LineLevel): string {
-  if (view.state !== 'ready') return `${TITLE}. ${line(view.state === 'done-today' ? 'panelDone' : 'panelEmpty', level)}`;
-  const rows = view.items.map(
-    (item) => `${STOP_KIND_LABELS[item.kind]}. ${item.title} ${TRAIL_STATUS_LABELS[item.status].word}.`,
-  );
-  return `${TITLE}. ${rows.join(' ')}`;
-}
-
 /**
  * Today's stops as a list. Each row carries an icon and a word (Done, Up next, Later), so status
- * is never color alone. Also the way to switch Scouts or open Parent mode.
+ * is never color alone. The same Start button as Base Camp sits at the top (resolves 'start'). Also
+ * the way to switch Scouts or open Parent mode.
  */
 export function showTrailPanel(host: HTMLElement, options: TrailPanelOptions): Promise<TrailPanelChoice> {
   return new Promise<TrailPanelChoice>((resolve) => {
@@ -76,10 +103,20 @@ export function showTrailPanel(host: HTMLElement, options: TrailPanelOptions): P
     }
     if (view.items.length > 0) body.append(itemRows(view.items));
 
-    const close = button('Close', { variant: 'primary', onClick: () => finish('close') });
+    const startButton = options.start
+      ? button(options.start.label, {
+          variant: 'primary',
+          icon: '▶',
+          class: 'tq-start tq-start--panel',
+          onClick: () => finish('start'),
+        })
+      : null;
+    const close = button('Close', { variant: startButton ? 'secondary' : 'primary', onClick: () => finish('close') });
     overlay.card.append(
-      h('div', { class: 'tq-prompt' }, h('h2', null, TITLE), readButton(spokenText(view, level), options.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, TITLE)),
+      ...(startButton ? [startButton] : []),
       body,
+      ...(options.places ? [placesSection(options.places.current, (zone) => finish({ travel: zone }))] : []),
       h(
         'div',
         { class: 'tq-actions' },
@@ -88,7 +125,8 @@ export function showTrailPanel(host: HTMLElement, options: TrailPanelOptions): P
         close,
       ),
     );
-    overlay.setDefault(close);
-    overlay.focus(close);
+    const first = startButton ?? close;
+    overlay.setDefault(first);
+    overlay.focus(first);
   });
 }

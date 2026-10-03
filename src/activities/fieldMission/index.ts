@@ -1,6 +1,6 @@
 import { append, h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
-import { button, readButton } from '../../ui/widgets';
+import { button } from '../../ui/widgets';
 import type { ActivityContext, ActivityController, ActivityResult, FieldMissionParams } from '../types';
 
 const NOTE = 'Do this in real life. Then come back and tell me!';
@@ -52,13 +52,9 @@ function runFieldMission(
       overlay.setDefault(ready ? primary : null);
     }
 
-    const aloud = checkIn
-      ? `${params.title}. Did you do it?`
-      : `${params.title}. ${params.kidSteps.map((s, i) => `Step ${i + 1}. ${s}`).join(' ')} ${NOTE}`;
-
     append(overlay.card, [
       h('div', { class: 'tq-header' }, h('p', { class: 'tq-eyebrow' }, checkIn ? 'Field mission check-in' : 'Field mission')),
-      h('div', { class: 'tq-prompt' }, h('h2', null, params.title), readButton(aloud, ctx.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, params.title)),
       checkIn ? h('p', null, 'Did you do it?') : null,
       steps,
       useChecklist ? h('p', { class: 'tq-hint' }, 'Tick each step you did.') : null,
@@ -68,7 +64,6 @@ function runFieldMission(
 
     refresh();
     overlay.focus(useChecklist ? boxes[0] : primary);
-    ctx.speak(aloud);
   });
 }
 

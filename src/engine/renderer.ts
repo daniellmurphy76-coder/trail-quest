@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-/** Owns the WebGLRenderer: sizing, pixel ratio, and teardown. */
+/** Owns the WebGLRenderer: look (tone mapping, shadows), sizing, pixel ratio, and teardown. */
 export class Renderer {
   readonly gl: THREE.WebGLRenderer;
   private w = 1;
@@ -10,6 +10,14 @@ export class Renderer {
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
+    // Filmic tone mapping and sRGB output give the flat Lambert palette some depth.
+    this.gl.toneMapping = THREE.ACESFilmicToneMapping;
+    this.gl.toneMappingExposure = 1.05;
+    this.gl.outputColorSpace = THREE.SRGBColorSpace;
+    // Soft sun shadows. PCFSoftShadowMap was removed in Three r186 (it logs a warning and falls back),
+    // and PCFShadowMap is now the soft, hardware-filtered one, so ask for that directly.
+    this.gl.shadowMap.enabled = true;
+    this.gl.shadowMap.type = THREE.PCFShadowMap;
     window.addEventListener('resize', this.markDirty);
     window.addEventListener('orientationchange', this.markDirty);
     // iPad Safari: the visual viewport changes when the toolbar shows or hides.

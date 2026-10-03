@@ -1,9 +1,8 @@
 import type { RankId } from '../../activities/types';
 import { h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
-import type { Speak } from '../../ui/speech';
-import { button, readButton, uid } from '../../ui/widgets';
-import { createDefaultSave, createProfile, type NewProfileOptions } from '../../save/store';
+import { button, uid } from '../../ui/widgets';
+import type { NewProfileOptions } from '../../save/store';
 
 export interface RankChoice {
   rank: RankId;
@@ -14,23 +13,17 @@ export interface RankChoice {
 
 export interface ProfileSetupOptions {
   ranks: readonly RankChoice[];
-  speak: Speak;
   /** Show a Back button. False on the very first run, when there is nowhere to go back to. */
   allowCancel: boolean;
 }
 
 export const DEFAULT_GUIDE_NAME = 'Den Chief';
 
-/** Whether read-aloud starts on for a rank. Asked of createProfile, so the two never disagree. */
-export function defaultReadAloud(rank: RankId): boolean {
-  return createProfile(createDefaultSave(), { name: 'x', rank }).readAloud;
-}
-
 export function rankCardLabel(choice: RankChoice): string {
   return `${choice.label} · grade ${choice.grade}`;
 }
 
-/** "Who is playing?": name, rank, guide name and read-aloud. Resolves the new profile's options, or null on Back. */
+/** "Who is playing?": name, rank and guide name. Resolves the new profile's options, or null on Back. */
 export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions): Promise<NewProfileOptions | null> {
   return new Promise<NewProfileOptions | null>((resolve) => {
     let finished = false;
@@ -47,7 +40,6 @@ export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions
     });
 
     let rank: RankId | undefined;
-    let readAloudTouched = false;
 
     const nameId = uid('tq-name');
     const guideId = uid('tq-guide');
@@ -67,7 +59,6 @@ export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions
       value: DEFAULT_GUIDE_NAME,
       attrs: { maxlength: 24, autocomplete: 'off', spellcheck: 'false' },
     });
-    const readAloud = h('input', { type: 'checkbox', id: uid('tq-read-aloud'), checked: false });
     const message = h('p', { class: 'tq-form__msg', role: 'alert' });
 
     const cards = options.ranks.map((choice) => {
@@ -90,13 +81,8 @@ export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions
         card.classList.toggle('is-selected', on);
         mark.textContent = on ? '✓ Picked' : '';
       }
-      if (!readAloudTouched) readAloud.checked = defaultReadAloud(next);
       message.textContent = '';
     }
-
-    readAloud.addEventListener('change', () => {
-      readAloudTouched = true;
-    });
 
     function submit(): void {
       const name = nameInput.value.trim();
@@ -114,7 +100,6 @@ export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions
         name,
         rank,
         guideName: guideInput.value.trim() || DEFAULT_GUIDE_NAME,
-        readAloud: readAloud.checked,
       });
     }
 
@@ -122,7 +107,7 @@ export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions
     const back = options.allowCancel ? button('Back', { icon: '←', onClick: () => finish(null) }) : null;
 
     overlay.card.append(
-      h('div', { class: 'tq-prompt' }, h('h2', null, 'Who is playing?'), readButton('Who is playing?', options.speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, 'Who is playing?')),
       h('div', { class: 'tq-field' }, h('label', { htmlFor: nameId }, 'Your name'), nameInput),
       h(
         'div',
@@ -135,12 +120,6 @@ export function showProfileSetup(host: HTMLElement, options: ProfileSetupOptions
         ),
       ),
       h('div', { class: 'tq-field' }, h('label', { htmlFor: guideId }, 'Guide name'), guideInput),
-      h(
-        'label',
-        { class: 'tq-check' },
-        readAloud,
-        h('span', null, 'Read to me'),
-      ),
       message,
       h('div', { class: 'tq-actions' }, start, back),
     );

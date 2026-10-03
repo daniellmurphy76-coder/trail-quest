@@ -5,6 +5,7 @@ import {
   clampToUnit,
   isInJoystickZone,
   joystickVector,
+  joystickView,
   keyboardAxis,
   mergeMoves,
   type MoveVec,
@@ -133,11 +134,17 @@ export class Input {
     this.actionButton.setAttribute('aria-label', text === '' ? 'Action' : text);
   }
 
+  /** False while a dialog or screen has switched game input off. */
+  get isEnabled(): boolean {
+    return this.enabled;
+  }
+
   /** Turn all input off (for example while a full-screen dialog is open). */
   setEnabled(enabled: boolean): void {
     if (this.enabled === enabled) return;
     this.enabled = enabled;
     if (!enabled) this.releaseAll();
+    this.refreshJoystick();
   }
 
   /** Merge every source into `state`. Call once per fixed update. */
@@ -232,7 +239,7 @@ export class Input {
     const half = JOY_BASE_PX / 2;
     this.joyBase.style.transform = `translate(${e.clientX - half}px, ${e.clientY - half}px)`;
     this.joyKnob.style.transform = 'translate(0px, 0px)';
-    this.joyBase.classList.add('is-on');
+    this.refreshJoystick();
   };
 
   private readonly onJoyMove = (e: PointerEvent): void => {
@@ -255,7 +262,10 @@ export class Input {
     }
     this.joyPointer = null;
     this.joyMove = { x: 0, z: 0 };
-    this.joyBase.classList.remove('is-on');
+    // Back to the resting spot: CSS places it there once the finger's transform is gone.
+    this.joyBase.style.transform = '';
+    this.joyKnob.style.transform = '';
+    this.refreshJoystick();
   }
 
   // ---- touch: action button -----------------------------------------------------------------
@@ -294,7 +304,22 @@ export class Input {
 
   private readonly refreshTouchVisibility = (): void => {
     this.actionButton.classList.toggle('is-on', this.touchControlsVisible);
+    this.refreshJoystick();
   };
+
+  /**
+   * Rest (faint, bottom-left), drag (under the finger) or hidden. `is-rest` and `is-on` are never
+   * both set: `is-on` positions the ring with the finger's transform, `is-rest` with CSS.
+   */
+  private refreshJoystick(): void {
+    const view = joystickView({
+      touchControls: this.touchControlsVisible,
+      dragging: this.joyPointer !== null,
+      enabled: this.enabled,
+    });
+    this.joyBase.classList.toggle('is-rest', view === 'rest');
+    this.joyBase.classList.toggle('is-on', view === 'drag');
+  }
 
   /** Drop everything that is held: window lost focus, tab hidden, or input disabled. */
   private readonly releaseAll = (): void => {

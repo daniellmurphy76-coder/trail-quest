@@ -1,6 +1,8 @@
+import { collectActivity } from './collect';
 import { comingSoonActivity } from './comingSoon';
 import { craftActivity } from './craft';
 import { fieldMissionActivity } from './fieldMission';
+import { navigateActivity } from './navigate';
 import { quizActivity } from './quiz';
 import { rhythmActivity } from './rhythm';
 import { sequenceActivity } from './sequence';
@@ -14,6 +16,8 @@ const implemented: { [K in ActivityType]?: ActivityController<K> } = {
   quiz: quizActivity,
   sequence: sequenceActivity,
   sort: sortActivity,
+  collect: collectActivity,
+  navigate: navigateActivity,
   rhythm: rhythmActivity,
   craft: craftActivity,
   fieldMission: fieldMissionActivity,

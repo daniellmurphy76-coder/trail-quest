@@ -28,6 +28,16 @@ export interface Zone {
   bounds: Bounds;
   spawn: THREE.Vector3;
   interactables: Interactable[];
+  /**
+   * Pre-authored walkable points where world activities may place pickups and markers.
+   * Keep them clear of props and at least 2 units apart. Optional for the hub.
+   */
+  openSpots?: THREE.Vector3[];
+  /**
+   * Named places that navigate waypoints refer to by id (content uses ids such as
+   * "trailhead", "footbridge", "lookout", "campsite", "library", "school", "fire-station", "store").
+   */
+  landmarks?: Record<string, THREE.Vector3>;
   /** Fixed-step animation (campfire flicker and so on). */
   update(dt: number): void;
 }

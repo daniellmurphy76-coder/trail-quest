@@ -1,7 +1,6 @@
 import { append, h } from '../../ui/dom';
 import { mountOverlay } from '../../ui/overlay';
-import type { Speak } from '../../ui/speech';
-import { button, readButton } from '../../ui/widgets';
+import { button } from '../../ui/widgets';
 import { line, type LineLevel, type LineVars } from '../lines';
 import type { SummaryChoice, SummaryInfo } from '../session';
 
@@ -9,21 +8,6 @@ export interface SummaryScreenOptions {
   info: SummaryInfo;
   level: LineLevel;
   vars: LineVars;
-  speak: Speak;
-}
-
-/** What the Read button says: the same facts as the screen, in order. */
-export function summaryText(options: SummaryScreenOptions): string {
-  const { info, level, vars } = options;
-  const parts = [
-    line('summaryTitle', level, vars),
-    `Stops done: ${info.stopsDone} of ${info.stopsTotal}.`,
-    `XP earned today: ${info.xpEarned}.`,
-    info.streakLit ? line('campfireLit', level, { ...vars, streak: info.streak }) : line('campfireNot', level, vars),
-  ];
-  for (const badge of info.badges) parts.push(line('badgeEarned', level, { ...vars, adventure: badge }));
-  parts.push(line('summaryBye', level, vars));
-  return parts.join(' ');
 }
 
 /**
@@ -39,7 +23,7 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
       overlay.close();
       resolve(choice);
     };
-    const { info, level, vars, speak } = options;
+    const { info, level, vars } = options;
     const title = line('summaryTitle', level, vars);
     const overlay = mountOverlay(host, {
       label: title,
@@ -81,7 +65,7 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
       : null;
 
     append(overlay.card, [
-      h('div', { class: 'tq-prompt' }, h('h2', null, title), readButton(summaryText(options), speak)),
+      h('div', { class: 'tq-prompt' }, h('h2', null, title)),
       rows,
       h(
         'p',
@@ -96,6 +80,5 @@ export function showSummary(host: HTMLElement, options: SummaryScreenOptions): P
     const primary = bonus ?? explore;
     overlay.setDefault(primary);
     overlay.focus(primary);
-    speak(summaryText(options));
   });
 }

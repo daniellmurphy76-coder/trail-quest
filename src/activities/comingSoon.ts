@@ -1,5 +1,5 @@
 import { showDialog } from '../ui/dialog';
-import type { ActivityContext, ActivityController, ActivityParamsByType, ActivityResult, ActivityType } from './types';
+import type { ActivityController, ActivityParamsByType, ActivityResult, ActivityType } from './types';
 
 export const COMING_SOON_TEXT = 'This stop is still being built. Come back soon!';
 
@@ -10,13 +10,8 @@ export const COMING_SOON_TEXT = 'This stop is still being built. Come back soon!
 export function comingSoonActivity<T extends ActivityType>(type: T): ActivityController<T> {
   return {
     type,
-    async run(host: HTMLElement, _params: ActivityParamsByType[T], ctx: ActivityContext): Promise<ActivityResult> {
-      await showDialog(host, {
-        speaker: 'Trail Sign',
-        text: COMING_SOON_TEXT,
-        speak: ctx.speak,
-        autoSpeak: true,
-      });
+    async run(host: HTMLElement, _params: ActivityParamsByType[T]): Promise<ActivityResult> {
+      await showDialog(host, { speaker: 'Trail Sign', text: COMING_SOON_TEXT });
       return { completed: false, attempts: 0 };
     },
   };

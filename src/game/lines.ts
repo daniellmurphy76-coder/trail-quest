@@ -8,7 +8,8 @@
  * and that every placeholder is one of LINE_VARS. Game code asks for a line by key, never writes
  * its own kid-facing sentence, and never hard-codes rank text.
  */
-import type { ReadingLevel, ZoneId } from '../activities/types';
+import type { ReadingLevel } from '../activities/types';
+import { ZONE_LABELS } from '../world/zone-ids';
 
 export type LineLevel = 'grade2' | 'grade5';
 
@@ -29,9 +30,15 @@ export interface LineVars {
   adventure?: string;
   /** A zone label from ZONE_LABELS. */
   zone?: string;
+  /** Stops finished on today's trail (HUD progress). */
+  done?: number;
+  /** Stops on today's trail (HUD progress). */
+  total?: number;
+  /** Distance to a compass target, in steps. */
+  steps?: number;
 }
 
-export const LINE_VARS = ['name', 'guide', 'streak', 'xp', 'title', 'adventure', 'zone'] as const;
+export const LINE_VARS = ['name', 'guide', 'streak', 'xp', 'title', 'adventure', 'zone', 'done', 'total', 'steps'] as const;
 
 interface Pair {
   grade2: string;
@@ -41,9 +48,12 @@ const same = (text: string): Pair => ({ grade2: text, grade5: text });
 
 export const LINES = {
   // ---- greetings at Base Camp ----
+  // The first greeting teaches the game: what a trail is, three stops, the campfire grows.
   greetFirst: {
-    grade2: "Hi {name}! I am {guide}. I help the den. Let's walk your trail!",
-    grade5: "Hi {name}, I am {guide}. I help lead the den. Today's Trail has a few quick stops. Let's go!",
+    grade2: 'Hi {name}, I am {guide}! A trail is three quick stops. Do them all to grow your campfire!',
+    grade5:
+      'Hi {name}, I am {guide}! A trail is three quick stops: warm-up, new step, field check. ' +
+      'Finish them all to make your campfire grow.',
   },
   greetStreak: {
     grade2: 'Welcome back, {name}! Your campfire is on Day {streak}. Ready to go?',
@@ -65,6 +75,30 @@ export const LINES = {
     grade2: 'Hi {name}! I have no new stops today. Explore camp!',
     grade5: 'Hi {name}! I have nothing new for you today. Take a look around camp!',
   },
+
+  // ---- the two choices on a greeting ----
+  choiceGo: same("Let's go!"),
+  choiceLook: same('Look around first'),
+
+  // ---- the Start button at Base Camp and at the top of the trail panel ----
+  startTrail: same("Start today's trail"),
+  startBonus: same('Bonus stop'),
+
+  // ---- the controls hint card. [X] is drawn as a key cap. ----
+  hintWalkKeys: same('Walk: arrow keys or [W] [A] [S] [D].'),
+  hintTalkKeys: same('Talk: [E]'),
+  hintWalkTouch: same('Walk: drag the circle.'),
+  hintTalkTouch: same('Talk: tap the big button.'),
+  hintGotIt: same('Got it'),
+
+  // ---- the HUD ----
+  hudTrail: same("Today's Trail"),
+  hudProgress: same('{done} of {total}'),
+  hudProgressDone: same('✓ Done'),
+
+  // ---- the compass arrow ----
+  compassStep: same('1 step'),
+  compassSteps: same('{steps} steps'),
 
   // ---- the trail panel when there is no list to show ----
   panelDone: {
@@ -104,6 +138,8 @@ export const LINES = {
 
   // ---- travel sign shown when a stop belongs to another zone ----
   travel: same('Walking to the {zone}…'),
+  /** The "Back to camp" sign was used in the middle of a stop. */
+  travelBusy: same('Tap Back to leave this stop.'),
 
   // ---- after a stop ----
   cheerXp: {
@@ -165,15 +201,8 @@ export const LINES = {
 
 export type LineKey = keyof typeof LINES;
 
-/** Words for the zones, used by the travel sign. */
-export const ZONE_LABELS: Record<ZoneId, string> = {
-  'base-camp': 'Base Camp',
-  'fitness-field': 'Fitness Field',
-  'nature-trail': 'Nature Trail',
-  'town-square': 'Town Square',
-  'safety-station': 'Safety Station',
-  'campfire-circle': 'Campfire Circle',
-};
+/** Words for the zones, used by the travel sign and the Places buttons. Defined with the zone ids. */
+export { ZONE_LABELS };
 
 /** Short names for the kinds of stops, shown in the trail panel. */
 export const STOP_KIND_LABELS = {

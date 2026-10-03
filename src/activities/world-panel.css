@@ -1,0 +1,181 @@
+/*
+ * The non-modal panel collect and navigate use: a card that sits over the world without
+ * covering it or taking input away. Wide screens: top right. Under 720px: below the HUD and the
+ * compass, full width. It always leaves the bottom corners (joystick and action button) clear.
+ * Type is 20px or more and every button is 44px or taller.
+ */
+
+.tq-world-panel {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  z-index: 6; /* over the HUD and the compass (5), under overlays (10) */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(340px, calc(100% - 24px));
+  max-height: calc(100% - 12px - 132px); /* keeps clear of the action button at the bottom right */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  font-family: system-ui, sans-serif;
+  font-size: var(--tq-font-size);
+  line-height: 1.35;
+  color: var(--tq-ink);
+  background: var(--tq-surface);
+  border: 3px solid var(--tq-ink);
+  border-radius: var(--tq-radius);
+  box-shadow: var(--tq-shadow);
+}
+
+.tq-world-panel *,
+.tq-world-panel *::before,
+.tq-world-panel *::after {
+  box-sizing: border-box;
+}
+
+.tq-world-panel [hidden] {
+  display: none !important;
+}
+
+.tq-world-panel p,
+.tq-world-panel h2,
+.tq-world-panel ul,
+.tq-world-panel ol {
+  margin: 0;
+}
+
+.tq-world-panel :focus-visible {
+  outline: 4px solid var(--tq-ink);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px var(--tq-accent);
+}
+
+/* The compass and the HUD stack at the top left and centre; on a phone the panel goes under them. */
+@media (max-width: 720px) {
+  .tq-world-panel {
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+    width: auto;
+    top: calc(max(12px, env(safe-area-inset-top, 0px)) + 204px + 70px);
+    min-height: 120px;
+    max-height: calc(100% - (max(12px, env(safe-area-inset-top, 0px)) + 274px) - 180px); /* clear of the joystick */
+  }
+}
+
+.tq-world-panel__prompt {
+  font-weight: 700;
+}
+
+.tq-world-panel__goal {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.tq-world-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tq-world-panel__actions > .tq-btn {
+  flex: 1 1 8em;
+}
+
+/* ---------- Collect: the checklist ---------- */
+
+.tq-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  color: var(--tq-ink);
+  background: var(--tq-surface);
+  border: 3px solid var(--tq-ink);
+  border-radius: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tq-check-row__mark {
+  flex: 0 0 auto;
+  min-width: 1.2em;
+  text-align: center;
+}
+
+.tq-check-row__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tq-check-row__count {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.tq-check-item.is-done > .tq-check-row {
+  border-color: var(--tq-ok);
+  background: color-mix(in srgb, var(--tq-ok) 12%, var(--tq-surface));
+}
+
+.tq-check-item__hint {
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  background: var(--tq-surface-2);
+  border-left: 8px solid var(--tq-accent);
+  border-radius: 8px;
+}
+
+/* ---------- Navigate: the waypoint list ---------- */
+
+.tq-way-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.tq-way {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 3px dashed var(--tq-ink);
+  border-radius: 12px;
+}
+
+.tq-way.is-current {
+  border-style: solid;
+  border-width: 4px;
+  font-weight: 700;
+}
+
+.tq-way.is-done {
+  border-style: solid;
+  border-color: var(--tq-ok);
+  background: color-mix(in srgb, var(--tq-ok) 12%, var(--tq-surface));
+}
+
+.tq-way__mark {
+  flex: 0 0 auto;
+  min-width: 1.2em;
+  font-weight: 700;
+  text-align: center;
+}

@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { assets } from '../engine/assets';
+import { setShadowCasting } from '../engine/environment';
+import { mulberry32 } from '../engine/seed';
+import type { Bounds } from './bounds';
 
 /** Seeded random source returning floats in [0, 1), for example `mulberry32(2026)`. */
 export type Rng = () => number;
@@ -18,6 +23,11 @@ const dummy = new THREE.Object3D();
 
 function lambert(color: number, flatShading = true): THREE.MeshLambertMaterial {
   return new THREE.MeshLambertMaterial({ color, flatShading });
+}
+
+/** Fractional part, for cheap repeatable "random" numbers from an index. */
+function frac(v: number): number {
+  return v - Math.floor(v);
 }
 
 // ---- instanced props ----------------------------------------------------------------------------
@@ -49,6 +59,8 @@ export function tree(rng: Rng, spots: readonly Spot[]): THREE.Group {
   trunks.instanceMatrix.needsUpdate = true;
   crowns.instanceMatrix.needsUpdate = true;
   if (crowns.instanceColor) crowns.instanceColor.needsUpdate = true;
+  setShadowCasting(trunks, true, true);
+  setShadowCasting(crowns, true, true);
   group.add(trunks, crowns);
   return group;
 }
@@ -70,13 +82,315 @@ export function rock(rng: Rng, spots: readonly Spot[]): THREE.InstancedMesh {
     mesh.setMatrixAt(i, dummy.matrix);
   });
   mesh.instanceMatrix.needsUpdate = true;
+  setShadowCasting(mesh, true, true);
   return mesh;
+}
+
+// ---- model-backed props -------------------------------------------------------------------------
+
+/** Where one copy of a model goes. `scale` multiplies the size set in the asset manifest. */
+export interface Placement {
+  x: number;
+  z: number;
+  /** Turn about the up axis, in radians. */
+  yaw?: number;
+  scale?: number;
+}
+
+export interface ShadowOptions {
+  /** Cast shadows from the sun. Default true. */
+  cast?: boolean;
+  /** Receive shadows from the sun. Default true. */
+  receive?: boolean;
+}
+
+/**
+ * One InstancedMesh holding a copy of model `id` at every placement. Needs `assets.has(id)` and a
+ * single-static-mesh model (trees, rocks, tents). Returns undefined if the model cannot be instanced.
+ * Casts and receives sun shadows unless `shadows` says otherwise.
+ */
+export function instancedModel(
+  id: string,
+  placements: readonly Placement[],
+  shadows: ShadowOptions = {},
+): THREE.InstancedMesh | undefined {
+  if (placements.length === 0) return undefined;
+  const mesh = assets.instanced(id, placements.length);
+  if (!mesh) return undefined;
+  placements.forEach((p, i) => {
+    dummy.position.set(p.x, 0, p.z);
+    dummy.rotation.set(0, p.yaw ?? 0, 0);
+    dummy.scale.setScalar(p.scale ?? 1);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  setShadowCasting(mesh, shadows.cast ?? true, shadows.receive ?? true);
+  return mesh;
+}
+
+/**
+ * Scatter loaded models over `spots`: each spot picks one of `ids` at random, then gets a random
+ * turn and a size in `scale` (a [min, max] multiplier). One draw call per model id used. Ids that
+ * are not loaded are skipped; returns null when none are, so the caller keeps its primitive props.
+ */
+export function scatterModels(
+  name: string,
+  ids: readonly string[],
+  spots: readonly Spot[],
+  rng: Rng,
+  scale: readonly [number, number],
+  shadows: ShadowOptions = {},
+): THREE.Group | null {
+  const usable = ids.filter((id) => assets.has(id));
+  if (usable.length === 0) return null;
+  const buckets: Placement[][] = usable.map(() => []);
+  for (const spot of spots) {
+    const pick = Math.floor(rng() * usable.length);
+    buckets[pick]!.push({
+      x: spot.x,
+      z: spot.z,
+      yaw: rng() * Math.PI * 2,
+      scale: scale[0] + rng() * (scale[1] - scale[0]),
+    });
+  }
+  const group = new THREE.Group();
+  group.name = name;
+  usable.forEach((id, i) => {
+    const mesh = instancedModel(id, buckets[i]!, shadows);
+    if (mesh) group.add(mesh);
+  });
+  return group.children.length > 0 ? group : null;
+}
+
+// ---- plants -------------------------------------------------------------------------------------
+
+/** A circle that plants keep out of: a clearing, a path, or the room around a prop. */
+export interface AvoidCircle {
+  x: number;
+  z: number;
+  radius: number;
+}
+
+export interface ScatterPlantsOptions {
+  /** Model ids to use instead of the default `plant.*` mix. Each is picked equally often. */
+  ids?: readonly string[];
+  /**
+   * Gather plants near the edges of the `avoid` circles. A candidate that is `d` units outside the
+   * nearest circle is kept with probability exp(-d / edgeFalloff), so about a third survive at
+   * `edgeFalloff` units out. Leave it out for an even scatter.
+   */
+  edgeFalloff?: number;
+}
+
+/** How often each `plant.*` model turns up: lots of grass, some flowers and bushes, the odd mushroom. */
+const PLANT_CHOICES: ReadonlyArray<{ id: string; weight: number }> = [
+  { id: 'plant.grass', weight: 4 },
+  { id: 'plant.grass.large', weight: 3 },
+  { id: 'plant.flower.yellow', weight: 1.2 },
+  { id: 'plant.flower.red', weight: 1 },
+  { id: 'plant.flower.purple', weight: 1 },
+  { id: 'plant.bush', weight: 1.2 },
+  { id: 'plant.mushroom', weight: 0.5 },
+  { id: 'plant.bush.large', weight: 0.4 },
+];
+
+/** Rejection-sample up to `count` spots inside `bounds` and outside every `avoid` circle. */
+function plantSpots(
+  rng: Rng,
+  count: number,
+  bounds: Bounds,
+  avoid: readonly AvoidCircle[],
+  edgeFalloff: number | undefined,
+): Spot[] {
+  const spots: Spot[] = [];
+  const maxAttempts = count * 30;
+  for (let attempt = 0; attempt < maxAttempts && spots.length < count; attempt++) {
+    const x = bounds.minX + rng() * (bounds.maxX - bounds.minX);
+    const z = bounds.minZ + rng() * (bounds.maxZ - bounds.minZ);
+    let nearest = Infinity;
+    let blocked = false;
+    for (const a of avoid) {
+      const outside = Math.hypot(x - a.x, z - a.z) - a.radius;
+      if (outside < 0) {
+        blocked = true;
+        break;
+      }
+      nearest = Math.min(nearest, outside);
+    }
+    if (blocked) continue;
+    if (edgeFalloff !== undefined && edgeFalloff > 0 && avoid.length > 0 && rng() > Math.exp(-nearest / edgeFalloff)) continue;
+    spots.push({ x, z });
+  }
+  return spots;
+}
+
+/** Three thin blades in one geometry: a tiny tuft of grass. */
+function tuftGeometry(): THREE.BufferGeometry {
+  const blades = [
+    { ox: -0.07, oz: 0.0, tilt: 0.22, yaw: 0.0 },
+    { ox: 0.06, oz: 0.03, tilt: -0.28, yaw: 2.1 },
+    { ox: 0.0, oz: -0.07, tilt: 0.16, yaw: 4.2 },
+  ].map((b) =>
+    new THREE.ConeGeometry(0.06, 0.55, 3)
+      .translate(0, 0.275, 0)
+      .rotateZ(b.tilt)
+      .rotateY(b.yaw)
+      .translate(b.ox, 0, b.oz),
+  );
+  const merged = mergeGeometries(blades);
+  for (const blade of blades) blade.dispose();
+  return merged ?? new THREE.ConeGeometry(0.1, 0.5, 3).translate(0, 0.25, 0);
+}
+
+/** Primitive stand-in: one InstancedMesh of green tufts. */
+function tufts(rng: Rng, spots: readonly Spot[]): THREE.InstancedMesh | null {
+  if (spots.length === 0) return null;
+  const mesh = new THREE.InstancedMesh(tuftGeometry(), lambert(0xffffff), spots.length);
+  mesh.name = 'plant-tufts';
+  const color = new THREE.Color();
+  spots.forEach((spot, i) => {
+    const s = 0.7 + rng() * 0.8;
+    dummy.position.set(spot.x, 0, spot.z);
+    dummy.rotation.set(0, rng() * Math.PI * 2, 0);
+    dummy.scale.set(s, s * (0.8 + rng() * 0.5), s);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+    color.setHSL(0.24 + rng() * 0.08, 0.5, 0.3 + rng() * 0.12);
+    mesh.setColorAt(i, color);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  setShadowCasting(mesh, false, true);
+  return mesh;
+}
+
+/**
+ * Up to `count` plants scattered over `bounds`, never inside an `avoid` circle. Starts as one
+ * InstancedMesh of tiny green tufts (1 draw call) and upgrades itself to the `plant.*` models
+ * (grass, flowers, bushes, mushrooms; one draw call per model used, at most 8) when they load.
+ * Same seed, same layout. Plants do not cast shadows, they only receive them.
+ */
+export function scatterPlants(
+  rng: Rng,
+  count: number,
+  bounds: Bounds,
+  avoid: readonly AvoidCircle[],
+  options: ScatterPlantsOptions = {},
+): THREE.Group {
+  const group = new THREE.Group();
+  group.name = 'plants';
+  const spots = plantSpots(rng, count, bounds, avoid, options.edgeFalloff);
+  // A separate stream for the models, so the layout is the same whichever art is showing.
+  const modelRng = mulberry32(Math.floor(rng() * 0x100000000));
+  const placeholder = tufts(rng, spots);
+  if (placeholder) group.add(placeholder);
+
+  const choices = options.ids ? options.ids.map((id) => ({ id, weight: 1 })) : PLANT_CHOICES;
+  const upgrade = (): void => {
+    const usable = choices.filter((c) => assets.has(c.id));
+    if (usable.length === 0 || spots.length === 0) return;
+    const total = usable.reduce((sum, c) => sum + c.weight, 0);
+    const buckets: Placement[][] = usable.map(() => []);
+    for (const spot of spots) {
+      let r = modelRng() * total;
+      let pick = 0;
+      while (pick < usable.length - 1 && r >= usable[pick]!.weight) {
+        r -= usable[pick]!.weight;
+        pick++;
+      }
+      buckets[pick]!.push({ x: spot.x, z: spot.z, yaw: modelRng() * Math.PI * 2, scale: 0.8 + modelRng() * 0.5 });
+    }
+    const meshes: THREE.InstancedMesh[] = [];
+    usable.forEach((c, i) => {
+      const mesh = instancedModel(c.id, buckets[i]!, { cast: false, receive: true });
+      if (mesh) meshes.push(mesh);
+    });
+    if (meshes.length === 0) return;
+    if (placeholder) {
+      group.remove(placeholder);
+      placeholder.geometry.dispose();
+      (placeholder.material as THREE.Material).dispose();
+    }
+    group.add(...meshes);
+  };
+  assets
+    .load(choices.map((c) => c.id))
+    .then(upgrade)
+    .catch(() => {});
+  return group;
 }
 
 // ---- campfire -----------------------------------------------------------------------------------
 
-/** Stone ring, crossed logs, a glow on the ground, and a flame that flickers in `update`. 5 draw calls. */
-export function campfire(): AnimatedProp {
+/** A campfire that can trade its primitive stones and logs for the `campfire` model. */
+export interface CampfireProp extends AnimatedProp {
+  /** Swap in the model if it has loaded. The flames, light, and embers stay. Returns true once swapped. */
+  useModel(): boolean;
+}
+
+const EMBER_COUNT = 12;
+const FIRE_LIGHT_COLOR = 0xff9640;
+const FIRE_LIGHT_INTENSITY = 16; // candela; at 3 units it lights the ground about as strongly as the sky does
+const FIRE_LIGHT_RANGE = 14;
+
+/**
+ * A flame: a teardrop of six faces whose vertex colors run from `base` at the bottom to `tip` at
+ * the top. Colors are in Three's working (linear) space, matching `MeshBasicMaterial` vertex colors.
+ */
+function flameGeometry(radius: number, height: number, base: number, tip: number): THREE.BufferGeometry {
+  const profile = [
+    [0.0, 0.0],
+    [0.7, 0.08],
+    [1.0, 0.3],
+    [0.85, 0.58],
+    [0.5, 0.82],
+    [0.2, 0.95],
+    [0.0, 1.0],
+  ].map(([r, h]) => new THREE.Vector2(r! * radius, h! * height));
+  const geometry = new THREE.LatheGeometry(profile, 6);
+  const position = geometry.getAttribute('position');
+  const colors = new Float32Array(position.count * 3);
+  const from = new THREE.Color(base);
+  const to = new THREE.Color(tip);
+  const c = new THREE.Color();
+  for (let i = 0; i < position.count; i++) {
+    c.copy(from).lerp(to, Math.min(1, Math.max(0, position.getY(i) / height)));
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geometry;
+}
+
+/** A 16 by 16 soft white dot, for round embers. */
+function softDotTexture(): THREE.DataTexture {
+  const size = 16;
+  const data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = Math.hypot((x + 0.5) / size - 0.5, (y + 0.5) / size - 0.5) * 2;
+      const a = Math.max(0, 1 - d);
+      const i = (y * size + x) * 4;
+      data[i] = data[i + 1] = data[i + 2] = 255;
+      data[i + 3] = Math.round(255 * a * a);
+    }
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
+ * Stone ring, crossed logs, a two-layer flame, rising embers, and a warm flickering light that
+ * does not cast shadows. The stones and logs cast and receive shadows. 5 draw calls: stones, logs
+ * (or the model's 2), outer flame, inner flame, embers.
+ */
+export function campfire(): CampfireProp {
   const root = new THREE.Group();
   root.name = 'campfire';
 
@@ -107,42 +421,112 @@ export function campfire(): AnimatedProp {
     dummy.updateMatrix();
     logs.setMatrixAt(i, dummy.matrix);
   }
+  setShadowCasting(stones, true, true);
+  setShadowCasting(logs, true, true);
 
-  const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(2.4, 24).rotateX(-Math.PI / 2),
+  // Outer flame: red at the foot, orange at the tip, glowing (additive) so it looks lit from inside.
+  // Inner flame: orange to yellow and opaque, so the core burns hotter where the two overlap.
+  const outer = new THREE.Mesh(
+    flameGeometry(0.5, 1.5, 0xd8300f, 0xff8a1a),
     new THREE.MeshBasicMaterial({
-      color: 0xffa33a,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
       depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false,
     }),
   );
-  glow.position.y = 0.04;
-
-  const outer = new THREE.Mesh(
-    new THREE.ConeGeometry(0.55, 1.5, 8).translate(0, 0.75, 0),
-    new THREE.MeshBasicMaterial({ color: 0xff7a1a }),
-  );
   outer.position.y = 0.2;
+  outer.renderOrder = 2;
   const inner = new THREE.Mesh(
-    new THREE.ConeGeometry(0.3, 0.95, 8).translate(0, 0.475, 0),
-    new THREE.MeshBasicMaterial({ color: 0xffd34d }),
+    flameGeometry(0.28, 1.0, 0xff9d1c, 0xffe36a),
+    new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false }),
   );
   inner.position.y = 0.2;
 
-  root.add(glow, stones, logs, outer, inner);
+  const light = new THREE.PointLight(FIRE_LIGHT_COLOR, FIRE_LIGHT_INTENSITY, FIRE_LIGHT_RANGE, 2);
+  light.name = 'campfire-light';
+  light.position.set(0, 1.1, 0);
+  light.castShadow = false;
+
+  // Embers: a few glowing dots that rise, drift, and fade out, then start over at the fire.
+  const emberPositions = new Float32Array(EMBER_COUNT * 3);
+  const emberColors = new Float32Array(EMBER_COUNT * 3);
+  const emberGeometry = new THREE.BufferGeometry();
+  emberGeometry.setAttribute('position', new THREE.BufferAttribute(emberPositions, 3));
+  emberGeometry.setAttribute('color', new THREE.BufferAttribute(emberColors, 3));
+  const embers = new THREE.Points(
+    emberGeometry,
+    new THREE.PointsMaterial({
+      size: 0.24,
+      map: softDotTexture(),
+      vertexColors: true,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+      toneMapped: false,
+    }),
+  );
+  embers.name = 'embers';
+  embers.frustumCulled = false; // the points move every frame, so the starting bounds would be wrong
+  const emberSeeds = Array.from({ length: EMBER_COUNT }, (_, i) => ({
+    phase: frac(i * 0.618),
+    speed: 0.28 + 0.22 * frac(i * 0.381 + 0.2),
+    angle: i * 2.399,
+    radius: 0.15 + 0.35 * frac(i * 0.755 + 0.1),
+  }));
+
+  root.add(stones, logs, outer, inner, light, embers);
 
   let t = 0;
+  let swapped = false;
+  const updateEmbers = (): void => {
+    emberSeeds.forEach((e, i) => {
+      const life = frac(e.phase + t * e.speed);
+      const spread = e.radius * (0.4 + life);
+      emberPositions[i * 3] = Math.cos(e.angle + life * 1.5) * spread + 0.12 * life * Math.sin(t * 2.3 + i);
+      emberPositions[i * 3 + 1] = 0.5 + life * 2.8;
+      emberPositions[i * 3 + 2] = Math.sin(e.angle + life * 1.5) * spread + 0.12 * life * Math.cos(t * 1.9 + i);
+      // Fade in fast, fade out slowly, with a little sparkle. Black is invisible when added.
+      const glow = Math.pow(1 - life, 1.5) * Math.min(1, life * 8) * (0.8 + 0.2 * Math.sin(t * 20 + i * 1.7));
+      emberColors[i * 3] = 1.0 * glow;
+      emberColors[i * 3 + 1] = 0.55 * glow;
+      emberColors[i * 3 + 2] = 0.15 * glow;
+    });
+    emberGeometry.getAttribute('position').needsUpdate = true;
+    emberGeometry.getAttribute('color').needsUpdate = true;
+  };
+  updateEmbers();
+
   return {
     root,
+    useModel(): boolean {
+      if (swapped) return true;
+      if (!assets.has('campfire')) return false;
+      root.remove(stones, logs);
+      const model = assets.instance('campfire');
+      setShadowCasting(model, true, true);
+      root.add(model);
+      swapped = true;
+      return true;
+    },
     update(dt: number): void {
       t += dt;
       // Sums of sines give a lively flicker with no per-frame randomness.
       const tall = 1 + 0.14 * Math.sin(t * 11) + 0.08 * Math.sin(t * 23 + 1.3);
       const wide = 1 + 0.07 * Math.sin(t * 17 + 0.6);
       outer.scale.set(wide, tall, wide);
+      outer.position.y = 0.2 + 0.03 * Math.sin(t * 13 + 0.4);
+      outer.rotation.y = t * 0.8;
       inner.scale.set(1 / wide, 1 + 0.2 * Math.sin(t * 19 + 2.1), 1 / wide);
-      glow.scale.setScalar(1 + 0.04 * Math.sin(t * 7));
+      inner.position.y = 0.2 + 0.04 * Math.sin(t * 17 + 1.9);
+      inner.rotation.y = 0.5 - t * 1.3;
+      light.intensity = FIRE_LIGHT_INTENSITY * (0.86 + 0.1 * Math.sin(t * 13) + 0.06 * Math.sin(t * 29 + 1.1) + 0.04 * Math.sin(t * 47 + 2.3));
+      light.position.y = 1.1 + 0.08 * Math.sin(t * 9);
+      updateEmbers();
     },
   };
 }
@@ -160,6 +544,7 @@ export function flagpole(): THREE.Group {
   const flag = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1, 0.05), lambert(0x2f7a46));
   flag.position.set(0.88, 5.7, 0);
   g.add(pole, ball, flag);
+  setShadowCasting(g, true, true);
   return g;
 }
 
@@ -201,6 +586,8 @@ export function lodge(): THREE.Group {
   }
 
   g.add(walls, roof, door, windows);
+  setShadowCasting(g, true, true);
+  setShadowCasting(windows, false, true); // thin panes: no shadow of their own
   return g;
 }
 
@@ -222,8 +609,9 @@ const PERSON_BASE_HEIGHT = 1.95; // capsule 0.35 radius + 0.9 length, plus a hea
 
 /**
  * Capsule body (0.35 radius, 0.9 length at the base size), a head, a darker neckerchief ring with
- * a point at the front (so you can tell which way they face), and a soft blob shadow.
- * The front is +z. 5 draw calls. `height` scales the whole figure (1.95 is the base size).
+ * a point at the front (so you can tell which way they face), and a soft blob shadow under the
+ * feet. The body casts and receives sun shadows; the blob stays as contact shadow. The front is
+ * +z. 5 draw calls. `height` scales the whole figure (1.95 is the base size).
  */
 export function personPlaceholder(color: number, height: number, options: PersonOptions = {}): Person {
   const s = height / PERSON_BASE_HEIGHT;
@@ -254,5 +642,6 @@ export function personPlaceholder(color: number, height: number, options: Person
 
   person.body.add(torso, head, ring, point);
   person.add(person.body, shadow);
+  setShadowCasting(person, true, true); // skips the transparent blob
   return person;
 }

@@ -1,19 +1,29 @@
 /**
- * The 3D world that runs underneath every screen: renderer, loop, input, Base Camp, the player,
+ * The 3D world that runs underneath every screen: renderer, loop, input, the zones, the player,
  * the follow camera and the floating name tags. Nothing here knows about profiles or quests;
- * the app sets what happens when the player talks to the Den Chief with `setDenChiefHandler`.
+ * the app sets what happens when the player talks to the Den Chief with `setDenChiefHandler`
+ * and what the "Back to camp" trail sign does with `setReturnHandler`.
+ *
+ * Zones are swapped by `travelTo` (see travel.ts): one zone is in the scene at a time, and the
+ * update loop always works on the current one (bounds, animation, interactables).
  */
 import * as THREE from 'three';
+import type { ZoneId } from '../activities/types';
 import { FollowCamera, type FollowTarget } from '../engine/camera';
+import { createEnvironment } from '../engine/environment';
 import { Input } from '../engine/input';
 import { WorldLabels, type WorldLabel } from '../engine/labels';
 import { GameLoop } from '../engine/loop';
 import { Renderer } from '../engine/renderer';
 import { Player } from '../player/controller';
-import { createBaseCamp } from '../world/base-camp';
 import { findInteractableInRange, type Interactable, type Zone } from '../world/zone';
+import { createZone, type ZoneDeps } from '../world/zones';
+import { guidedStartPose } from './guided-start';
+import { ObjectiveCue } from './objective';
+import { createCompass, type Compass } from './screens/compass';
+import { createZoneTraveler } from './travel';
+import { createVeil } from './veil';
 
-const SKY = 0x87ceeb;
 const DEN_CHIEF_ID = 'den-chief';
 
 export interface World {
@@ -21,7 +31,8 @@ export interface World {
   loop: GameLoop;
   input: Input;
   scene: THREE.Scene;
-  zone: Zone;
+  /** The zone the player is in now. It changes when the player travels. */
+  readonly zone: Zone;
   player: Player;
   labels: WorldLabels;
   follow: FollowCamera;
@@ -29,19 +40,61 @@ export interface World {
   setDenChiefHandler(handler: () => void): void;
   /** The name floating above the guide (a profile can rename the Den Chief). */
   setGuideName(name: string): void;
+  /** The HUD compass. Point it at a waypoint with `compass.setTarget(point, 'Label')`. */
+  compass: Compass;
+  /**
+   * Seconds the player has stood still at Base Camp with nothing open. Drops to 0 whenever the
+   * player moves or a dialog or screen is open. Drives the "stuck for 8 seconds" controls hint.
+   */
+  readonly idleSeconds: number;
+  /**
+   * Guided start: put the player two units from the Den Chief, facing them, with the camera
+   * snapped behind. Called when a Scout arrives at Base Camp. Jumps to Base Camp first (no fade)
+   * when the player is somewhere else.
+   */
+  placeAtGuide(): void;
+  /**
+   * Show or hide the "go here" cues for the Den Chief: the bobbing arrow over their head and the
+   * compass pointing at them. Turn it on while today's trail is waiting; off while a session runs.
+   * Safe to call as often as you like: it acts on changes only, and it never clears a compass
+   * target someone else has set (a waypoint) when it turns off. The cues only ever show at Base
+   * Camp; asking for them elsewhere is remembered and takes effect on arrival.
+   */
+  setObjectiveVisible(visible: boolean): void;
+  /** Which zone the player is in. */
+  currentZoneId(): ZoneId;
+  /**
+   * Walk to another zone: the screen fades out, the zone swaps, the player stands at its spawn
+   * looking in, and the screen fades back in. Resolves when it is clear again. Does nothing when
+   * the player is already there. Requests queue, so asking twice in a row is safe.
+   */
+  travelTo(zoneId: ZoneId): Promise<void>;
+  /** What the "Back to camp" trail sign does. Defaults to `travelTo('base-camp')`. */
+  setReturnHandler(handler: () => void): void;
+  /** Hear about every zone change (right after the swap, while the screen is still covered). Returns a stop function. */
+  onZoneChange(listener: (zone: Zone) => void): () => void;
+  /** Run a function on every fixed simulation step, after the zone has updated. Returns a stop function. */
+  onUpdate(fn: (dt: number) => void): () => void;
 }
 
 export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(SKY);
-  scene.fog = new THREE.Fog(SKY, 45, 95);
+  // Sun, sky, fog and clouds belong to the scene, not to a zone, so they carry across travel.
+  const environment = createEnvironment(scene);
 
   let denChiefHandler: () => void = () => {};
-  const zone = createBaseCamp({ onTalkToDenChief: () => denChiefHandler() });
-  scene.add(zone.root);
+  let returnHandler: () => void = () => {
+    traveler.travelTo('base-camp').catch((err: unknown) => console.error(err));
+  };
+  const zoneDeps: ZoneDeps = {
+    onTalkToDenChief: () => denChiefHandler(),
+    onReturnToBaseCamp: () => returnHandler(),
+  };
+  const baseCamp = createZone('base-camp', zoneDeps);
+  scene.add(baseCamp.root);
 
   const player = new Player({ bodyColor: 0xf2c14e });
-  player.setPosition(zone.spawn, Math.PI); // facing -z, toward the campfire
+  player.setPosition(baseCamp.spawn, Math.PI); // facing -z, toward the campfire
   scene.add(player.root);
 
   const follow = new FollowCamera();
@@ -62,15 +115,43 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   const input = new Input({ target: canvas, ui });
 
   const labels = new WorldLabels(ui, follow.camera);
-  const nameTags = new Map<string, WorldLabel>();
-  for (const item of zone.interactables) {
-    if (item.nameTag) {
-      nameTags.set(
-        item.id,
-        labels.add({ text: item.nameTag, position: item.position, offsetY: 0.5, className: 'tq-nametag' }),
-      );
+
+  // Name tags follow the current zone's interactables: rebuilt on every swap.
+  let nameTags = new Map<string, WorldLabel>();
+  let guideName = baseCamp.interactables.find((item) => item.id === DEN_CHIEF_ID)?.nameTag ?? 'Den Chief';
+  function bindNameTags(zone: Zone): void {
+    for (const tag of nameTags.values()) labels.remove(tag);
+    nameTags = new Map();
+    for (const item of zone.interactables) {
+      if (!item.nameTag) continue;
+      const text = item.id === DEN_CHIEF_ID ? guideName : item.nameTag;
+      nameTags.set(item.id, labels.add({ text, position: item.position, offsetY: 0.5, className: 'tq-nametag' }));
     }
   }
+  bindNameTags(baseCamp);
+  const guide = baseCamp.interactables.find((item) => item.id === DEN_CHIEF_ID) ?? null;
+
+  // A bobbing arrow above the Den Chief says "go here". It sits above the prompt (which stacks
+  // 52px over the name tag), so the two never overlap. The text-style selector (FE0E) keeps iPad
+  // Safari from swapping the glyph for a colour emoji.
+  const objective = labels.add({
+    text: '⬇︎',
+    position: guide ? guide.position : new THREE.Vector3(),
+    offsetY: 0.5,
+    screenOffsetY: -96,
+    className: 'tq-objective',
+  });
+  objective.element.setAttribute('aria-hidden', 'true');
+  objective.visible = false;
+
+  const compass = createCompass(ui);
+  const cue = new ObjectiveCue(objective, compass, guide ? guide.position : null, guideName);
+  let objectiveWanted = false;
+  /** The cues belong to Base Camp: wanted and here, or off. */
+  function applyObjective(): void {
+    cue.setVisible(objectiveWanted && traveler.zone.id === 'base-camp');
+  }
+
   // The prompt sits just above the name tag, stacked in screen pixels so it never overlaps at any distance.
   const prompt = labels.add({
     text: '',
@@ -104,19 +185,48 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     }
   }
 
+  let idleSeconds = 0;
+  const zoneListeners = new Set<(zone: Zone) => void>();
+  const updaters = new Set<(dt: number) => void>();
+
+  const veil = createVeil(ui);
+  const traveler = createZoneTraveler({
+    scene,
+    initial: baseCamp,
+    createZone: (id) => createZone(id, zoneDeps),
+    player,
+    follow,
+    followTarget,
+    veil,
+    onSwap(zone) {
+      bindNameTags(zone);
+      prompt.visible = false;
+      input.setActionLabel('');
+      idleSeconds = 0;
+      applyObjective();
+      for (const listener of [...zoneListeners]) listener(zone);
+    },
+  });
+
   const loop = new GameLoop({
     onUpdate(dt) {
+      const zone = traveler.zone;
       const state = input.update();
       player.viewYaw = follow.viewYaw;
       player.update(dt, state, zone);
+      // Time spent in a dialog or screen is not "standing still": input is off, so restart the count.
+      idleSeconds = player.isMoving || !input.isEnabled ? 0 : idleSeconds + dt;
       zone.update(dt);
+      for (const fn of [...updaters]) fn(dt);
       const near = findInteractableInRange(player.position.x, player.position.z, zone.interactables);
       handleInteraction(near, state.actionPressed);
     },
     onRender(alpha, frameDt) {
       player.interpolate(alpha);
       follow.update(frameDt, followTarget);
+      compass.update(player.root.position, follow.viewYaw);
       labels.update(renderer.width, renderer.height);
+      environment.update(frameDt, player.root.position);
       renderer.render(scene, follow.camera);
     },
   });
@@ -127,7 +237,9 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     loop,
     input,
     scene,
-    zone,
+    get zone() {
+      return traveler.zone;
+    },
     player,
     labels,
     follow,
@@ -135,7 +247,38 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       denChiefHandler = handler;
     },
     setGuideName(name) {
+      guideName = name;
       nameTags.get(DEN_CHIEF_ID)?.setText(name);
+      cue.setName(name);
+    },
+    compass,
+    get idleSeconds() {
+      return idleSeconds;
+    },
+    placeAtGuide() {
+      if (!guide) return;
+      traveler.jumpTo('base-camp');
+      const pose = guidedStartPose(guide.position, baseCamp.spawn, guide.radius, baseCamp.bounds);
+      player.setPosition(new THREE.Vector3(pose.x, 0, pose.z), pose.facing);
+      follow.snapTo(followTarget);
+      idleSeconds = 0;
+    },
+    setObjectiveVisible(visible) {
+      objectiveWanted = visible;
+      applyObjective();
+    },
+    currentZoneId: () => traveler.zone.id,
+    travelTo: (zoneId) => traveler.travelTo(zoneId),
+    setReturnHandler(handler) {
+      returnHandler = handler;
+    },
+    onZoneChange(listener) {
+      zoneListeners.add(listener);
+      return () => zoneListeners.delete(listener);
+    },
+    onUpdate(fn) {
+      updaters.add(fn);
+      return () => updaters.delete(fn);
     },
   };
 }

@@ -43,7 +43,7 @@ describe('sequenceActivity', () => {
     expect(host.querySelectorAll('.tq-tile')).toHaveLength(5);
     expect(host.querySelectorAll('.tq-lane__slot')).toHaveLength(5);
     expect(placed()).toBe(0);
-    expect(ctx.speak).toHaveBeenCalledWith(PARAMS.prompt);
+    expect(ctx.speak).not.toHaveBeenCalled();
     // The tiles are shuffled, not in the answer order.
     const shown = Array.from(host.querySelectorAll('.tq-tile')).map((b) => b.textContent);
     expect(shown).not.toEqual(PARAMS.steps);
