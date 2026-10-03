@@ -237,11 +237,17 @@ export function startApp(options: AppOptions = {}): App {
   }
 
   function prefersTouch(): boolean {
-    return typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches
+    );
   }
 
   /** Show or hide the controls hint. Cheap, so it also runs on a short timer for the idle rule. */
   function syncHint(): void {
+    // The idle timer can outlive a torn-down test DOM; never touch window or document then.
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
     const profile = getProfile();
     const blocked =
       !profile || !session || session.busy || overlayCount(ui) > 0 || greetingTimer !== undefined || !atBaseCamp();
