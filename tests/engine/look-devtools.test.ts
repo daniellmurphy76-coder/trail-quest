@@ -109,6 +109,17 @@ describe('the panel layout', () => {
     }
   });
 
+  it('has a camera fill slider from 0 to 2 in the Sun folder', () => {
+    const fill = LOOK_CONTROLS.find((c) => c.key === 'fillIntensity');
+    expect(fill?.kind).toBe('number');
+    if (fill?.kind !== 'number') return;
+    expect(fill.folder).toBe('Sun');
+    expect(fill.min).toBe(0);
+    expect(fill.max).toBe(2);
+    expect(DEFAULT_LOOK.fillIntensity).toBeGreaterThanOrEqual(fill.min);
+    expect(DEFAULT_LOOK.fillIntensity).toBeLessThanOrEqual(fill.max);
+  });
+
   it('keeps the sun elevation off the zenith, where the shadow box has no horizontal axis', () => {
     const elevation = LOOK_CONTROLS.find((c) => c.key === 'sunElevation');
     expect(elevation?.kind === 'number' && elevation.max).toBeLessThan(90);
@@ -121,9 +132,9 @@ describe('changedSettingsJson (Copy settings)', () => {
   });
 
   it('holds only what changed, and pastes back into mergeLook', () => {
-    const tuned = mergeLook(DEFAULT_LOOK, { exposure: 1.2, sunColor: '#ffeeaa', aoHalfRes: true });
+    const tuned = mergeLook(DEFAULT_LOOK, { exposure: 1.2, sunColor: '#ffeeaa', aoHalfRes: true, fillIntensity: 0.9 });
     const json = changedSettingsJson(tuned);
-    expect(JSON.parse(json)).toEqual({ exposure: 1.2, sunColor: '#ffeeaa', aoHalfRes: true });
+    expect(JSON.parse(json)).toEqual({ exposure: 1.2, sunColor: '#ffeeaa', aoHalfRes: true, fillIntensity: 0.9 });
     expect(mergeLook(DEFAULT_LOOK, JSON.parse(json))).toEqual(tuned);
   });
 });

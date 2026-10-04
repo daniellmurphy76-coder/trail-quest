@@ -1,6 +1,7 @@
 /**
- * A small 3D stage for the avatar editor: its own WebGL renderer on a canvas, the same sun and sky
- * light as the world, the Scout on a round patch of grass that turns slowly, and drag to turn it.
+ * A small 3D stage for the avatar editor: its own WebGL renderer on a canvas, a studio light (a
+ * warm key and a soft fill from the camera's side, plus a sky light) so a face turned to the camera
+ * reads, the Scout on a round patch of grass that turns slowly, and drag to turn it.
  * Owns everything it makes; `dispose()` frees the rig, the lights, and the GL context.
  *
  * `createAvatarPreview` returns null when WebGL is not available (or the canvas cannot make a
@@ -34,7 +35,50 @@ const FIT_HEIGHT = 2.5;
 const SPIN_SPEED = 0.7; // radians per second
 const DRAG_TURN = 0.012; // radians per pixel
 const START_YAW = 0.55;
-const SUN_DIRECTION = new THREE.Vector3(28, 36, 18).normalize();
+const STAGE_CENTER = new THREE.Vector3(0, 0.9, 0);
+const LIGHT_DISTANCE = 8;
+
+/**
+ * The stage lights. The camera sits on +z and the Scout's face is +z at yaw 0, so both direct lights
+ * shine from the camera's side, high and to either hand: a face turned to the camera gets the key
+ * at about 0.72 and the fill at about 0.76 (the old side sun gave 0.37). The key (front, high, left)
+ * keeps the shadow; the fill (front, low, right) is cool and soft and never shadows. Between them
+ * the face is lit at every turn that shows it to the camera. The sky light is warm below, not green.
+ */
+export const PREVIEW_KEY_DIRECTION = new THREE.Vector3(-0.35, 0.6, 0.72).normalize();
+export const PREVIEW_FILL_DIRECTION = new THREE.Vector3(0.6, 0.25, 0.75).normalize();
+
+export interface PreviewLights {
+  hemisphere: THREE.HemisphereLight;
+  key: THREE.DirectionalLight;
+  fill: THREE.DirectionalLight;
+}
+
+/** The three lights of the stage, not yet in a scene (add the two directional lights and their targets). */
+export function createPreviewLights(): PreviewLights {
+  const hemisphere = new THREE.HemisphereLight(0xcfe3f5, 0xb8a68c, 1.1);
+
+  const key = new THREE.DirectionalLight(0xfff1d6, 2.6);
+  key.position.copy(PREVIEW_KEY_DIRECTION).multiplyScalar(LIGHT_DISTANCE).add(STAGE_CENTER);
+  key.target.position.copy(STAGE_CENTER);
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.camera.left = -2;
+  key.shadow.camera.right = 2;
+  key.shadow.camera.top = 2.5;
+  key.shadow.camera.bottom = -2;
+  key.shadow.camera.near = 1;
+  key.shadow.camera.far = 20;
+  key.shadow.bias = -0.0002;
+  key.shadow.normalBias = 0.03;
+
+  const fill = new THREE.DirectionalLight(0xdfe9ff, 0.7);
+  fill.position.copy(PREVIEW_FILL_DIRECTION).multiplyScalar(LIGHT_DISTANCE).add(STAGE_CENTER);
+  fill.target.position.copy(STAGE_CENTER);
+  fill.castShadow = false;
+
+  return { hemisphere, key, fill };
+}
 
 export function createAvatarPreview(
   canvas: HTMLCanvasElement,
@@ -72,21 +116,8 @@ export function createAvatarPreview(
       : false;
 
   const scene = new THREE.Scene();
-  const hemisphere = new THREE.HemisphereLight(0xcfe3f5, 0x6b8a3d, 1.7);
-  const sun = new THREE.DirectionalLight(0xfff1d6, 2.8);
-  sun.position.copy(SUN_DIRECTION).multiplyScalar(8);
-  sun.target.position.set(0, 0.9, 0);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
-  sun.shadow.camera.left = -2;
-  sun.shadow.camera.right = 2;
-  sun.shadow.camera.top = 2.5;
-  sun.shadow.camera.bottom = -2;
-  sun.shadow.camera.near = 1;
-  sun.shadow.camera.far = 20;
-  sun.shadow.bias = -0.0002;
-  sun.shadow.normalBias = 0.03;
-  scene.add(hemisphere, sun, sun.target);
+  const { hemisphere, key, fill } = createPreviewLights();
+  scene.add(hemisphere, key, key.target, fill, fill.target);
 
   const podiumGeometry = new THREE.CylinderGeometry(1.15, 1.25, 0.14, 28);
   const podiumMaterial = new THREE.MeshLambertMaterial({ color: 0x6aa84f, flatShading: true });
@@ -188,7 +219,8 @@ export function createAvatarPreview(
       rig.dispose();
       podiumGeometry.dispose();
       podiumMaterial.dispose();
-      sun.dispose();
+      key.dispose();
+      fill.dispose();
       hemisphere.dispose();
       renderer.dispose();
       // Browsers allow only a few live GL contexts (iPad Safari the fewest), so let this one go now.

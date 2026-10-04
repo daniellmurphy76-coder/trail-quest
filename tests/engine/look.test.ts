@@ -17,6 +17,7 @@ describe('DEFAULT_LOOK', () => {
       'sunIntensity',
       'sunAzimuth',
       'sunElevation',
+      'fillIntensity',
       'hemiSkyColor',
       'hemiGroundColor',
       'hemiIntensity',
@@ -46,6 +47,12 @@ describe('DEFAULT_LOOK', () => {
       else if (typeof value === 'string') expect(value).toMatch(/^#[0-9a-f]{6}$/);
       else expect(typeof value).toBe('boolean');
     }
+  });
+
+  it('has a gentle camera fill: lower than the sun, not zero', () => {
+    expect(DEFAULT_LOOK.fillIntensity).toBe(0.6);
+    expect(DEFAULT_LOOK.fillIntensity).toBeGreaterThan(0);
+    expect(DEFAULT_LOOK.fillIntensity).toBeLessThan(DEFAULT_LOOK.sunIntensity / 2);
   });
 
   it('is sensible: fog near before far, a high bloom threshold, small grade, a modest ambient occlusion reach', () => {
@@ -113,6 +120,13 @@ describe('mergeLook', () => {
     const merged = mergeLook(DEFAULT_LOOK, { hemiIntensity: 0, warmth: -0.5 });
     expect(merged.hemiIntensity).toBe(0);
     expect(merged.warmth).toBe(-0.5);
+  });
+
+  it('takes the camera fill as a number, zero included, and ignores a bad one', () => {
+    expect(mergeLook(DEFAULT_LOOK, { fillIntensity: 1.2 }).fillIntensity).toBe(1.2);
+    expect(mergeLook(DEFAULT_LOOK, { fillIntensity: 0 }).fillIntensity).toBe(0);
+    expect(mergeLook(DEFAULT_LOOK, { fillIntensity: Number.NaN }).fillIntensity).toBe(DEFAULT_LOOK.fillIntensity);
+    expect(mergeLook(DEFAULT_LOOK, { fillIntensity: '1' as unknown as number }).fillIntensity).toBe(DEFAULT_LOOK.fillIntensity);
   });
 
   it('takes a JSON blob pasted back from Copy settings', () => {

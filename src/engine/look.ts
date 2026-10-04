@@ -30,6 +30,12 @@ export interface LookSettings {
   sunAzimuth: number;
   /** Degrees above the horizon. Lower is a longer shadow and a warmer afternoon. */
   sunElevation: number;
+  /**
+   * A soft, cool light that rides with the camera and shines on whatever the camera sees, so faces
+   * turned toward the player are not left to the ambient light alone. No shadow. Same units as
+   * the sun; 0 turns it off (the light stays in the scene, so shaders never recompile).
+   */
+  fillIntensity: number;
 
   /** Hemisphere light from above. A small fill: the environment map does most of the ambient work. */
   hemiSkyColor: string;
@@ -80,6 +86,7 @@ export const DEFAULT_LOOK: Readonly<LookSettings> = Object.freeze({
   sunIntensity: 3.3,
   sunAzimuth: 70,
   sunElevation: 38,
+  fillIntensity: 0.6,
 
   hemiSkyColor: '#cfe0f2',
   hemiGroundColor: '#6b8a3d',

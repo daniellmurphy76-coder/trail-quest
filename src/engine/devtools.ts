@@ -158,6 +158,7 @@ export const LOOK_CONTROLS: readonly LookControl[] = [
   { kind: 'number', key: 'sunIntensity', folder: 'Sun', label: 'intensity', min: 0, max: 8, step: 0.05 },
   { kind: 'number', key: 'sunAzimuth', folder: 'Sun', label: 'azimuth', min: 0, max: 360, step: 1 },
   { kind: 'number', key: 'sunElevation', folder: 'Sun', label: 'elevation', min: 5, max: 85, step: 1 },
+  { kind: 'number', key: 'fillIntensity', folder: 'Sun', label: 'camera fill', min: 0, max: 2, step: 0.01 },
 
   { kind: 'color', key: 'hemiSkyColor', folder: 'Sky light', label: 'hemisphere sky' },
   { kind: 'color', key: 'hemiGroundColor', folder: 'Sky light', label: 'hemisphere ground' },
