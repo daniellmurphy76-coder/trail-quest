@@ -4,8 +4,8 @@
  * it runs in Node and in the browser the same way, and a test can read any pixel back. `skin-texture.ts` turns
  * the buffer into a Three.js texture.
  *
- * The look is flat color with a few pixel-art touches (a 16 x 16 face grid, a hem line on the sleeves and
- * legs, a belt band, a sole line on the shoes). Everything that sticks out (hair shapes, hats, glasses, the
+ * The look is flat color with a few pixel-art touches (a 16 x 16 face grid with brows, cheeks and a nose as well
+ * as eyes and a mouth, a hem line on the sleeves and legs, a belt band, a sole line on the shoes). Everything that sticks out (hair shapes, hats, glasses, the
  * neckerchief, the backpack, the skirt) is a separate mesh built in attachments.ts.
  *
  * Painting happens in two passes. First every face gets its base color, grown by one pixel so a sample on the
@@ -94,6 +94,61 @@ const EYE_COLS = {
 } as const;
 const EYE_TOP = 6;
 
+/**
+ * Brows are three cells wide and one tall, a mirror pair over the eyes (columns 3 to 5 and 10 to 12) whatever the
+ * eye style: the star eye is five wide, so three centred cells sit right over it too. `BROW_LEVEL` leaves one
+ * clear row above an eye that starts on row 6; a raised brow sits one row higher.
+ */
+const BROW_COLS = [3, 10] as const;
+const BROW_WIDTH = 3;
+const BROW_LEVEL = 4;
+const BROW_RAISED = 3;
+/** The brow row over each eye (screen-left, screen-right) for each eye style. */
+const BROW_ROWS: Readonly<Record<FilledAvatar['eyes'], readonly [left: number, right: number]>> = {
+  round: [BROW_LEVEL, BROW_LEVEL], // level
+  happy: [BROW_RAISED, BROW_RAISED], // both brows ride high and cheerful
+  wink: [BROW_RAISED, BROW_LEVEL], // the open eye lifts one brow, the shut eye keeps its brow level
+  star: [BROW_LEVEL, BROW_LEVEL], // plain
+};
+/** A brow is the hair color this much darker. */
+export const BROW_SHADE = 0.62;
+
+/** The brow color: a darker shade of the hair, or ink when the head has no hair to match (none and buzz). */
+export function browColor(hairStyle: FilledAvatar['hairStyle'], hair: Rgb): Rgb {
+  return hairStyle === 'none' || hairStyle === 'buzz' ? INK : shadeRgb(hair, BROW_SHADE);
+}
+
+/** Cheeks: two cells wide and one tall under each eye, a mirror pair (columns 3 and 4, 11 and 12; row 11). */
+const CHEEK_COLS = [3, 11] as const;
+const CHEEK_WIDTH = 2;
+const CHEEK_ROW = 11;
+/** The warm red a cheek is pulled toward. Never the whole way: see `blushColor`. */
+const BLUSH = hexToRgb('#cd4632');
+/** Every skin tone moves about this far in color toward BLUSH, so the blush shows about as much on each. */
+const BLUSH_SHIFT = 38;
+/** A skin tone close to BLUSH itself is never pulled more than this share of the way. */
+const BLUSH_MAX_MIX = 0.5;
+
+/** `a` pulled toward `b` by `t` (0 gives `a`, 1 gives `b`). */
+export function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
+  const c = (i: 0 | 1 | 2): number => Math.round(a[i] + (b[i] - a[i]) * t);
+  return [c(0), c(1), c(2)];
+}
+
+/**
+ * The cheek color for a skin: the skin warmed toward red. A fixed mix would pop on light skin and vanish on brown
+ * skin (which is already close to the red), so the mix is whatever moves the color about BLUSH_SHIFT.
+ */
+export function blushColor(skin: Rgb): Rgb {
+  const apart = Math.hypot(BLUSH[0] - skin[0], BLUSH[1] - skin[1], BLUSH[2] - skin[2]);
+  return mixRgb(skin, BLUSH, Math.min(BLUSH_MAX_MIX, BLUSH_SHIFT / apart));
+}
+
+/** The nose: two cells wide and two tall between the eyes, over the mouth. A darker shade of the skin. */
+const NOSE_COL = 7;
+const NOSE_ROW = 10;
+const NOSE_SHADE = 0.8;
+
 const MOUTH_ART = ['#....#', '.####.'] as const;
 const MOUTH_COL = 5;
 const MOUTH_ROW = 12;
@@ -131,6 +186,15 @@ function paintEyes(sheet: PixelSheet, face: PixelRect, style: FilledAvatar['eyes
   }
   draw(open, leftCol);
   draw(open, rightCol);
+}
+
+function paintBrows(sheet: PixelSheet, face: PixelRect, style: FilledAvatar['eyes'], color: Rgb): void {
+  BROW_COLS.forEach((col, side) => sheet.fill(faceCell(face, col, BROW_ROWS[style][side]!, BROW_WIDTH, 1), color, face));
+}
+
+function paintCheeks(sheet: PixelSheet, face: PixelRect, skin: Rgb): void {
+  const blush = blushColor(skin);
+  for (const col of CHEEK_COLS) sheet.fill(faceCell(face, col, CHEEK_ROW, CHEEK_WIDTH, 1), blush, face);
 }
 
 // ---- helpers --------------------------------------------------------------------------------------
@@ -232,10 +296,12 @@ function paintHead(sheet: PixelSheet, config: FilledAvatar, skin: Rgb, hair: Rgb
     sheet.fill(faceCell(r, 7, 7, 3, 3), earColor, r);
   }
 
-  // Front: fringe, eyes, nose and mouth.
+  // Front: fringe, cheeks, nose, eyes, brows and mouth. The cheeks and nose go on first; nothing overlaps them.
   const front = rect('front');
   if (haired) sheet.fill(grow(faceCell(front, 0, 0, 16, buzz ? 1 : 2), 1, size), hair, grow(front, 1, size));
+  paintCheeks(sheet, front, skin);
+  sheet.fill(faceCell(front, NOSE_COL, NOSE_ROW, 2, 1), shadeRgb(skin, NOSE_SHADE), front);
   paintEyes(sheet, front, config.eyes);
-  sheet.fill(faceCell(front, 7, 10, 2, 1), shadeRgb(skin, 0.88), front);
+  paintBrows(sheet, front, config.eyes, browColor(style, hair));
   art(sheet, front, MOUTH_ART, MOUTH_COL, MOUTH_ROW, MOUTH);
 }
