@@ -193,4 +193,15 @@ describe('installEffects', () => {
     bus.emit({ type: 'trail-complete', stops: 3 });
     expect(canvases()).toHaveLength(0);
   });
+
+  it('turning it off also takes down a burst that is still falling', () => {
+    const bus = createEventBus();
+    const off = installEffects(host, bus);
+    bus.emit({ type: 'badge-earned', adventureId: 'a' });
+    expect(canvases()).toHaveLength(1);
+    off();
+    expect(canvases()).toHaveLength(0);
+    vi.advanceTimersByTime(CONFETTI_MS + 300); // its timers are gone too: nothing runs on
+    expect(canvases()).toHaveLength(0);
+  });
 });

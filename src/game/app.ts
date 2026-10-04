@@ -85,6 +85,13 @@ export interface App {
   setToday(ymd: string | null): void;
   /** Resolves once a Scout has been chosen and the game is ready to play. */
   readonly ready: Promise<void>;
+  /**
+   * Stop everything this app started: the idle-hint timer, the greeting timer, the overlay
+   * watcher, the zone listener, the confetti and sound listeners on the event bus, the toasts that
+   * are still up, and any trail wait that is running (that trail simply stops where it is). The
+   * world and the DOM already drawn are the caller's to drop. Safe to call more than once.
+   */
+  dispose(): void;
 }
 
 const SAVE_FAILED = 'Your progress could not be saved. Storage may be full or blocked.';
@@ -111,12 +118,13 @@ export function startApp(options: AppOptions = {}): App {
   const store = options.store ?? localStorageStore();
   const save = loadSave(store);
 
+  let disposed = false;
   let todayOverride: string | undefined = options.today;
   const today = (): string => todayOverride ?? todayLocal();
 
   const world = createWorld(canvas, ui);
   // Confetti on a badge, a finished trail and a new cosmetic. It listens to the event bus only.
-  installEffects(ui, events);
+  const stopEffects = installEffects(ui, events);
 
   let activeId: string | undefined;
   let session: Session | null = null;
@@ -132,14 +140,21 @@ export function startApp(options: AppOptions = {}): App {
   /** The rank's label from its content file; a plain name only when the content is missing. */
   const rankLabel = (rank: RankId): string => ranks.find((c) => c.rank === rank)?.label ?? RANK_FALLBACK_LABELS[rank] ?? rank;
 
+  /** Toasts still on screen, so dispose() can take them down along with their timers. */
+  const liveToasts = new Set<() => void>();
+  function toast(text: string, ms?: number): void {
+    if (disposed) return;
+    liveToasts.add(showToast(ui, text, ms));
+  }
+
   function writeSave(): void {
-    if (!persistSave(store, save)) showToast(ui, SAVE_FAILED, 6000);
+    if (!persistSave(store, save)) toast(SAVE_FAILED, 6000);
   }
 
   /** A stop or screen threw. Log it and tell the player, so nobody is left staring at nothing. */
   function reportProblem(error: unknown): void {
     console.error(error);
-    showToast(ui, 'Something went wrong. Please try again.', 4000);
+    toast('Something went wrong. Please try again.', 4000);
   }
 
   // ---- HUD ----------------------------------------------------------------------------------
@@ -219,7 +234,7 @@ export function startApp(options: AppOptions = {}): App {
   /** Talk to the Den Chief: the Start button, pressing E, the Talk button and the auto greeting all come here. */
   function talkToGuide(): void {
     const current = session;
-    if (!current || current.busy) return;
+    if (disposed || !current || current.busy) return;
     cancelGreeting();
     const talking = current.talk();
     refreshBaseCamp(); // the Start button and the objective step aside at once
@@ -246,8 +261,7 @@ export function startApp(options: AppOptions = {}): App {
 
   /** Show or hide the controls hint. Cheap, so it also runs on a short timer for the idle rule. */
   function syncHint(): void {
-    // The idle timer can outlive a torn-down test DOM; never touch window or document then.
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    if (disposed) return;
     const profile = getProfile();
     const blocked =
       !profile || !session || session.busy || overlayCount(ui) > 0 || greetingTimer !== undefined || !atBaseCamp();
@@ -261,6 +275,7 @@ export function startApp(options: AppOptions = {}): App {
 
   /** Bring the HUD, the Start button, the objective marker and the hint in line with the game's state. */
   function refreshBaseCamp(): void {
+    if (disposed) return;
     refreshHud();
     const current = session;
     if (!getProfile() || !current) {
@@ -279,9 +294,9 @@ export function startApp(options: AppOptions = {}): App {
   }
 
   // Input and Base Camp's own buttons follow the overlays: nothing here shows while a screen is open.
-  watchOverlays(ui, world.input, () => refreshBaseCamp());
-  world.onZoneChange(() => refreshBaseCamp()); // the Start button and the hint belong to Base Camp
-  setInterval(syncHint, 250);
+  const stopOverlayWatch = watchOverlays(ui, world.input, () => refreshBaseCamp());
+  const stopZoneWatch = world.onZoneChange(() => refreshBaseCamp()); // the Start button and the hint belong to Base Camp
+  const hintTimer = setInterval(syncHint, 250);
 
   function lineVars(): LineVars {
     const profile = getProfile();
@@ -329,8 +344,9 @@ export function startApp(options: AppOptions = {}): App {
   // The "Back to camp" trail sign: a free-roam trip home. Not while a stop is running; that stop's
   // own Back button is how to leave it.
   world.setReturnHandler(() => {
+    if (disposed) return;
     if (session?.busy) {
-      showToast(ui, line('travelBusy', activeLevel), 3000);
+      toast(line('travelBusy', activeLevel), 3000);
       return;
     }
     events.emit({ type: 'travel', zone: 'base-camp' });
@@ -338,6 +354,9 @@ export function startApp(options: AppOptions = {}): App {
   });
 
   // ---- the session --------------------------------------------------------------------------
+
+  /** Timers behind the session's `wait` (the trail sign while walking), cleared by dispose(). */
+  const waits = new Set<ReturnType<typeof setTimeout>>();
 
   function buildSession(content: RankContent): Session {
     const level = lineLevelOf(content.readingLevel);
@@ -358,7 +377,15 @@ export function startApp(options: AppOptions = {}): App {
       },
       today,
       now: () => Date.now(),
-      wait: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+      // Tracked, so dispose() can stop a trail that is mid-wait: its promise just never resolves.
+      wait: (ms) =>
+        new Promise<void>((resolve) => {
+          const timer = setTimeout(() => {
+            waits.delete(timer);
+            resolve();
+          }, ms);
+          waits.add(timer);
+        }),
 
       // Every Den Chief page tells the event bus it opened and moved on (for the sound layer).
       async showDialog({ text, choices }) {
@@ -403,9 +430,7 @@ export function startApp(options: AppOptions = {}): App {
       showBadge: ({ adventureName }) => showBadgeCard(ui, { adventureName, level, vars: lineVars() }),
       showSummary: (info) => showSummary(ui, { info, level, vars: lineVars() }),
       showUnlock: (info) => showUnlockCard(ui, { info, level, vars: lineVars() }),
-      showToast: (text) => {
-        showToast(ui, text, 3500);
-      },
+      showToast: (text) => toast(text, 3500),
       // A cheer from the Scout's avatar when a stop is done (the session never touches the world).
       celebrate: () => world.player.celebrate(),
       // The ZONE-TRAVEL HOOK (see session.ts): the trail sign has been shown, now really walk there.
@@ -418,7 +443,7 @@ export function startApp(options: AppOptions = {}): App {
     try {
       await setPin(save, pin);
     } catch (error) {
-      showToast(ui, error instanceof Error ? error.message : 'The PIN could not be saved.', 6000);
+      toast(error instanceof Error ? error.message : 'The PIN could not be saved.', 6000);
       throw error;
     }
     writeSave();
@@ -432,7 +457,7 @@ export function startApp(options: AppOptions = {}): App {
   function activate(profile: Profile, arrive = true): boolean {
     const content = loadRankContent(profile.rank);
     if (!content) {
-      showToast(ui, `There is no trail for ${rankLabel(profile.rank)} yet.`, 4000);
+      toast(`There is no trail for ${rankLabel(profile.rank)} yet.`, 4000);
       return false;
     }
     activeId = profile.id;
@@ -477,7 +502,7 @@ export function startApp(options: AppOptions = {}): App {
     const first = cosmeticById(fresh[0]!);
     if (!first) return;
     const key = fresh.length === 1 ? UNLOCK_LINE_BY_GROUP[first.group] : 'unlockMany';
-    showToast(ui, line(key, activeLevel, { ...lineVars(), unlock: first.label }), 5000);
+    toast(line(key, activeLevel, { ...lineVars(), unlock: first.label }), 5000);
   }
 
   function deactivate(): void {
@@ -644,6 +669,22 @@ export function startApp(options: AppOptions = {}): App {
   const ready = chooseProfile();
   ready.catch(reportProblem);
 
+  function dispose(): void {
+    if (disposed) return;
+    disposed = true;
+    clearInterval(hintTimer);
+    cancelGreeting();
+    // Stop watching before anything below touches the DOM, so teardown never reaches the input switch.
+    stopOverlayWatch();
+    stopZoneWatch();
+    stopEffects();
+    sound.dispose();
+    for (const timer of waits) clearTimeout(timer);
+    waits.clear();
+    for (const remove of [...liveToasts]) remove();
+    liveToasts.clear();
+  }
+
   return {
     world,
     save,
@@ -659,5 +700,6 @@ export function startApp(options: AppOptions = {}): App {
       refreshBaseCamp();
     },
     ready,
+    dispose,
   };
 }

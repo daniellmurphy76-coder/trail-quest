@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RankId } from '../../src/activities/types';
-import { startApp } from '../../src/game/app';
+import { startApp, type App } from '../../src/game/app';
 import { createDefaultSave, createProfile, memoryStore, persistSave } from '../../src/save/store';
 import { card, doneReq } from '../fixtures/profile.fixture';
 import { ID } from '../fixtures/rank.fixture';
@@ -29,7 +29,7 @@ const world = vi.hoisted(() => {
     get zone() {
       return { id: state.zone, openSpots: [], landmarks: {} };
     },
-    player: { position: { x: 0, y: 0, z: 0 } },
+    player: { position: { x: 0, y: 0, z: 0 }, celebrate: vi.fn() },
     labels: { add: vi.fn(() => ({})), remove: vi.fn() },
     compass: { setTarget: vi.fn() },
     onUpdate: vi.fn<(fn: (dt: number) => void) => () => void>(() => () => {}),
@@ -66,6 +66,13 @@ vi.mock('../../src/content/load', async (importOriginal) => {
   };
 });
 
+// Apps started in a test are stopped when it ends: each keeps a timer, an overlay watcher on its own
+// `#ui` and event-bus listeners, and the fake world is shared by every test in this file.
+const startedApps: App[] = [];
+afterEach(() => {
+  for (const app of startedApps.splice(0)) app.dispose();
+});
+
 let host: HTMLElement;
 beforeEach(() => {
   host = makeHost();
@@ -99,6 +106,7 @@ describe('app: a lesson with a poster', () => {
       today: '2026-10-03',
       autoGreet: false,
     });
+    startedApps.push(app);
     buttonByText(host, 'Play').click();
     await app.ready;
     await flush();

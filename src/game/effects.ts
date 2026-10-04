@@ -145,13 +145,19 @@ export function burstConfetti(host: HTMLElement, options: ConfettiOptions = {}):
 
 /**
  * Fire confetti on a badge, a finished trail and a new cosmetic. A second event while a burst is
- * still falling replaces it, so the screen never fills with canvases. Returns an unsubscribe.
+ * still falling replaces it, so the screen never fills with canvases. Returns a stop function: it
+ * unsubscribes and ends any burst still falling, so nothing it started outlives it.
  */
 export function installEffects(host: HTMLElement, bus: EventBus, options: ConfettiOptions = {}): () => void {
   let current: (() => void) | null = null;
-  return bus.on((event) => {
+  const unsubscribe = bus.on((event) => {
     if (event.type !== 'badge-earned' && event.type !== 'trail-complete' && event.type !== 'cosmetic-unlocked') return;
     current?.();
     current = burstConfetti(host, options);
   });
+  return () => {
+    unsubscribe();
+    current?.();
+    current = null;
+  };
 }

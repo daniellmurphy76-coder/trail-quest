@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RankId } from '../../src/activities/types';
-import { startApp, type AppOptions } from '../../src/game/app';
+import { startApp, type App, type AppOptions } from '../../src/game/app';
 import { createDefaultSave, createProfile, loadSave, memoryStore, persistSave } from '../../src/save/store';
 import type { Profile } from '../../src/save/types';
 import { TRAVEL_SIGN_MS } from '../../src/game/session';
@@ -13,10 +13,19 @@ import { buttonByText, flush, makeHost } from '../ui/helpers';
 const world = vi.hoisted(() => {
   const state = { zone: 'base-camp' as string };
   const listeners = new Set<() => void>();
+  // `enabled` is what the player feels: whether the game takes input right now. Tests read it, not
+  // the order of setEnabled calls (those can come from any app that is still watching its own DOM).
+  const input = {
+    enabled: true,
+    lastDevice: 'keyboard' as 'keyboard' | 'gamepad' | 'touch',
+    setEnabled: vi.fn((on: boolean) => {
+      input.enabled = on;
+    }),
+  };
   return {
     state,
     listeners,
-    input: { setEnabled: vi.fn(), lastDevice: 'keyboard' as 'keyboard' | 'gamepad' | 'touch' },
+    input,
     idleSeconds: 0,
     setDenChiefHandler: vi.fn(),
     setGuideName: vi.fn(),
@@ -39,7 +48,7 @@ const world = vi.hoisted(() => {
     get zone() {
       return { id: state.zone, openSpots: [], landmarks: {} };
     },
-    player: { position: { x: 0, y: 0, z: 0 } },
+    player: { position: { x: 0, y: 0, z: 0 }, celebrate: vi.fn() },
     labels: { add: vi.fn(() => ({})), remove: vi.fn() },
     compass: { setTarget: vi.fn() },
     onUpdate: vi.fn<(fn: (dt: number) => void) => () => void>(() => () => {}),
@@ -62,6 +71,8 @@ let host: HTMLElement;
 beforeEach(() => {
   host = makeHost();
   world.input.setEnabled.mockClear();
+  world.input.enabled = true;
+  world.player.celebrate.mockClear();
   world.setDenChiefHandler.mockClear();
   world.setGuideName.mockClear();
   world.setPlayerAvatar.mockClear();
@@ -76,9 +87,19 @@ beforeEach(() => {
   world.input.lastDevice = 'keyboard';
 });
 
+// Every app a test boots is stopped when the test ends. An app keeps a timer, a MutationObserver
+// on its own `#ui` and listeners on the event bus, and the fake world is shared by every test in
+// this file: a leftover app would keep calling `world.input.setEnabled` and the rest from its
+// detached host (a toast timing out, a dialog still open) in the middle of a later test.
+const startedApps: App[] = [];
+afterEach(() => {
+  for (const app of startedApps.splice(0)) app.dispose();
+});
+
 /** Most tests drive the Den Chief by hand, so the greeting that opens by itself is off unless asked for. */
 function boot(store = memoryStore(), today = '2026-10-03', extra: Partial<AppOptions> = { autoGreet: false }) {
   const app = startApp({ canvas: document.createElement('canvas'), ui: host, store, today, ...extra });
+  startedApps.push(app);
   return { app, store };
 }
 
@@ -163,14 +184,14 @@ describe('app: first run', () => {
   it('turns game input off while an overlay is open and on when it closes', async () => {
     const { app } = boot();
     await flush();
-    expect(world.input.setEnabled).toHaveBeenLastCalledWith(false);
+    expect(world.input.enabled).toBe(false); // profile setup is open
     typeInto('input[name="scout-name"]', 'Rowan');
     buttonByText(host, 'Test Wolf').click();
     buttonByText(host, "Let's start").click();
     await makeScout();
     await app.ready;
     await flush();
-    expect(world.input.setEnabled).toHaveBeenLastCalledWith(true);
+    expect(world.input.enabled).toBe(true);
   });
 });
 
@@ -669,15 +690,19 @@ describe('app: zones', () => {
     expect(world.travelTo).not.toHaveBeenCalled();
   });
 
-  it('plays a collect stop in the zone, with the world host in ctx.world, then walks back to camp', async () => {
+  /**
+   * Boots a Scout whose trail is a warm-up quiz, the collect stop (Nature Trail) and a mission card,
+   * and plays on until the trail sign for the walk to the Nature Trail is up.
+   */
+  async function playToCollectSign() {
     // Bobcat is done, so today's trail is: a warm-up quiz, the collect stop (Nature Trail), a mission card.
     const store = storeWithScout(undefined, (p) => {
       for (const id of [ID.campQuiz, ID.campChore, ID.campErrand, ID.campSort]) p.requirements[id] = doneReq();
       p.review = { [ID.campQuiz]: card(0, '2026-10-02') }; // due: the warm-up is its quiz
     });
-    const booted = boot(store);
+    const started = boot(store);
     buttonByText(host, 'Play').click();
-    await booted.app.ready;
+    await started.app.ready;
     await flush();
     const click = async (text: string): Promise<void> => {
       buttonByText(host, text).click();
@@ -706,6 +731,12 @@ describe('app: zones', () => {
     expect(host.textContent).not.toContain('Walking to the Nature Trail');
     await click('Next'); // the lesson page
     expect(host.textContent).toContain('Walking to the Nature Trail');
+    return { app: started.app, click };
+  }
+
+  it('plays a collect stop in the zone, with the world host in ctx.world, then walks back to camp', async () => {
+    const { click } = await playToCollectSign();
+    expect(world.input.enabled).toBe(false); // the trail sign is a modal overlay: the player stands still
     await wait(TRAVEL_SIGN_MS + 200);
     expect(world.travelTo).toHaveBeenCalledWith('nature-trail');
     expect(world.state.zone).toBe('nature-trail');
@@ -714,7 +745,10 @@ describe('app: zones', () => {
     const panel = host.querySelector('[data-tq-nonmodal="true"]')!;
     expect(panel.textContent).toContain('Collect the test tokens.');
     expect(host.querySelector('.tq-overlay')).toBeNull();
-    expect(world.input.setEnabled).toHaveBeenLastCalledWith(true);
+    // The sign is gone, so the player can walk. This is the state of the input switch (it was off a
+    // moment ago, behind the sign), awaited because the overlay watcher runs after the DOM changes.
+    // It is not "the last setEnabled call": that is whatever any watcher on the shared fake did last.
+    await vi.waitFor(() => expect(world.input.enabled).toBe(true));
     const placed = world.scene.add.mock.calls.map((c) => c[0] as { name: string; position: { x: number; z: number } });
     const tokens = placed.filter((o) => o.name === 'pickup:token');
     expect(tokens).toHaveLength(2);
@@ -741,6 +775,7 @@ describe('app: zones', () => {
     expect(world.travelTo).toHaveBeenCalledTimes(1);
     expect(world.state.zone).toBe('nature-trail');
     expect(host.textContent).toContain('Great trail, Rowan!');
+    expect(world.player.celebrate).toHaveBeenCalledTimes(3); // the avatar cheers after each stop
     // The trail is finished and more is waiting: the summary offers both ways on.
     expect(Array.from(host.querySelectorAll('.tq-summary .tq-actions button')).map((b) => b.textContent)).toEqual([
       '▶Keep going!',
@@ -752,6 +787,74 @@ describe('app: zones', () => {
     expect(world.travelTo).toHaveBeenLastCalledWith('base-camp');
     expect(world.state.zone).toBe('base-camp');
   }, 15000);
+
+  it('dispose stops the idle-hint timer and every listener the app added', async () => {
+    const started = vi.spyOn(globalThis, 'setInterval');
+    const stopped = vi.spyOn(globalThis, 'clearInterval');
+    try {
+      const { app } = boot(storeWithScout());
+      buttonByText(host, 'Play').click();
+      await app.ready;
+      await flush();
+      const hintTimer = started.mock.results[started.mock.calls.findIndex(([, ms]) => ms === 250)]?.value;
+      expect(hintTimer).toBeDefined();
+      const zoneListeners = world.listeners.size;
+      expect(zoneListeners).toBeGreaterThan(0);
+
+      app.dispose();
+      expect(stopped).toHaveBeenCalledWith(hintTimer);
+      expect(world.listeners.size).toBe(zoneListeners - 1);
+
+      // The overlay watcher is gone: a dialog opening afterwards does not touch the input switch.
+      world.input.setEnabled.mockClear();
+      const dialog = document.createElement('div');
+      dialog.className = 'tq-overlay';
+      host.appendChild(dialog);
+      dialog.remove();
+      await flush();
+      expect(world.input.setEnabled).not.toHaveBeenCalled();
+      app.dispose(); // safe to call again
+    } finally {
+      started.mockRestore();
+      stopped.mockRestore();
+    }
+  });
+
+  it('dispose cancels a greeting that has not opened yet', async () => {
+    const { app } = boot(storeWithScout(), '2026-10-03', { autoGreet: true, greetingDelayMs: 40 });
+    buttonByText(host, 'Play').click();
+    await app.ready;
+    app.dispose();
+    await wait(120);
+    expect(host.querySelector('.tq-overlay')).toBeNull(); // the Den Chief never opened by himself
+    expect(app.session!.busy).toBe(false);
+  });
+
+  it('dispose takes down a toast and its timer', async () => {
+    const { app } = boot(storeWithScout());
+    buttonByText(host, 'Play').click();
+    await app.ready;
+    await flush();
+    const talk = world.setDenChiefHandler.mock.calls.at(-1)![0] as () => void;
+    talk(); // a session is now busy
+    await flush();
+    (world.setReturnHandler.mock.calls.at(-1)![0] as () => void)(); // "Back to camp" mid-stop: a toast
+    expect(host.querySelector('.tq-toast')).not.toBeNull();
+    app.dispose();
+    expect(host.querySelector('.tq-toast')).toBeNull();
+    (world.setReturnHandler.mock.calls.at(-1)![0] as () => void)(); // a stale handler does nothing now
+    expect(host.querySelector('.tq-toast')).toBeNull();
+    expect(world.travelTo).not.toHaveBeenCalled();
+  });
+
+  it('dispose stops a trail that is waiting at the trail sign', async () => {
+    const { app } = await playToCollectSign();
+    app.dispose();
+    await wait(TRAVEL_SIGN_MS + 200);
+    expect(world.travelTo).not.toHaveBeenCalled(); // the walk to the Nature Trail never happens
+    expect(world.state.zone).toBe('base-camp');
+    expect(host.querySelector('[data-tq-nonmodal="true"]')).toBeNull();
+  });
 
   it('the Back to camp sign walks home, except in the middle of a stop', async () => {
     await play();

@@ -4,7 +4,9 @@ import { collectActivity } from '../../src/activities/collect';
 import { navigateActivity } from '../../src/activities/navigate';
 import { createFakeWorldHost } from '../../src/activities/world-fake';
 import { isNonModal, NONMODAL_ATTR, overlayCount, watchOverlays } from '../../src/game/overlays';
+import { burstConfetti } from '../../src/game/effects';
 import { showDialog } from '../../src/ui/dialog';
+import { showToast } from '../../src/ui/toast';
 import { buttonByText, flush, makeCtx, makeHost } from '../ui/helpers';
 
 let host: HTMLElement;
@@ -87,6 +89,30 @@ describe('non-modal panels and game input', () => {
     await flush();
     expect(sw.setEnabled).toHaveBeenLastCalledWith(true);
     expect(host.querySelector('[data-tq-nonmodal="true"]')).not.toBeNull(); // the panel stayed
+  });
+
+  it('a toast and a confetti burst are never overlays: they leave game input alone', async () => {
+    const sw = input();
+    watchOverlays(host, sw);
+    const context = new Proxy({}, { get: () => () => {}, set: () => true }) as unknown as CanvasRenderingContext2D;
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => context) as never);
+    try {
+      const removeToast = showToast(host, 'You earned a new hat!');
+      const endConfetti = burstConfetti(host);
+      expect(host.querySelector('.tq-toast')).not.toBeNull();
+      expect(host.querySelector('canvas.tq-confetti')).not.toBeNull();
+      expect(overlayCount(host)).toBe(0);
+      await flush(); // the observer runs after the nodes are added
+      expect(sw.setEnabled).not.toHaveBeenCalledWith(false);
+      expect(sw.setEnabled).toHaveBeenLastCalledWith(true);
+
+      removeToast();
+      endConfetti?.();
+      await flush();
+      expect(sw.setEnabled).not.toHaveBeenCalledWith(false);
+    } finally {
+      getContext.mockRestore();
+    }
   });
 
   it('the panel is not a dialog: no tq-overlay class, no aria-modal, and it holds no focus', async () => {

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RankId } from '../../src/activities/types';
-import { startApp } from '../../src/game/app';
+import { startApp, type App } from '../../src/game/app';
 import { events, type GameEvent } from '../../src/game/events';
 import { createDefaultSave, createProfile, loadSave, memoryStore, persistSave } from '../../src/save/store';
 import type { Profile } from '../../src/save/types';
@@ -62,8 +62,12 @@ beforeEach(() => {
   seen = [];
   off = events.on((event) => seen.push(event));
 });
+// Apps started in a test are stopped when it ends: each keeps a timer, an overlay watcher on its own
+// `#ui` and event-bus listeners, and the fake world is shared by every test in this file.
+const startedApps: App[] = [];
 afterEach(() => {
   off();
+  for (const app of startedApps.splice(0)) app.dispose();
 });
 
 const types = (): string[] => seen.map((e) => e.type);
@@ -93,6 +97,7 @@ const withWarmUp = (profile: Profile): void => {
 
 async function play(store = storeWith(withWarmUp)) {
   const app = startApp({ canvas: document.createElement('canvas'), ui: host, store, today: '2026-10-03', autoGreet: false });
+  startedApps.push(app);
   buttonByText(host, 'Play').click();
   await app.ready;
   await flush();

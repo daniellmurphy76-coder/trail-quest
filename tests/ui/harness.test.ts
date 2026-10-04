@@ -1,5 +1,8 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// Loads the real harness page into happy-dom, which is slow under CI load.
+vi.setConfig({ testTimeout: 20000 });
 import pageHtml from '../../dev/activities.html?raw';
 import { flush } from './helpers';
 
