@@ -7,3 +7,6 @@ Thumbs.db
 
 # Character comparison models (Kenney Mini and Blocky originals), local dev only
 dev/assets/
+
+# Agent worktrees (Claude Code), local only
+.claude/worktrees/
