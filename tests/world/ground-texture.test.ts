@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { mulberry32 } from '../../src/engine/seed';
 import {
   applyGroundTexture,
+  CLEARING_RAGGED,
   createGround,
   createGroundTexture,
   dirtWeight,
@@ -31,12 +32,12 @@ const std = (v: number[]): number => {
 describe('the ground texture (pixels)', () => {
   const pixels = groundTexturePixels();
 
-  it('is N by N RGBA with a full alpha channel', () => {
+  it('is N by N RGBA, with the paving layer in the alpha channel (it is read as a number, never as see-through)', () => {
     expect(pixels).toBeInstanceOf(Uint8Array);
     expect(pixels.length).toBe(N * N * 4);
-    let notOpaque = 0;
-    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] !== 255) notOpaque++;
-    expect(notOpaque).toBe(0);
+    let opaque = 0;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] === 255) opaque++;
+    expect(opaque).toBeLessThan((N * N) / 5); // mostly not 255: a real layer, not a filler
   });
 
   it('is deterministic: the same seed gives the same texels, another seed gives different ones', () => {
@@ -45,24 +46,34 @@ describe('the ground texture (pixels)', () => {
     expect(groundTexturePixels(64, 3).length).toBe(64 * 64 * 4);
   });
 
-  it('keeps the average brightness of the grass and pebble layers where the shader gain expects it', () => {
+  it('keeps the average brightness of the grass, pebble and paving layers where the shader gain expects it', () => {
     expect(GROUND_TEXTURE_MEAN * GROUND_TEXTURE_GAIN).toBeCloseTo(1, 10);
     expect(mean(channel(pixels, 0))).toBeCloseTo(GROUND_TEXTURE_MEAN, 1);
     expect(mean(channel(pixels, 1))).toBeCloseTo(GROUND_TEXTURE_MEAN, 1);
+    expect(mean(channel(pixels, 3))).toBeCloseTo(GROUND_TEXTURE_MEAN, 1);
     expect(mean(channel(pixels, 2))).toBeCloseTo(0.5, 1); // the tint is centered: no overall warm or cool shift
   });
 
-  it('has soft speckle on the grass layer and clearer marks on the pebble layer, both subtle and in range', () => {
+  /**
+   * What the texture was before the speckle was made stronger, as the spread of each layer divided by
+   * its average (grass 0.037 / 0.909, pebbles 0.054 / 0.909). Both layers are now 2 to 3 times that.
+   */
+  const OLD_GRASS_SPREAD = 0.0407;
+  const OLD_PEBBLE_SPREAD = 0.0594;
+
+  it('has a clear speckle on the grass layer and clearer marks on the pebble layer: 2 to 3 times what they were, still in range', () => {
     const grass = channel(pixels, 0);
     const pebbles = channel(pixels, 1);
-    expect(std(grass)).toBeGreaterThan(0.025);
-    expect(std(grass)).toBeLessThan(0.1); // subtle
-    expect(std(pebbles)).toBeGreaterThan(0.04);
-    expect(std(pebbles)).toBeLessThan(0.14);
+    const grassSpread = std(grass) / mean(grass);
+    const pebbleSpread = std(pebbles) / mean(pebbles);
+    expect(grassSpread / OLD_GRASS_SPREAD).toBeGreaterThanOrEqual(2);
+    expect(grassSpread / OLD_GRASS_SPREAD).toBeLessThanOrEqual(3);
+    expect(pebbleSpread / OLD_PEBBLE_SPREAD).toBeGreaterThanOrEqual(2);
+    expect(pebbleSpread / OLD_PEBBLE_SPREAD).toBeLessThanOrEqual(3);
     for (const layer of [grass, pebbles]) {
       const lowest = layer.reduce((a, b) => Math.min(a, b), 1);
       const highest = layer.reduce((a, b) => Math.max(a, b), 0);
-      expect(lowest).toBeGreaterThanOrEqual(0.5);
+      expect(lowest).toBeGreaterThanOrEqual(0.25); // the darkest mark is a shade, never black
       expect(highest).toBeLessThanOrEqual(1);
     }
     expect(std(channel(pixels, 2))).toBeGreaterThan(0.01); // the tint varies a little
@@ -72,9 +83,42 @@ describe('the ground texture (pixels)', () => {
     for (const c of [0, 1]) {
       const v = channel(pixels, c);
       const m = mean(v);
-      expect(v.filter((x) => x > m + 0.04).length).toBeGreaterThan(v.length * 0.01);
-      expect(v.filter((x) => x < m - 0.04).length).toBeGreaterThan(v.length * 0.01);
+      expect(v.filter((x) => x > m + 0.06).length).toBeGreaterThan(v.length * 0.02);
+      expect(v.filter((x) => x < m - 0.06).length).toBeGreaterThan(v.length * 0.02);
     }
+  });
+
+  it('draws paving: one-unit slabs with dark joints, each slab its own shade, and lit and shaded edges', () => {
+    const paving = channel(pixels, 3);
+    const slab = N / GROUND_TEXTURE_TILE; // texels per slab: one world unit
+    expect(Number.isInteger(slab)).toBe(true);
+    const m = mean(paving);
+    // Joints: the first texels of every slab, across the whole texture, are clearly darker than the stones.
+    let joint = 0;
+    let stone = 0;
+    for (let y = 0; y < N; y++) {
+      joint += paving[y * N]! + paving[y * N + slab]! + paving[y * N + 5 * slab]!;
+      stone += paving[y * N + Math.floor(slab / 2)]! + paving[y * N + slab + Math.floor(slab / 2)]!;
+    }
+    expect(joint / (3 * N)).toBeLessThan(0.75 * m);
+    expect(stone / (2 * N)).toBeGreaterThan(m);
+    // A slab centre is lighter or darker than its neighbor's: the stones are not all one shade.
+    const centers = new Set<number>();
+    for (let sy = 0; sy < GROUND_TEXTURE_TILE; sy++) {
+      for (let sx = 0; sx < GROUND_TEXTURE_TILE; sx++) {
+        centers.add(Math.round(paving[(sy * slab + slab / 2) * N + sx * slab + slab / 2]! * 40));
+      }
+    }
+    expect(centers.size).toBeGreaterThan(5);
+    expect(std(paving)).toBeGreaterThan(0.08);
+    // It wraps: the step across the wrapped edge is just another joint, like the one between any two slabs.
+    let seam = 0;
+    let inner = 0;
+    for (let y = 0; y < N; y++) {
+      seam += Math.abs(paving[y * N]! - paving[y * N + N - 1]!);
+      inner += Math.abs(paving[y * N + slab]! - paving[y * N + slab - 1]!);
+    }
+    expect(Math.abs(seam - inner) / N).toBeLessThan(0.05);
   });
 
   it('tiles: across the wrapped edge it changes no more than between neighbors inside', () => {
@@ -164,12 +208,12 @@ describe('applying the texture to a material', () => {
     expect(fragmentShader.includes('vDirt')).toBe(needsDirt);
   });
 
-  it('shows the blades in grass mode, the pebbles in pebbles mode, a mix by the dirt weight in blend mode, and plain paving in paved mode', () => {
+  it('shows the blades in grass mode, the pebbles in pebbles mode, a mix by the dirt weight in blend mode, and the paving slabs in paved mode', () => {
     const fragment = (mode: GroundTextureMode): string => patchedGroundShaders(mode, lambert.vertexShader, lambert.fragmentShader).fragmentShader;
     expect(fragment('grass')).toContain('diffuseColor.rgb *= ( vec3( grassMod ) * tint )');
     expect(fragment('pebbles')).toContain('diffuseColor.rgb *= ( vec3( pebbleMod ) )');
     expect(fragment('blend')).toContain('mix( vec3( grassMod ) * tint, vec3( pebbleMod ), vDirt )');
-    expect(fragment('paved')).toContain('mix( vec3( grassMod ) * tint, vec3( 1.0 ), vDirt )');
+    expect(fragment('paved')).toContain('mix( vec3( grassMod ) * tint, vec3( pavingMod ), vDirt )');
   });
 
   it('compiles each mode to its own program, and puts the texture in the shader uniforms', () => {
@@ -208,13 +252,14 @@ describe('createGround with the texture and terrain', () => {
     const dirt = ground.geometry.getAttribute('dirt');
     expect(dirt.count).toBe(position.count);
     for (let i = 0; i < position.count; i++) {
-      expect(dirt.getX(i)).toBeCloseTo(dirtWeight(position.getX(i), position.getZ(i), path), 6);
+      const wander = { ...path, ragged: CLEARING_RAGGED }; // a dirt clearing's edge wanders outward a little
+      expect(dirt.getX(i)).toBeCloseTo(dirtWeight(position.getX(i), position.getZ(i), wander, ground.userData.patchSeed as number), 6);
     }
     expect(dataOf(ground)).toMatchObject({ mode: 'blend' });
     expect((ground.material as THREE.MeshLambertMaterial).vertexColors).toBe(true);
   });
 
-  it('shows plain paving instead of pebbles when asked (the plaza)', () => {
+  it('shows paving slabs instead of pebbles when asked (the plaza)', () => {
     expect(dataOf(make({ pebbles: false }))).toMatchObject({ mode: 'paved' });
   });
 
@@ -307,13 +352,13 @@ describe('which layer each zone surface shows', () => {
   const modeOf = (root: THREE.Object3D, name: string): GroundTextureMode | undefined =>
     ((root.getObjectByName(name) as THREE.Mesh | undefined)?.material as THREE.Material | undefined)?.userData.groundTexture?.mode;
 
-  it('shows grass and pebbles on the ground (dirt clearings), and plain paving on the Town Square plaza', () => {
+  it('shows grass and pebbles on the ground (dirt clearings), and paving slabs on the Town Square plaza', () => {
     for (const id of ZONE_IDS) expect(modeOf(build(id), 'ground'), id).toBe(id === 'town-square' ? 'paved' : 'blend');
   });
 
-  it('shows pebbles on the Nature Trail path and the Fitness Field track, laid in world space like the ground', () => {
-    expect(modeOf(build('nature-trail'), 'path')).toBe('pebbles');
-    expect(modeOf(build('fitness-field'), 'track')).toBe('pebbles');
+  it('shows pebbles that fade into blades on the Nature Trail path and the Fitness Field track, laid in world space like the ground', () => {
+    expect(modeOf(build('nature-trail'), 'path')).toBe('blend');
+    expect(modeOf(build('fitness-field'), 'track')).toBe('blend');
   });
 
   it('shows the blade speckle on the hills, so the ground carries on into them', () => {

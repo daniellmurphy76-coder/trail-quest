@@ -146,14 +146,14 @@ describe('Fitness Field zone', () => {
     const position = track.geometry.getAttribute('position');
     const color = track.geometry.getAttribute('color');
 
-    it('is a flat dirt ring a little above the grass, between the two track ellipses', () => {
+    it('is a flat dirt ring a little above the grass, between the two track ellipses and their soft edge bands', () => {
       let minY = Infinity;
       let maxY = -Infinity;
       for (let i = 0; i < position.count; i++) {
         minY = Math.min(minY, position.getY(i));
         maxY = Math.max(maxY, position.getY(i));
         const e = ellipseValue(position.getX(i), position.getZ(i), 0);
-        expect(Math.abs(e - 1)).toBeLessThan(0.45); // every vertex hugs the center line, within the track width
+        expect(Math.abs(e - 1)).toBeLessThan(0.65); // every vertex hugs the center line, within the track width and its soft edge band
       }
       expect(minY).toBeGreaterThan(0.02);
       expect(maxY).toBeLessThan(0.1);

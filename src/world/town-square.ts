@@ -61,7 +61,7 @@ const GRASS_COLOR = 0x5f9e45;
 const PLAZA_COLOR = 0xcdc5b2;
 /** Solid paving out to this radius around the flagpole, then it fades to grass over the feather. */
 const PLAZA_RADIUS = 11;
-const PLAZA_FEATHER = 2.5;
+const PLAZA_FEATHER = 1.5; // paving ends fairly crisply: a tight band, not a smudge
 
 /** One street tile, in world units (the models are 1 unit wide at scale 5.5). */
 const TILE = 5.5;
