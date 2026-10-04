@@ -241,13 +241,38 @@ describe('buildAvatar with the model: the figure', () => {
     expect(chest.min.z).toBeGreaterThan(torso.min.z - 0.05);
   });
 
-  it('casts and receives shadows, except the blob', () => {
-    const rig = modelRig(look({ glasses: true, backpack: true }));
+  it('receives shadows everywhere but the blob, and casts them everywhere but the blob and the head attachments', () => {
+    // The hair, hat and glasses set does not cast: a hat brim hangs just over the face and would shade it.
+    const rig = modelRig(look({ glasses: true, backpack: true, hat: 'scout' }));
     for (const m of meshes(rig.root)) {
       const isBlob = m.name === 'avatar-blob';
-      expect(m.castShadow, m.name).toBe(!isBlob);
+      expect(m.castShadow, m.name).toBe(!isBlob && m.name !== 'head-attachments');
       expect(m.receiveShadow, m.name).toBe(!isBlob);
     }
+    expect((node(rig, 'head') as THREE.Mesh).castShadow).toBe(true);
+    expect((node(rig, 'torso') as THREE.Mesh).castShadow).toBe(true);
+    expect((node(rig, 'torso-attachments') as THREE.Mesh).castShadow).toBe(true);
+  });
+
+  it('keeps the head attachments out of the shadow pass when a new hat or hair rebuilds them', () => {
+    const rig = modelRig(look({ hairStyle: 'none', hat: 'none', glasses: false }), { blobShadow: false });
+    expect(names(rig.root)).not.toContain('head-attachments');
+    for (const hat of ['cap', 'bucket', 'beanie', 'scout'] as const) {
+      rig.setConfig(look({ hat }));
+      const attachments = node(rig, 'head-attachments') as THREE.Mesh;
+      expect(attachments.castShadow, hat).toBe(false);
+      expect(attachments.receiveShadow, hat).toBe(true);
+      expect((node(rig, 'head') as THREE.Mesh).castShadow, hat).toBe(true);
+    }
+  });
+
+  it('the Den Chief, in the scout hat, casts no brim shadow either', () => {
+    useBlockyModel(model);
+    const chief = createDenChief();
+    const attachments = chief.root.getObjectByName('head-attachments') as THREE.Mesh;
+    expect(attachments).toBeDefined();
+    expect(attachments.castShadow).toBe(false);
+    expect((chief.root.getObjectByName('head') as THREE.Mesh).castShadow).toBe(true);
   });
 
   it('every part has finite vertices, normals and texture coordinates', () => {

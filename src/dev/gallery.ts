@@ -274,7 +274,8 @@ async function loadScout(entry: Entry, config: Readonly<FilledAvatar>, rank: Ran
   // Build scales the whole figure (small, regular, tall); undo that so every Scout stands 1.8 units to the shoulders.
   if (modelReady) rig.root.scale.setScalar(1 / BLOCKY_BUILD_SCALE[config.build]);
   else entry.note = FAILED;
-  shadows(rig.root);
+  // No `shadows(rig.root)` here: the rig sets its own shadow flags (the hat and hair set does not cast), and
+  // forcing every mesh to cast would bring the hat-brim shadow on the face back.
   entry.holder.add(rig.root);
   entry.tick = (dt) => rig.update(dt, { moving: false, speed: 0 });
 }
