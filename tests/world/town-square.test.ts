@@ -166,7 +166,7 @@ describe('Town Square zone', () => {
       }
     });
 
-    it('hangs a named group at each landmark (the name sprite goes inside when a canvas exists)', () => {
+    it('hangs a named group at each landmark', () => {
       for (const [id, point] of Object.entries(landmarks)) {
         const group = zone.root.getObjectByName(`landmark:${id}`);
         expect(group, id).toBeDefined();
@@ -374,7 +374,7 @@ describe('Town Square model swap', () => {
     for (const keep of ['plaza-island', 'planter-soil', 'landmark-posts', 'landmark-caps', 'ground']) expect(names).toContain(keep);
 
     const after = drawCalls(zone.root);
-    expect(after).toBeLessThan(60); // 35 in practice, plus 4 name sprites in a browser
+    expect(after).toBeLessThan(60); // 35 in practice
     expect(after).toBeGreaterThanOrEqual(before);
     expect(() => zone.update(1 / 60)).not.toThrow();
   });

@@ -19,7 +19,7 @@
  * plants 1, benches 1, gateway 1, stumps 1, lanterns 2, trail sign 2, rock 1, woodpile 1,
  * fireflies 1). After the model swap: about 26 (the campfire model is 2 meshes, the three tree
  * models take 3 calls, benches and gateway share one `log.single` call, the plant mix takes up to
- * 8), plus 1 for the sign's text label where a canvas exists. The sun's shadow pass draws the
+ * 8); the sign's text is a screen label (`Zone.labels`), not a draw call. The sun's shadow pass draws the
  * casting props again, about 15 more. Far below the 80 target and the 150 budget.
  *
  * Past the walls of trees, `addHorizon` (./horizon.ts) adds rolling hills, a distant tree line and far mountains:
@@ -37,7 +37,6 @@ import { createBirds } from './critters';
 import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { createGround, createGroundApron } from './ground';
 import { addHorizon } from './horizon';
-import { labelSprite } from './placeholder-zone';
 import {
   CAMPFIRE_COLLIDER_RADIUS,
   campfire,
@@ -73,7 +72,7 @@ const SIGN_Z = 15.4;
 const SIGN_YAW = 0.35; // turns the sign a little toward the spawn
 const SIGN_RADIUS = 2;
 const SIGN_LABEL_HEIGHT = 2.6; // where the name tag hangs (see Interactable)
-const SIGN_TEXT_HEIGHT = 3.5; // the "Back to camp" text sprite floats above that
+const SIGN_TEXT_HEIGHT = 3.5; // the "Back to camp" place name floats above that
 const ENTRANCE_ANGLE = Math.PI / 2;
 
 const GATE_Z = 12.2;
@@ -504,11 +503,6 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
   signRoot.add(signPost, signBoard);
   setShadowCasting(signRoot, true, true);
   root.add(signRoot);
-  const signText = labelSprite('Back to camp'); // null where there is no canvas
-  if (signText) {
-    signText.position.set(SIGN_X, SIGN_TEXT_HEIGHT, SIGN_Z);
-    root.add(signText);
-  }
   const back: Interactable = {
     id: 'trail-sign',
     position: new THREE.Vector3(SIGN_X, SIGN_LABEL_HEIGHT, SIGN_Z),
@@ -732,6 +726,7 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
     interactables: [back],
     openSpots,
     landmarks: {},
+    labels: [{ text: 'Back to camp', position: new THREE.Vector3(SIGN_X, SIGN_TEXT_HEIGHT, SIGN_Z) }],
     colliders,
     update: (dt: number) => {
       fire.update(dt);

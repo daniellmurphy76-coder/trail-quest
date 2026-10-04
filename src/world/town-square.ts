@@ -15,7 +15,7 @@
  * sign and the lawn trees' trunks. The four name signs stand on their own landmarks, so they have
  * none. Streets, the plaza, the open spots and the landmarks are kept clear of colliders.
  *
- * Draw calls: about 24 with primitives only (28 with the four name signs, which are sprites). After
+ * Draw calls: about 24 with primitives only (the four name signs are screen labels, see `Zone.labels`). After
  * the swap about 39 (buildings 7, plants up to 8, streets 3, planters 5, flagpole 3, and so on).
  * The sun's shadow pass draws the casters a second time, about 25 more, so the zone stays near 65.
  *
@@ -33,7 +33,6 @@ import { boxCollider, circleCollider, type Collider } from './collide';
 import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { createGround, createGroundApron } from './ground';
 import { addHorizon } from './horizon';
-import { labelSprite } from './placeholder-zone';
 import {
   flagpole,
   instancedModel,
@@ -45,7 +44,7 @@ import {
   type Spot,
 } from './props';
 import { zoneTerrain } from './terrain';
-import type { Interactable, Zone } from './zone';
+import type { Interactable, Zone, ZoneLabel } from './zone';
 import type { ZoneDeps } from './zones';
 
 // ---- layout constants ---------------------------------------------------------------------------
@@ -853,21 +852,18 @@ export function createTownSquare(deps: ZoneDeps): Zone {
   const capColor = new THREE.Color();
   const signs = new THREE.Group();
   signs.name = 'landmark-signs';
+  const labels: ZoneLabel[] = [];
   CIVIC.forEach((c, i) => {
     const at = landmarkOf(c);
     landmarks[c.id] = at;
     setInstance(signPosts, i, at.x, 0, at.z, 0);
     setInstance(signCaps, i, at.x, 0, at.z, 0);
     signCaps.setColorAt(i, capColor.set(c.color));
-    // Each landmark is a named group, with its name sprite hung above it (no sprite without a canvas).
+    // Each landmark is a named group; its name floats over it as a screen label (Zone.labels).
     const marker = new THREE.Group();
     marker.name = `landmark:${c.id}`;
     marker.position.copy(at);
-    const label = labelSprite(c.label, 0.9);
-    if (label) {
-      label.position.set(0, SIGN_LABEL_Y, 0);
-      marker.add(label);
-    }
+    labels.push({ text: c.label, position: new THREE.Vector3(at.x, SIGN_LABEL_Y, at.z) });
     signs.add(marker);
   });
   for (const m of [signPosts, signCaps]) {
@@ -1053,6 +1049,7 @@ export function createTownSquare(deps: ZoneDeps): Zone {
     interactables: [back],
     openSpots,
     landmarks,
+    labels,
     colliders,
     update: (dt: number) => {
       time += dt;

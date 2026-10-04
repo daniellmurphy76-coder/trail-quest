@@ -10,9 +10,10 @@
  *   - near the middle: a first-aid tent with a white cross on a green board above it.
  *
  * Every prop starts as a primitive (vertex-colored parts merged into one mesh per prop, so the
- * placeholder art costs 21 draw calls, 23 with the two label sprites a browser adds) and is swapped
+ * placeholder art costs 21 draw calls) and is swapped
  * for the CC0 model once it loads, so the zone never waits on assets. After the swap it is 26 draw
- * calls (28 with the sprites), and the sun's shadow pass redraws the 16 casting meshes. The zone
+ * calls, and the sun's shadow pass redraws the 16 casting meshes. The two place names are screen
+ * labels (`Zone.labels`), not draw calls. The zone
  * carries no lights: the world's environment lights every zone.
  *
  * Solid things block the player (see `Zone.colliders`): tree trunks, the fire station, the two
@@ -34,7 +35,6 @@ import { boxCollider, circleCollider, type Collider } from './collide';
 import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { createGround, createGroundApron } from './ground';
 import { addHorizon } from './horizon';
-import { labelSprite } from './placeholder-zone';
 import {
   instancedModel,
   scatterModels,
@@ -46,7 +46,7 @@ import {
   type Spot,
 } from './props';
 import { zoneTerrain } from './terrain';
-import type { Interactable, Zone } from './zone';
+import type { Interactable, Zone, ZoneLabel } from './zone';
 import type { ZoneDeps } from './zones';
 
 // ---- layout -------------------------------------------------------------------------------------
@@ -646,20 +646,15 @@ export function createSafetyStation(deps: ZoneDeps): Zone {
   const meetPrim = solid(
     signpostPrimitive('meeting-sign-primitive', MEETING_SIGN.x, MEETING_SIGN.z, meetYaw, MEETING_SIGN.scale, COLOR.green, primMaterial),
   );
-  const meetLabel = labelSprite('Safe meeting spot', 0.9);
-  if (meetLabel) {
-    meetLabel.position.set(MEETING_SIGN.x, 3.5 * MEETING_SIGN.scale, MEETING_SIGN.z);
-    root.add(meetLabel);
-  }
+  // The two place names float over the world as screen labels (Zone.labels).
+  const labels: ZoneLabel[] = [
+    { text: 'Safe meeting spot', position: new THREE.Vector3(MEETING_SIGN.x, 3.5 * MEETING_SIGN.scale, MEETING_SIGN.z) },
+  ];
 
   // ---- first-aid tent ----
   const tentPrim = solid(tentPrimitive(primMaterial));
   solid(firstAidCross(primMaterial));
-  const aidLabel = labelSprite('First aid', 0.8);
-  if (aidLabel) {
-    aidLabel.position.set(TENT.x, 5.95, TENT.z);
-    root.add(aidLabel);
-  }
+  labels.push({ text: 'First aid', position: new THREE.Vector3(TENT.x, 5.95, TENT.z) });
 
   // ---- playground ----
   solid(playgroundPrimitive(primMaterial));
@@ -768,7 +763,7 @@ export function createSafetyStation(deps: ZoneDeps): Zone {
   // ---- progressive swap: primitives stay until the models arrive ----------------------------------
   // Draw calls: placeholders 21 (ground 2, street 1, sidewalks 1, fire station 1, stop sign 1, lamps 1,
   // houses 2, fence 1, meeting sign 1, tent 1, cross 1, playground 1, seats 2, sandbox rocks 1, Trail
-  // sign 1, trees 2, plants 1) plus 2 label sprites in a browser. After the swap 26: the street becomes
+  // sign 1, trees 2, plants 1). After the swap 26: the street becomes
   // 2 (straight tiles and the crossing) and the plants up to 5; every other prop stays one call.
   const replace = (primitive: THREE.Object3D, model: THREE.Object3D | undefined): void => {
     if (!model) return;
@@ -842,6 +837,7 @@ export function createSafetyStation(deps: ZoneDeps): Zone {
     interactables: [back],
     openSpots,
     landmarks: {},
+    labels,
     colliders,
     update: (dt: number) => {
       swingTime += dt;

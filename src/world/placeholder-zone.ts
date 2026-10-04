@@ -13,7 +13,7 @@ import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
 import { tree, type Spot } from './props';
-import type { Interactable, Zone } from './zone';
+import type { Interactable, Zone, ZoneLabel } from './zone';
 import type { ZoneDeps } from './zones';
 
 export interface PlaceholderLandmark {
@@ -46,41 +46,9 @@ const SPAWN = new THREE.Vector3(0, 0, 12);
 const SIGN_OFFSET_X = -3.5; // the Trail sign stands this far to the side of the spawn
 const SIGN_RADIUS = 2.2;
 const SIGN_LABEL_HEIGHT = 2.6;
+const LANDMARK_LABEL_HEIGHT = 3.3; // where a landmark's place name hangs
 /** Open spots keep this far from the spawn, the Trail sign and every landmark. */
 const KEEP_CLEAR = 3.6;
-
-/**
- * A text sprite that always faces the camera, for labeling a signpost in the 3D scene. Returns
- * null where there is no canvas (tests in node), so callers just skip the label.
- */
-export function labelSprite(text: string, worldHeight = 0.8): THREE.Sprite | null {
-  if (typeof document === 'undefined') return null;
-  try {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    const font = 'bold 44px system-ui, sans-serif';
-    ctx.font = font;
-    canvas.width = Math.min(1024, Math.max(160, Math.ceil(ctx.measureText(text).width) + 48));
-    canvas.height = 80;
-    ctx.font = font; // resizing a canvas resets its state
-    ctx.fillStyle = 'rgba(31, 42, 31, 0.9)';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, canvas.width, canvas.height, 18);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-    sprite.scale.set((worldHeight * canvas.width) / canvas.height, worldHeight, 1);
-    return sprite;
-  } catch {
-    return null;
-  }
-}
 
 /** Yaw that turns a thing whose front is +z to look at (tx, tz) from (x, z). */
 function yawToward(x: number, z: number, tx: number, tz: number): number {
@@ -146,6 +114,7 @@ export function buildPlaceholderZone(options: PlaceholderOptions): Zone {
 
   // Landmarks: labeled signposts spread around a ring, looking at the middle. Not interactable.
   const landmarks: Record<string, THREE.Vector3> = {};
+  const labels: ZoneLabel[] = [];
   const count = options.landmarks.length;
   options.landmarks.forEach((landmark, i) => {
     const angle = Math.PI / Math.max(count, 1) + (i * 2 * Math.PI) / Math.max(count, 1);
@@ -153,11 +122,7 @@ export function buildPlaceholderZone(options: PlaceholderOptions): Zone {
     const z = Math.sin(angle) * LANDMARK_RADIUS;
     landmarks[landmark.id] = new THREE.Vector3(x, 0, z);
     const post = signpost(`landmark:${landmark.id}`, x, z, yawToward(x, z, 0, 0));
-    const label = labelSprite(landmark.label);
-    if (label) {
-      label.position.set(0, 3.3, 0);
-      post.add(label);
-    }
+    labels.push({ text: landmark.label, position: new THREE.Vector3(x, LANDMARK_LABEL_HEIGHT, z) });
     root.add(post);
   });
 
@@ -187,6 +152,7 @@ export function buildPlaceholderZone(options: PlaceholderOptions): Zone {
     interactables: [back],
     openSpots,
     landmarks,
+    labels,
     update: () => {},
   };
 }

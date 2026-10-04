@@ -23,7 +23,7 @@
  *
  * Draw calls: primitives 29 (ground 2, horizon 3, path 1, stream water 2 (ribbon, sparkles), butterflies 1,
  * birds 1, trees 2, rocks 1, stumps 1, plants 1, bridge 1, signs 2, tent 1, firewood 1, seats 1,
- * campfire 5, animals 3), plus 4 landmark labels in a browser. After the models load about 43 (trees 4,
+ * campfire 5, animals 3); the 4 landmark names are screen labels (`Zone.labels`). After the models load about 43 (trees 4,
  * rocks 3, plants up to 8, rabbit 2, the rest 1 each). On the low tier the sparkles, butterflies and
  * birds draw nothing (3 fewer). The sun's shadow pass draws the casting props a second time.
  *
@@ -42,7 +42,6 @@ import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { createBirds, createButterflies, type AvoidDisc } from './critters';
 import { applyGroundTexture, createGround, createGroundApron, createGroundTexture } from './ground';
 import { addHorizon } from './horizon';
-import { labelSprite } from './placeholder-zone';
 import {
   CAMPFIRE_COLLIDER_RADIUS,
   campfire,
@@ -58,7 +57,7 @@ import {
 } from './props';
 import { zoneTerrain } from './terrain';
 import { createStreamWater } from './water';
-import type { Interactable, Zone } from './zone';
+import type { Interactable, Zone, ZoneLabel } from './zone';
 import type { ZoneDeps } from './zones';
 
 // ---- tuning -------------------------------------------------------------------------------------
@@ -1023,16 +1022,13 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
   const birds = createBirds({ count: BIRD_COUNT, center: { x: 0, z: 0 }, seed: BIRD_SEED });
   root.add(butterflies.root, birds.root);
 
-  // ---- landmark groups: each holds its label sprite (a browser has a canvas, node does not) ------
+  // ---- landmark groups: each has a place name that floats over it as a screen label (Zone.labels) ---
+  const labels: ZoneLabel[] = [];
   const landmarkGroup = (id: string, p: Spot, label: string, labelHeight: number): THREE.Group => {
     const group = new THREE.Group();
     group.name = `landmark:${id}`;
     group.position.set(p.x, 0, p.z);
-    const sprite = labelSprite(label);
-    if (sprite) {
-      sprite.position.set(0, labelHeight, 0);
-      group.add(sprite);
-    }
+    labels.push({ text: label, position: new THREE.Vector3(p.x, labelHeight, p.z) });
     root.add(group);
     return group;
   };
@@ -1229,6 +1225,7 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
     bounds: squareBounds(NATURE_TRAIL_HALF),
     spawn: new THREE.Vector3(layout.spawn.x, 0, layout.spawn.z),
     interactables: [back],
+    labels,
     colliders: layout.colliders,
     openSpots: layout.openSpots.map((p) => new THREE.Vector3(p.x, 0, p.z)),
     landmarks: {

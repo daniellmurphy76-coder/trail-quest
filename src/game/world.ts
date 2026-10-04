@@ -190,6 +190,8 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     }
   }
   bindNameTags(baseCamp);
+  // Place names (Library, Footbridge...) come from the zone's `labels` data: rebuilt on every swap too.
+  labels.setPlaceLabels(baseCamp.labels ?? []);
   const guide = baseCamp.interactables.find((item) => item.id === DEN_CHIEF_ID) ?? null;
 
   // A bobbing arrow above the Den Chief says "go here". It sits above the prompt (which stacks
@@ -201,6 +203,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     offsetY: 0.5,
     screenOffsetY: -96,
     className: 'tq-objective',
+    priority: true,
   });
   objective.element.setAttribute('aria-hidden', 'true');
   objective.visible = false;
@@ -220,6 +223,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     offsetY: 0.5,
     screenOffsetY: -52,
     className: 'tq-prompt',
+    priority: true,
   });
   prompt.visible = false;
 
@@ -265,6 +269,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     veil,
     onSwap(zone) {
       bindNameTags(zone);
+      labels.setPlaceLabels(zone.labels ?? []);
       prompt.visible = false;
       input.setActionLabel('');
       idleSeconds = 0;
