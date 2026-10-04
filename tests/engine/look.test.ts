@@ -25,6 +25,8 @@ describe('DEFAULT_LOOK', () => {
       'fogColor',
       'fogNear',
       'fogFar',
+      'sunGlow',
+      'sunGlowSize',
       'aoRadius',
       'aoIntensity',
       'aoHalfRes',
@@ -53,6 +55,11 @@ describe('DEFAULT_LOOK', () => {
     expect(DEFAULT_LOOK.fillIntensity).toBe(0.6);
     expect(DEFAULT_LOOK.fillIntensity).toBeGreaterThan(0);
     expect(DEFAULT_LOOK.fillIntensity).toBeLessThan(DEFAULT_LOOK.sunIntensity / 2);
+  });
+
+  it('has a sun glow that reads clearly but softly: on at full strength and the standard size', () => {
+    expect(DEFAULT_LOOK.sunGlow).toBe(1);
+    expect(DEFAULT_LOOK.sunGlowSize).toBe(1);
   });
 
   it('is sensible: fog near before far, a high bloom threshold, small grade, a modest ambient occlusion reach', () => {
@@ -129,6 +136,16 @@ describe('mergeLook', () => {
     expect(mergeLook(DEFAULT_LOOK, { fillIntensity: '1' as unknown as number }).fillIntensity).toBe(DEFAULT_LOOK.fillIntensity);
   });
 
+  it('takes the sun glow settings as numbers, zero included, and ignores bad ones', () => {
+    expect(mergeLook(DEFAULT_LOOK, { sunGlow: 1.6, sunGlowSize: 0.7 })).toMatchObject({ sunGlow: 1.6, sunGlowSize: 0.7 });
+    expect(mergeLook(DEFAULT_LOOK, { sunGlow: 0 }).sunGlow).toBe(0);
+    for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, '1' as unknown as number]) {
+      const merged = mergeLook(DEFAULT_LOOK, { sunGlow: bad, sunGlowSize: bad });
+      expect(merged.sunGlow).toBe(DEFAULT_LOOK.sunGlow);
+      expect(merged.sunGlowSize).toBe(DEFAULT_LOOK.sunGlowSize);
+    }
+  });
+
   it('takes a JSON blob pasted back from Copy settings', () => {
     const copied = JSON.parse(JSON.stringify(diffLook(DEFAULT_LOOK, mergeLook(DEFAULT_LOOK, { exposure: 1.3, sunColor: '#ffeecc' })))) as Partial<LookSettings>;
     expect(mergeLook(DEFAULT_LOOK, copied)).toEqual(mergeLook(DEFAULT_LOOK, { exposure: 1.3, sunColor: '#ffeecc' }));
@@ -140,6 +157,7 @@ describe('diffLook', () => {
     expect(diffLook(DEFAULT_LOOK, { ...DEFAULT_LOOK })).toEqual({});
     const changed = mergeLook(DEFAULT_LOOK, { exposure: 1.4, aoHalfRes: true });
     expect(diffLook(DEFAULT_LOOK, changed)).toEqual({ exposure: 1.4, aoHalfRes: true });
+    expect(diffLook(DEFAULT_LOOK, mergeLook(DEFAULT_LOOK, { sunGlow: 0.4 }))).toEqual({ sunGlow: 0.4 });
   });
 });
 

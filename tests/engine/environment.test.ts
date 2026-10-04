@@ -1,7 +1,25 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { cloudPixels, createEnvironment, desaturate, setShadowCasting, type Environment } from '../../src/engine/environment';
-import { DEFAULT_LOOK, sunDirection } from '../../src/engine/look';
+import {
+  cloudPixels,
+  createEnvironment,
+  desaturate,
+  installShadowEdgeFade,
+  SHADOW_EDGE_FADE,
+  SHADOW_LEAD,
+  SHADOW_RADIUS,
+  setShadowCasting,
+  shadowEdgeIntensity,
+  SKY_GLOW,
+  skyPixel,
+  sunGlowColors,
+  type Environment,
+  type SkyParams,
+} from '../../src/engine/environment';
+import { DEFAULT_LOOK, sunDirection, type LookSettings } from '../../src/engine/look';
+import { QUALITY_SETTINGS } from '../../src/engine/quality';
 
 function lightsIn(scene: THREE.Scene): THREE.Light[] {
   const found: THREE.Light[] = [];
@@ -537,5 +555,563 @@ describe('desaturate', () => {
     const gray = desaturate(new THREE.Color(0.2, 0.5, 0.7), 1);
     expect(gray.r).toBeCloseTo(gray.g, 9);
     expect(gray.g).toBeCloseTo(gray.b, 9);
+  });
+});
+
+// ---- sun glow ------------------------------------------------------------------------------------
+
+/** What the sky shader reads, taken from the dome's own uniforms so the wiring is tested too. */
+function skyParamsOf(env: Environment): SkyParams {
+  const u = (env.sky.material as THREE.ShaderMaterial).uniforms;
+  const rgb = (c: THREE.Color): [number, number, number] => [c.r, c.g, c.b];
+  const dir = u.uSunDir!.value as THREE.Vector3;
+  return {
+    zenith: rgb(u.uZenith!.value as THREE.Color),
+    horizon: rgb(u.uHorizon!.value as THREE.Color),
+    ground: rgb(u.uGround!.value as THREE.Color),
+    height: u.uHeight!.value as number,
+    sunDir: [dir.x, dir.y, dir.z],
+    glowColor: rgb(u.uGlowColor!.value as THREE.Color),
+    hazeColor: rgb(u.uGlowHaze!.value as THREE.Color),
+    glow: u.uGlow!.value as number,
+    size: u.uGlowSize!.value as number,
+  };
+}
+
+const luminanceOf = (c: readonly number[]): number => 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
+
+/** Every direction on a coarse grid (5 degrees around, 2.5 degrees up) plus the sun's own direction and its near neighbors. */
+function skyDirections(sun: readonly [number, number, number]): Array<[number, number, number]> {
+  const dirs: Array<[number, number, number]> = [];
+  for (let az = 0; az < 360; az += 5) {
+    for (let el = -30; el <= 90; el += 2.5) {
+      const a = THREE.MathUtils.degToRad(az);
+      const e = THREE.MathUtils.degToRad(el);
+      dirs.push([Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)]);
+    }
+  }
+  dirs.push([sun[0], sun[1], sun[2]]);
+  for (const nudge of [0.01, 0.03, 0.1]) {
+    dirs.push([sun[0] + nudge, sun[1], sun[2]], [sun[0], sun[1] + nudge, sun[2]], [sun[0], sun[1], sun[2] - nudge]);
+  }
+  return dirs;
+}
+
+describe('the sun glow in the sky', () => {
+  const uniforms = (env: Environment): Record<string, { value: unknown }> => (env.sky.material as THREE.ShaderMaterial).uniforms;
+
+  it('feeds the shader the sun direction from the look, and follows the panel live', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const sunDir = uniforms(env).uSunDir!.value as THREE.Vector3;
+    const [x, y, z] = sunDirection(DEFAULT_LOOK);
+    expect(sunDir.distanceTo(new THREE.Vector3(x, y, z))).toBeLessThan(1e-9);
+    expect(sunDir.length()).toBeCloseTo(1, 9);
+
+    for (const [azimuth, elevation] of [
+      [200, 20],
+      [310, 61],
+      [0, 5],
+    ] as const) {
+      env.setLook({ sunAzimuth: azimuth, sunElevation: elevation });
+      const [ex, ey, ez] = sunDirection({ sunAzimuth: azimuth, sunElevation: elevation });
+      expect(sunDir.distanceTo(new THREE.Vector3(ex, ey, ez))).toBeLessThan(1e-9);
+      // The glow and the light agree: the sun in the sky is where the light comes from.
+      const light = env.sun.position.clone().sub(env.sun.target.position).normalize();
+      expect(light.distanceTo(sunDir)).toBeLessThan(1e-9);
+    }
+  });
+
+  it('starts at the default strength and size, and takes both from the look', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    expect(uniforms(env).uGlow!.value).toBeCloseTo(DEFAULT_LOOK.sunGlow, 9); // the default sun is well above the horizon
+    expect(uniforms(env).uGlowSize!.value).toBe(DEFAULT_LOOK.sunGlowSize);
+    env.setLook({ sunGlow: 0.5, sunGlowSize: 1.6 });
+    expect(uniforms(env).uGlow!.value).toBeCloseTo(0.5, 9);
+    expect(uniforms(env).uGlowSize!.value).toBe(1.6);
+    env.setLook({ sunGlow: 0 });
+    expect(uniforms(env).uGlow!.value).toBe(0); // the shader skips the glow at 0
+    env.setLook({ sunGlow: Number.NaN, sunGlowSize: Number.NaN });
+    expect(uniforms(env).uGlowSize!.value).toBe(1.6); // not usable: ignored
+  });
+
+  it('never divides by a size of zero or less', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high', look: { sunGlowSize: 0 } });
+    expect(uniforms(env).uGlowSize!.value as number).toBeGreaterThan(0);
+    env.setLook({ sunGlowSize: -2 });
+    expect(uniforms(env).uGlowSize!.value as number).toBeGreaterThan(0);
+  });
+
+  it('fades out as the sun sinks below the horizon, and is gone once it is under it', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const glowAt = (elevation: number): number => {
+      env.setLook({ sunElevation: elevation });
+      return uniforms(env).uGlow!.value as number;
+    };
+    expect(glowAt(38)).toBeCloseTo(1, 9);
+    expect(glowAt(10)).toBeCloseTo(1, 1); // still full a little above the horizon
+    const edge = glowAt(0);
+    expect(edge).toBeGreaterThan(0);
+    expect(edge).toBeLessThan(0.6);
+    expect(glowAt(-1.5)).toBeLessThan(edge);
+    expect(glowAt(-3)).toBe(0);
+    expect(glowAt(-45)).toBe(0);
+    // Smoothly, never rising as the sun goes down.
+    let last = Infinity;
+    for (let elevation = 20; elevation >= -10; elevation -= 1) {
+      const now = glowAt(elevation);
+      expect(now).toBeLessThanOrEqual(last + 1e-12);
+      last = now;
+    }
+    // The sky sees the real direction, not the clamped one the shadow box uses.
+    env.setLook({ sunElevation: -20 });
+    expect((uniforms(env).uSunDir!.value as THREE.Vector3).y).toBeLessThan(-0.3);
+    expect(env.sun.position.y - env.sun.target.position.y).toBeGreaterThan(0); // the light itself never goes under the ground
+  });
+
+  it('has a warm core and a paler haze that follow the sun color, both under the bloom threshold in luminance', () => {
+    const core = new THREE.Color();
+    const haze = new THREE.Color();
+    for (const hex of ['#ffdba6', '#ffffff', '#ff8800', '#112233', '#ffffee']) {
+      sunGlowColors(new THREE.Color(hex), core, haze);
+      expect(luminanceOf([core.r, core.g, core.b]), hex).toBeLessThanOrEqual(SKY_GLOW.maxLuminance + 1e-9);
+      expect(luminanceOf([haze.r, haze.g, haze.b]), hex).toBeLessThanOrEqual(SKY_GLOW.maxLuminance + 1e-9);
+    }
+    sunGlowColors(new THREE.Color(DEFAULT_LOOK.sunColor), core, haze);
+    expect(core.r).toBeGreaterThan(core.b); // warm
+    expect(core.g).toBeGreaterThan(core.b);
+    expect(haze.b).toBeGreaterThan(core.b); // paler than the core: nearer to white
+    expect(haze.r - haze.b).toBeLessThan(core.r - core.b);
+
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    env.setLook({ sunColor: '#3366ff' });
+    const live = uniforms(env).uGlowColor!.value as THREE.Color;
+    expect(live.b).toBeGreaterThan(live.r);
+  });
+
+  it('draws the glow only when asked: the shader declares its uniforms and skips the work at 0', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const shader = (env.sky.material as THREE.ShaderMaterial).fragmentShader;
+    for (const name of ['uSunDir', 'uGlowColor', 'uGlowHaze', 'uGlow', 'uGlowSize']) {
+      expect(shader, name).toContain(`uniform`);
+      expect(shader, name).toContain(name);
+      expect(uniforms(env)[name], name).toBeDefined();
+    }
+    expect(shader).toContain('if (uGlow > 0.0)');
+    // The shader and skyPixel share their numbers: change one in SKY_GLOW and both move.
+    expect(shader).toContain(`pow(s, ${SKY_GLOW.corePower}.0 * spread)`);
+    expect(shader).toContain(`pow(s, ${SKY_GLOW.haloPower}.0 * spread)`);
+    expect(shader).toContain(`min(amount, ${SKY_GLOW.maxMix})`);
+    expect(shader).toContain('tonemapping_fragment'); // still tone mapped like the fog
+  });
+
+  describe('the peak stays under the bloom threshold (1.0)', () => {
+    const looks: Array<[string, Partial<LookSettings>]> = [
+      ['the defaults', {}],
+      ['full strength, a tight glow', { sunGlow: 2, sunGlowSize: 0.5 }],
+      ['full strength, a wide glow', { sunGlow: 2, sunGlowSize: 2 }],
+      ['a low sun', { sunElevation: 5 }],
+      ['a high sun', { sunElevation: 85 }],
+      ['a sun on the horizon', { sunElevation: 0 }],
+      ['a white sun', { sunColor: '#ffffff', sunGlow: 2 }],
+      ['a pale yellow sun', { sunColor: '#ffffcc', sunGlow: 2 }],
+      ['a pale sky', { fogColor: '#e8f0ff', skyZenithColor: '#9ab8ff', sunGlow: 2 }],
+    ];
+
+    for (const [name, look] of looks) {
+      it(`in every direction, with ${name}`, () => {
+        const env = createEnvironment(new THREE.Scene(), { quality: 'high', look });
+        const p = skyParamsOf(env);
+        const plain: SkyParams = { ...p, glow: 0 };
+        let peak = 0;
+        let lift = 0;
+        for (const dir of skyDirections(p.sunDir)) {
+          const lit = skyPixel(dir, p);
+          const bare = skyPixel(dir, plain);
+          for (const c of lit) expect(Number.isFinite(c)).toBe(true);
+          const l = luminanceOf(lit);
+          peak = Math.max(peak, l);
+          lift = Math.max(lift, l - luminanceOf(bare));
+          // The glow mixes toward a color of luminance <= the cap, so it can never be brighter than
+          // the plain sky or the cap, whichever is higher.
+          expect(l).toBeLessThanOrEqual(Math.max(luminanceOf(bare), SKY_GLOW.maxLuminance) + 1e-9);
+        }
+        expect(peak).toBeLessThan(1);
+        if ((look.sunElevation ?? DEFAULT_LOOK.sunElevation) > 0) expect(lift).toBeGreaterThan(0.005); // and it really draws something
+      });
+    }
+
+    it('keeps a margin under the bloom threshold: the glow colors are capped well below 1, and some sky always shows through', () => {
+      expect(DEFAULT_LOOK.bloomThreshold).toBe(1); // post.ts blooms from here
+      expect(SKY_GLOW.maxLuminance).toBeLessThanOrEqual(0.95);
+      expect(SKY_GLOW.maxMix).toBeLessThan(1);
+      expect(SKY_GLOW.coreWeight + SKY_GLOW.haloWeight + SKY_GLOW.bandWeight).toBeGreaterThan(SKY_GLOW.maxMix); // the cap really is what limits it at full strength
+    });
+
+    it('with no glow, the sky is the plain gradient', () => {
+      const env = createEnvironment(new THREE.Scene(), { quality: 'high', look: { sunGlow: 0 } });
+      const p = skyParamsOf(env);
+      expect(p.glow).toBe(0);
+      const horizon = skyPixel([0, 0.05, 1], p);
+      const top = skyPixel([0, 1, 0], p);
+      expect(horizon[2]).toBeGreaterThan(horizon[0]);
+      expect(luminanceOf(horizon)).toBeGreaterThan(luminanceOf(top));
+      // Glow off must leave the dome exactly as it was before the glow existed.
+      const h = 0.05;
+      const gradient = Math.pow(Math.min(1, Math.max(0, h / p.height)), 0.65);
+      const ground = THREE.MathUtils.smoothstep(h, -0.12, 0.04);
+      const got = skyPixel([0, h, Math.sqrt(1 - h * h)], p);
+      got.forEach((c, i) => {
+        const sky = p.horizon[i]! + (p.zenith[i]! - p.horizon[i]!) * gradient;
+        expect(c).toBeCloseTo(p.ground[i]! + (sky - p.ground[i]!) * ground, 9);
+      });
+    });
+  });
+
+  it('is brightest and warmest toward the sun, and lights the horizon on the sun side more than the far side', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const p = skyParamsOf(env);
+    const plain: SkyParams = { ...p, glow: 0 };
+    const sun = p.sunDir;
+    const atSun = skyPixel(sun, p);
+    const bareAtSun = skyPixel(sun, plain);
+    expect(luminanceOf(atSun)).toBeGreaterThan(luminanceOf(bareAtSun));
+    expect(atSun[0] - atSun[2]).toBeGreaterThan(bareAtSun[0] - bareAtSun[2]); // warmer
+    expect(atSun[0]).toBeGreaterThan(atSun[2]); // warm outright: more red than blue at the sun itself
+    // The glow falls off with the angle from the sun.
+    const lift = (dir: readonly [number, number, number]): number => luminanceOf(skyPixel(dir, p)) - luminanceOf(skyPixel(dir, plain));
+    const turned = (degrees: number): [number, number, number] => {
+      const a = THREE.MathUtils.degToRad(degrees);
+      const el = Math.asin(sun[1]);
+      const az = Math.atan2(sun[0], sun[2]) + a;
+      return [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)];
+    };
+    expect(lift(sun)).toBeGreaterThan(lift(turned(8)));
+    expect(lift(turned(8))).toBeGreaterThan(lift(turned(30)));
+    expect(lift(turned(30))).toBeGreaterThan(lift(turned(120)) - 1e-9);
+    // On the horizon band, the sun's side is lifted and the opposite side is not.
+    const lowAt = (azimuthDegrees: number, h: number): [number, number, number] => {
+      const az = THREE.MathUtils.degToRad(azimuthDegrees);
+      return [Math.sqrt(1 - h * h) * Math.sin(az), h, Math.sqrt(1 - h * h) * Math.cos(az)];
+    };
+    const sunAzimuth = THREE.MathUtils.radToDeg(Math.atan2(sun[0], sun[2]));
+    expect(lift(lowAt(sunAzimuth, 0.08))).toBeGreaterThan(0.01);
+    expect(lift(lowAt(sunAzimuth + 180, 0.08))).toBeLessThan(0.002);
+    expect(lift(lowAt(sunAzimuth, 0.08))).toBeGreaterThan(lift(lowAt(sunAzimuth + 90, 0.08)));
+    // The band grows out of the fog at the horizon instead of starting with an edge.
+    expect(lift(lowAt(sunAzimuth, 0.002))).toBeLessThan(0.005);
+  });
+
+  it('has no seam around the compass, straight up, or straight down', () => {
+    for (const size of [0.5, 1, 2]) {
+      const env = createEnvironment(new THREE.Scene(), { quality: 'high', look: { sunGlowSize: size } });
+      const p = skyParamsOf(env);
+      let previous: number | null = null;
+      for (let az = 0; az <= 360; az += 1) {
+        const a = THREE.MathUtils.degToRad(az);
+        const h = 0.1;
+        const l = luminanceOf(skyPixel([Math.sqrt(1 - h * h) * Math.sin(a), h, Math.sqrt(1 - h * h) * Math.cos(a)], p));
+        if (previous !== null) expect(Math.abs(l - previous), `size ${size} at ${az}`).toBeLessThan(0.02); // one degree never jumps
+        previous = l;
+      }
+      for (const dir of [
+        [0, 1, 0],
+        [0, -1, 0],
+      ] as Array<[number, number, number]>) {
+        for (const c of skyPixel(dir, p)) expect(Number.isFinite(c)).toBe(true);
+      }
+    }
+  });
+});
+
+// ---- shadow reach, softness and edge --------------------------------------------------------------
+
+/** A camera at `position` looking at `target`, like the follow camera. */
+function lookingAt(position: THREE.Vector3, target: THREE.Vector3): THREE.PerspectiveCamera {
+  const camera = new THREE.PerspectiveCamera(50, 1.6, 0.1, 300);
+  camera.position.copy(position);
+  camera.lookAt(target);
+  camera.updateMatrixWorld(true);
+  return camera;
+}
+
+/** The follow camera as the world sets it up: 7.5 units behind the player at `heading` (radians, 0 faces +z), 3 up, looking at the chest. */
+function followCamera(player: THREE.Vector3, heading: number): { camera: THREE.PerspectiveCamera; forward: THREE.Vector3 } {
+  const forward = new THREE.Vector3(Math.sin(heading), 0, Math.cos(heading));
+  const camera = lookingAt(player.clone().addScaledVector(forward, -7.5).add(new THREE.Vector3(0, 3, 0)), player.clone().add(new THREE.Vector3(0, 1.8, 0)));
+  return { camera, forward };
+}
+
+describe('the shadow box leads toward where the camera looks', () => {
+  const tiers = ['high', 'medium', 'low'] as const;
+  const headings = [0, 0.7, 1.6, 2.6, 3.9, 5.2];
+  const flat = (v: THREE.Vector3): THREE.Vector3 => new THREE.Vector3(v.x, 0, v.z);
+
+  it('puts the center ahead of the player along the camera forward, by SHADOW_LEAD of the half-width', () => {
+    for (const tier of tiers) {
+      const { shadowDistance, shadowMapSize } = QUALITY_SETTINGS[tier];
+      const half = shadowDistance / 2;
+      const texel = shadowDistance / shadowMapSize;
+      const env = createEnvironment(new THREE.Scene(), { quality: tier });
+      const player = new THREE.Vector3(12.3, 0, -30.7);
+      for (const heading of headings) {
+        const { camera, forward } = followCamera(player, heading);
+        env.update(0, player, camera);
+        const ahead = flat(env.sun.target.position.clone().sub(player));
+        // The snap to texels moves it by well under 2 texels; everything else is the lead.
+        expect(Math.abs(ahead.length() - SHADOW_LEAD * half), `${tier} ${heading}`).toBeLessThan(2 * texel);
+        expect(ahead.clone().normalize().dot(forward), `${tier} ${heading}`).toBeGreaterThan(0.999);
+      }
+    }
+    expect(SHADOW_LEAD).toBeGreaterThanOrEqual(0.35); // the brief: 35 to 45 percent of the half-size
+    expect(SHADOW_LEAD).toBeLessThanOrEqual(0.45);
+  });
+
+  it('keeps the sun the same distance and direction from the box center as it leads', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const toward = (): THREE.Vector3 => env.sun.position.clone().sub(env.sun.target.position);
+    const before = toward();
+    const player = new THREE.Vector3(5, 0, 5);
+    env.update(0, player, followCamera(player, 2).camera);
+    expect(toward().distanceTo(before)).toBeLessThan(1e-9);
+  });
+
+  it('snaps the led box to whole texels, in light space, as the player walks and the camera turns', () => {
+    for (const tier of tiers) {
+      const { shadowDistance, shadowMapSize } = QUALITY_SETTINGS[tier];
+      const texel = shadowDistance / shadowMapSize;
+      const env = createEnvironment(new THREE.Scene(), { quality: tier });
+      const toward = env.sun.position.clone().sub(env.sun.target.position).normalize();
+      const right = new THREE.Vector3(0, 1, 0).cross(toward).normalize();
+      const up = toward.clone().cross(right).normalize();
+      for (const [x, z, heading] of [
+        [10, 10, 0.3],
+        [-3.37, 8.91, 2.2],
+        [41.123, -17.77, 4.1],
+        [0.001, 0.002, 5.9],
+      ] as const) {
+        const player = new THREE.Vector3(x, 0, z);
+        env.update(1 / 60, player, followCamera(player, heading).camera);
+        const t = env.sun.target.position;
+        expect(Math.abs(t.dot(right) / texel - Math.round(t.dot(right) / texel)), tier).toBeLessThan(1e-6);
+        expect(Math.abs(t.dot(up) / texel - Math.round(t.dot(up) / texel)), tier).toBeLessThan(1e-6);
+      }
+    }
+  });
+
+  it('does not shimmer: a nudge smaller than a texel, with the same camera, almost never moves the box', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const toward = env.sun.position.clone().sub(env.sun.target.position).normalize();
+    const right = new THREE.Vector3(0, 1, 0).cross(toward).normalize();
+    const player = new THREE.Vector3(10, 0, 10);
+    const { camera } = followCamera(player, 1.1);
+    // A tenth of a texel along the light's right axis moves the box only when the start sits within a
+    // tenth of a texel of a rounding boundary. Try several starting points so the test is not a lucky one.
+    let still = 0;
+    for (let k = 0; k < 8; k++) {
+      const start = player.clone().add(new THREE.Vector3(k * 0.37, 0, k * 0.11));
+      env.update(0, start, camera);
+      const base = env.sun.target.position.clone();
+      env.update(0, start.clone().addScaledVector(right, (45 / 2048) * 0.1), camera);
+      if (env.sun.target.position.distanceTo(base) < 1e-9) still++;
+    }
+    expect(still).toBeGreaterThanOrEqual(6);
+  });
+
+  it('keeps the player well inside the box, further in than the shadow fade, on every tier and sun heading', () => {
+    for (const tier of tiers) {
+      const { shadowDistance } = QUALITY_SETTINGS[tier];
+      for (const sunAzimuth of [0, 70, 133, 200, 291]) {
+        for (const sunElevation of [8, 38, 80]) {
+          const env = createEnvironment(new THREE.Scene(), { quality: tier, look: { sunAzimuth, sunElevation } });
+          const toward = env.sun.position.clone().sub(env.sun.target.position).normalize();
+          const right = new THREE.Vector3(0, 1, 0).cross(toward).normalize();
+          const up = toward.clone().cross(right).normalize();
+          const player = new THREE.Vector3(-20, 0, 7);
+          for (const heading of headings) {
+            env.update(0, player, followCamera(player, heading).camera);
+            const off = player.clone().sub(env.sun.target.position);
+            const edge = 0.5 - Math.max(Math.abs(off.dot(right)), Math.abs(off.dot(up))) / shadowDistance; // 0.5 is the center, 0 the edge
+            expect(edge, `${tier} sun ${sunAzimuth}/${sunElevation} heading ${heading}`).toBeGreaterThan(SHADOW_EDGE_FADE + 0.08);
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps the last lead without a camera, and with a camera looking straight down or up', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const player = new THREE.Vector3(3, 0, 4);
+    env.update(0, player); // no camera yet: centered on the player
+    expect(flat(env.sun.target.position.clone().sub(player)).length()).toBeLessThan(0.05);
+
+    const { camera } = followCamera(player, 1.3);
+    env.update(0, player, camera);
+    const led = env.sun.target.position.clone().sub(player);
+    expect(flat(led).length()).toBeGreaterThan(5);
+
+    env.update(0, player); // walking on with no camera passed
+    expect(env.sun.target.position.clone().sub(player).distanceTo(led)).toBeLessThan(1e-9);
+    for (const y of [20, -20]) {
+      env.update(0, player, lookingAt(player.clone().add(new THREE.Vector3(0, y, 0.0001)), player)); // straight down, or up
+      expect(env.sun.target.position.clone().sub(player).distanceTo(led), `camera at height ${y}`).toBeLessThan(1e-9);
+    }
+  });
+
+  it('scales the lead with the tier: it follows setQuality, and survives a moved sun', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const player = new THREE.Vector3(8, 0, -8);
+    env.update(0, player, followCamera(player, 2.4).camera);
+    const lead = (): number => flat(env.sun.target.position.clone().sub(player)).length();
+    expect(lead()).toBeCloseTo(SHADOW_LEAD * 22.5, 0);
+    env.setQuality('medium');
+    expect(lead()).toBeCloseTo(SHADOW_LEAD * 17.5, 0);
+    env.setQuality('low');
+    expect(lead()).toBeCloseTo(SHADOW_LEAD * 15, 0);
+    env.setLook({ sunAzimuth: 250 });
+    expect(lead()).toBeCloseTo(SHADOW_LEAD * 15, 0);
+  });
+
+  it('does not change the camera fill', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const player = new THREE.Vector3();
+    const { camera } = followCamera(player, 0);
+    env.update(0, player, camera);
+    const dir = env.fill.position.clone().sub(env.fill.target.position).normalize();
+    expect(dir.z).toBeLessThan(-0.6); // the camera is behind the player (-z) and the fill shines from there
+    expect(env.fill.target.position.distanceTo(player)).toBeLessThan(1e-9);
+  });
+});
+
+describe('the shadow edge softness', () => {
+  const radiusOf = (tier: 'high' | 'medium' | 'low'): number => createEnvironment(new THREE.Scene(), { quality: tier }).sun.shadow.radius;
+
+  it('is softer on the high tier than on the medium tier, and in range on every tier', () => {
+    expect(radiusOf('high')).toBeGreaterThan(radiusOf('medium'));
+    for (const tier of ['high', 'medium', 'low'] as const) {
+      expect(radiusOf(tier), tier).toBe(SHADOW_RADIUS[tier]);
+      expect(radiusOf(tier), tier).toBeGreaterThanOrEqual(1.5);
+      expect(radiusOf(tier), tier).toBeLessThanOrEqual(2.5);
+    }
+  });
+
+  it('comes out about the same width in the world on every tier (a little over 0.05 units)', () => {
+    for (const tier of ['high', 'medium', 'low'] as const) {
+      const { shadowDistance, shadowMapSize } = QUALITY_SETTINGS[tier];
+      const world = (SHADOW_RADIUS[tier] * shadowDistance) / shadowMapSize;
+      expect(world, tier).toBeGreaterThan(0.04);
+      expect(world, tier).toBeLessThan(0.06);
+    }
+  });
+
+  it('follows the tier when it changes, and keeps the acne-free bias on all of them', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    for (const tier of ['medium', 'low', 'high'] as const) {
+      env.setQuality(tier);
+      expect(env.sun.shadow.radius, tier).toBe(SHADOW_RADIUS[tier]);
+      expect(env.sun.shadow.bias, tier).toBe(-0.0002);
+      expect(env.sun.shadow.normalBias, tier).toBe(0.04);
+    }
+  });
+});
+
+describe('the shadow edge fade', () => {
+  const chunkText = (name: string): string => readFileSync(resolve(__dirname, '../../node_modules/three/src/renderers/shaders/ShaderChunk', `${name}.glsl.js`), 'utf8');
+  const threeChunks = (): Record<string, string> => ({
+    shadowmap_pars_fragment: chunkText('shadowmap_pars_fragment'),
+    lights_fragment_begin: chunkText('lights_fragment_begin'),
+    shadowmask_pars_fragment: chunkText('shadowmask_pars_fragment'),
+  });
+
+  it('asks for the fade only on the sun: its shadow intensity is 1 plus the fade width', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    expect(env.sun.shadow.intensity).toBeCloseTo(1 + SHADOW_EDGE_FADE, 9);
+    expect(new THREE.DirectionalLight().shadow.intensity).toBe(1); // any other light keeps its hard edge
+    expect(SHADOW_EDGE_FADE).toBeGreaterThan(0.05);
+    expect(SHADOW_EDGE_FADE).toBeLessThan(0.3);
+    env.setQuality('low');
+    expect(env.sun.shadow.intensity).toBeCloseTo(1 + SHADOW_EDGE_FADE, 9); // a tier change does not lose it
+  });
+
+  it('patches Three r186 shadow chunks: the call passes through the fade, and the function is defined once', () => {
+    const chunks = threeChunks();
+    expect(installShadowEdgeFade(chunks)).toBe(true);
+    expect(chunks.lights_fragment_begin).toContain('shadowEdgeIntensity( directionalLightShadow.shadowIntensity, vDirectionalShadowCoord[ i ] ), directionalLightShadow.shadowBias');
+    expect(chunks.shadowmask_pars_fragment).toContain('shadowEdgeIntensity( directionalLight.shadowIntensity, vDirectionalShadowCoord[ i ] ), directionalLight.shadowBias');
+    const defs = chunks.shadowmap_pars_fragment.match(/float shadowEdgeIntensity\(/g) ?? [];
+    expect(defs).toHaveLength(1);
+    // The function sits with the directional light's shadow uniforms, before getShadow.
+    const fn = chunks.shadowmap_pars_fragment.indexOf('float shadowEdgeIntensity(');
+    const uniformsAt = chunks.shadowmap_pars_fragment.indexOf('uniform DirectionalLightShadow directionalLightShadows');
+    expect(uniformsAt).toBeGreaterThan(-1);
+    expect(fn).toBeGreaterThan(uniformsAt);
+    expect(fn).toBeLessThan(chunks.shadowmap_pars_fragment.indexOf('float getShadow('));
+    // No other light's lookup is touched.
+    expect(chunks.lights_fragment_begin).toContain('spotLightShadow.shadowIntensity, spotLightShadow.shadowBias');
+    expect(chunks.lights_fragment_begin).toContain('pointLightShadow.shadowIntensity, pointLightShadow.shadowBias');
+  });
+
+  it('is safe to run twice, and leaves the chunks alone when Three has changed their text', () => {
+    const chunks = threeChunks();
+    expect(installShadowEdgeFade(chunks)).toBe(true);
+    const once = { ...chunks };
+    expect(installShadowEdgeFade(chunks)).toBe(true);
+    expect(chunks).toEqual(once);
+
+    const moved = { ...threeChunks(), lights_fragment_begin: 'void main() {}' };
+    const copy = { ...moved };
+    expect(installShadowEdgeFade(moved)).toBe(false);
+    expect(moved).toEqual(copy);
+    expect(installShadowEdgeFade({})).toBe(false);
+  });
+
+  it('is installed into Three itself by createEnvironment, ahead of the lights in the lit shaders', () => {
+    createEnvironment(new THREE.Scene(), { quality: 'high' });
+    expect(THREE.ShaderChunk.lights_fragment_begin).toContain('shadowEdgeIntensity(');
+    expect(THREE.ShaderChunk.shadowmap_pars_fragment).toContain('float shadowEdgeIntensity(');
+    for (const shader of [THREE.ShaderLib.lambert.fragmentShader, THREE.ShaderLib.standard.fragmentShader, THREE.ShaderLib.phong.fragmentShader]) {
+      const parsAt = shader.indexOf('#include <shadowmap_pars_fragment>');
+      const useAt = shader.indexOf('#include <lights_fragment_begin>');
+      expect(parsAt).toBeGreaterThan(-1);
+      expect(useAt).toBeGreaterThan(parsAt); // defined before it is used
+    }
+  });
+
+  it('is 1 inside the box, eases to 0 at the edge, and is the same on every side (the shader formula, in TypeScript)', () => {
+    const intensity = 1 + SHADOW_EDGE_FADE;
+    expect(shadowEdgeIntensity(intensity, 0.5, 0.5)).toBe(1);
+    expect(shadowEdgeIntensity(intensity, SHADOW_EDGE_FADE, 0.5)).toBeCloseTo(1, 9); // the fade is done by one fade width in
+    expect(shadowEdgeIntensity(intensity, 0.5, 1 - SHADOW_EDGE_FADE)).toBeCloseTo(1, 9);
+    expect(shadowEdgeIntensity(intensity, 0, 0.5)).toBe(0);
+    expect(shadowEdgeIntensity(intensity, 0.5, 1)).toBe(0);
+    expect(shadowEdgeIntensity(intensity, -0.2, 0.5)).toBe(0); // outside the box
+    expect(shadowEdgeIntensity(intensity, SHADOW_EDGE_FADE / 2, 0.5)).toBeCloseTo(0.5, 9); // smoothstep: half way is half
+    // Mirror images and swapped axes agree.
+    for (const e of [0.01, 0.05, 0.1, 0.15]) {
+      const v = shadowEdgeIntensity(intensity, e, 0.4);
+      expect(shadowEdgeIntensity(intensity, 1 - e, 0.4)).toBeCloseTo(v, 12);
+      expect(shadowEdgeIntensity(intensity, 0.4, e)).toBeCloseTo(v, 12);
+      expect(shadowEdgeIntensity(intensity, 0.4, 1 - e)).toBeCloseTo(v, 12);
+    }
+    // Rising smoothly from the edge in, never dipping.
+    let last = 0;
+    for (let u = 0; u <= 0.5; u += 0.005) {
+      const v = shadowEdgeIntensity(intensity, u, 0.5);
+      expect(v).toBeGreaterThanOrEqual(last - 1e-12);
+      last = v;
+    }
+    // The corner is no weaker than an edge: the nearer edge sets the fade.
+    expect(shadowEdgeIntensity(intensity, 0.05, 0.05)).toBeCloseTo(shadowEdgeIntensity(intensity, 0.05, 0.5), 12);
+  });
+
+  it('leaves any other light alone: an intensity of 1 or less passes straight through', () => {
+    for (const intensity of [1, 0.7, 0.25, 0]) {
+      for (const [u, v] of [
+        [0, 0],
+        [0.01, 0.5],
+        [0.5, 0.5],
+      ] as const) {
+        expect(shadowEdgeIntensity(intensity, u, v)).toBe(intensity);
+      }
+    }
   });
 });
