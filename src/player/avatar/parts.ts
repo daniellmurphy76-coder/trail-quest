@@ -329,7 +329,8 @@ export function buildTorsoGeometry(cfg: FilledAvatar, options: TorsoOptions = {}
     m.add(new THREE.CylinderGeometry(0.37, 0.5, 0.26, 4, 1).rotateY(Math.PI / 4), cfg.legColor, { sz: 0.62 });
   }
 
-  // Neckerchief: a collar around the neck, a triangle down the chest, and a slide at the throat.
+  // Neckerchief, worn the Scout way: a collar around the neck, the point hanging down the back, and the
+  // two ends running down the front through a slide at the throat.
   m.box(0.24, 0.09, 0.22, 0.03, cfg.neckerchief, { y: 0.625 });
   const point = new THREE.Shape();
   point.moveTo(-0.18, 0);
@@ -338,9 +339,13 @@ export function buildTorsoGeometry(cfg: FilledAvatar, options: TorsoOptions = {}
   point.closePath();
   m.add(new THREE.ExtrudeGeometry(point, { depth: 0.024, bevelEnabled: false }), cfg.neckerchief, {
     y: 0.585,
-    z: frontZ + 0.002,
+    z: -frontZ - 0.026,
   });
-  m.add(new THREE.TorusGeometry(0.032, 0.011, 5, 8), SLIDE, { y: 0.55, z: frontZ + 0.03 });
+  for (const side of [1, -1]) {
+    m.box(0.05, 0.12, 0.02, 0, cfg.neckerchief, { x: side * 0.057, y: 0.57, z: frontZ + 0.012, rz: -side * 0.82 });
+    m.box(0.045, 0.1, 0.02, 0, cfg.neckerchief, { x: side * 0.022, y: 0.47, z: frontZ + 0.012, rz: side * 0.15 });
+  }
+  m.add(new THREE.TorusGeometry(0.032, 0.011, 5, 8), SLIDE, { y: 0.53, z: frontZ + 0.03 });
 
   if (cfg.backpack) {
     m.box(0.4, 0.44, 0.17, 0.04, PACK, { y: 0.32, z: -frontZ - 0.085 });

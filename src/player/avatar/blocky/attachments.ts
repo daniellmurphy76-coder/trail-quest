@@ -163,15 +163,22 @@ export interface TorsoAttachmentOptions {
 export function buildTorsoAttachments(cfg: FilledAvatar, options: TorsoAttachmentOptions = {}): THREE.BufferGeometry {
   const m = new Mesher();
 
-  // Neckerchief: a collar just under the head, a triangle on the chest, a slide at the point.
+  // Neckerchief, worn the Scout way: rolled into a collar under the head, the point hanging down the back,
+  // and the two ends running down the front through a slide at the throat.
   m.box(0.84, 0.12, 0.64, 0, cfg.neckerchief, { y: 1.13 });
   const point = new THREE.Shape();
-  point.moveTo(-0.26, 0);
-  point.lineTo(0.26, 0);
-  point.lineTo(0, -0.46);
+  point.moveTo(-0.28, 0);
+  point.lineTo(0.28, 0);
+  point.lineTo(0, -0.48);
   point.closePath();
-  m.add(new THREE.ExtrudeGeometry(point, { depth: 0.03, bevelEnabled: false }), cfg.neckerchief, { y: 1.1, z: 0.32 });
-  m.add(new THREE.TorusGeometry(0.045, 0.016, 5, 8), SLIDE, { y: 0.95, z: 0.37 });
+  // Its outer face at z = -0.34, just off the back (-0.3) and under the Den Chief cord (-0.35).
+  m.add(new THREE.ExtrudeGeometry(point, { depth: 0.03, bevelEnabled: false }), cfg.neckerchief, { y: 1.09, z: -0.34 });
+  for (const side of [1, -1]) {
+    // An end from the side of the collar in to the slide, then a short tail below it.
+    m.box(0.09, 0.2, 0.03, 0, cfg.neckerchief, { x: side * 0.1, y: 1.03, z: 0.325, rz: -side * 0.82 });
+    m.box(0.08, 0.16, 0.03, 0, cfg.neckerchief, { x: side * 0.04, y: 0.86, z: 0.325, rz: side * 0.15 });
+  }
+  m.add(new THREE.TorusGeometry(0.045, 0.016, 5, 8), SLIDE, { y: 0.96, z: 0.35 });
 
   if (cfg.legs === 'skort') {
     // A flared, four-sided skirt over the tops of the legs.
@@ -189,7 +196,8 @@ export function buildTorsoAttachments(cfg: FilledAvatar, options: TorsoAttachmen
     // Over the right shoulder to the left hip, front and back, ending in a loop and two tassels.
     const length = 0.96;
     const tilt = 0.675;
-    // In front of the neckerchief triangle (which ends at z = 0.35), so the two never share a plane.
+    // Over the neckerchief ends on the chest (z = 0.34) and its point on the back (z = -0.34), so the two
+    // never share a plane.
     m.box(0.07, length, 0.04, 0, CORD, { y: 0.78, z: 0.34, rz: tilt });
     m.box(0.07, length, 0.04, 0, CORD, { y: 0.78, z: -0.33, rz: tilt });
     m.add(new THREE.TorusGeometry(0.09, 0.026, 5, 10), CORD, { x: 0.3, y: 0.4, z: 0.35 });

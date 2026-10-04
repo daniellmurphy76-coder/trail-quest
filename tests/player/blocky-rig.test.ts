@@ -237,7 +237,7 @@ describe('buildAvatar with the model: the figure', () => {
     const chest = ownBox(node(rig, 'torso-attachments') as THREE.Mesh);
     const torso = ownBox(node(rig, 'torso') as THREE.Mesh);
     expect(chest.max.z).toBeGreaterThan(torso.max.z);
-    // The skirt-less torso attachments do not reach behind the back (no backpack).
+    // With no backpack, only the neckerchief point lies on the back: nothing sticks out behind it.
     expect(chest.min.z).toBeGreaterThan(torso.min.z - 0.05);
   });
 

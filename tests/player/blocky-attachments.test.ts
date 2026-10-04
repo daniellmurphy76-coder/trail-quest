@@ -158,14 +158,33 @@ describe('attachments: torso (neckerchief, backpack, skort, Den Chief cord)', ()
     }
   });
 
-  it('always has a neckerchief: a collar, a triangle on the chest and a slide, in the rank color', () => {
+  it('always has a neckerchief worn the Scout way: a collar, the point down the back, the ends through a slide', () => {
     const g = buildTorsoAttachments(look({ neckerchief: '#c63d34' }));
     expect(painted(g, '#c63d34')).toBeGreaterThan(30);
     const b = box(g);
     expect(b.max.y).toBeLessThan(1.2); // stays under the head, which starts at 1.2
     expect(b.min.y).toBeGreaterThan(0.5);
-    expect(b.max.z).toBeGreaterThan(0.33); // the triangle lies on the chest (+z)
+    expect(b.max.z).toBeGreaterThan(0.33); // the ends and the slide lie on the chest (+z)
     expect(painted(g, '#c9a46a')).toBeGreaterThan(0); // the slide
+
+    // The lowest neckerchief point on the back and on the chest: the point hangs long behind,
+    // and only the two short ends show in front.
+    const lowest = (onBack: boolean): number => {
+      const want = new THREE.Color('#c63d34');
+      const pos = g.getAttribute('position');
+      const col = g.getAttribute('color');
+      let min = Infinity;
+      for (let i = 0; i < pos.count; i++) {
+        const red = Math.abs(col.getX(i) - want.r) + Math.abs(col.getY(i) - want.g) + Math.abs(col.getZ(i) - want.b) < 0.02;
+        const back = pos.getZ(i) < -0.33;
+        const front = pos.getZ(i) > 0.3;
+        if (red && (onBack ? back : front)) min = Math.min(min, pos.getY(i));
+      }
+      return min;
+    };
+    expect(lowest(true)).toBeLessThan(0.7);
+    expect(lowest(false)).toBeGreaterThan(0.75);
+    expect(lowest(true)).toBeLessThan(lowest(false));
   });
 
   it('a skort adds a flared skirt in the leg color below the waist; shorts and pants do not', () => {
