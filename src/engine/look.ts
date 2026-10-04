@@ -54,6 +54,14 @@ export interface LookSettings {
   fogNear: number;
   /** Distance where things are fully fogged. */
   fogFar: number;
+  /**
+   * How strong the sun's glow is in the sky: a soft warm halo around the sun and a warm brightening
+   * of the horizon on its side. 1 reads clearly but softly, 0 turns it off. The glow never passes
+   * the bloom threshold, whatever this is. It fades out as the sun sinks below the horizon.
+   */
+  sunGlow: number;
+  /** How wide the glow spreads. At 1 the halo is half strength about 19 degrees from the sun; smaller is tighter. */
+  sunGlowSize: number;
 
   /** Ambient occlusion reach in world units. Small, so only contacts darken. */
   aoRadius: number;
@@ -98,6 +106,8 @@ export const DEFAULT_LOOK: Readonly<LookSettings> = Object.freeze({
   fogColor: '#b0d6ff',
   fogNear: 26,
   fogFar: 115,
+  sunGlow: 1,
+  sunGlowSize: 1,
 
   aoRadius: 1.1,
   aoIntensity: 2.2,

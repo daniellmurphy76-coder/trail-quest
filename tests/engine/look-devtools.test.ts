@@ -120,6 +120,21 @@ describe('the panel layout', () => {
     expect(DEFAULT_LOOK.fillIntensity).toBeLessThanOrEqual(fill.max);
   });
 
+  it('has the sun glow sliders in the Sky and fog folder, with the defaults inside their ranges', () => {
+    const strength = LOOK_CONTROLS.find((c) => c.key === 'sunGlow');
+    const size = LOOK_CONTROLS.find((c) => c.key === 'sunGlowSize');
+    for (const control of [strength, size]) {
+      expect(control?.kind).toBe('number');
+      if (control?.kind !== 'number') return;
+      expect(control.folder).toBe('Sky and fog');
+      expect(DEFAULT_LOOK[control.key]).toBeGreaterThanOrEqual(control.min);
+      expect(DEFAULT_LOOK[control.key]).toBeLessThanOrEqual(control.max);
+    }
+    // Strength can be turned right off, and up to double. Size never reaches 0 (the shader divides by it).
+    if (strength?.kind === 'number') expect([strength.min, strength.max]).toEqual([0, 2]);
+    if (size?.kind === 'number') expect(size.min).toBeGreaterThan(0);
+  });
+
   it('keeps the sun elevation off the zenith, where the shadow box has no horizontal axis', () => {
     const elevation = LOOK_CONTROLS.find((c) => c.key === 'sunElevation');
     expect(elevation?.kind === 'number' && elevation.max).toBeLessThan(90);
@@ -129,6 +144,11 @@ describe('the panel layout', () => {
 describe('changedSettingsJson (Copy settings)', () => {
   it('is an empty object for the defaults', () => {
     expect(changedSettingsJson(DEFAULT_LOOK)).toBe('{}');
+  });
+
+  it('includes the sun glow settings when they are changed', () => {
+    const tuned = mergeLook(DEFAULT_LOOK, { sunGlow: 0.5, sunGlowSize: 1.4 });
+    expect(JSON.parse(changedSettingsJson(tuned))).toEqual({ sunGlow: 0.5, sunGlowSize: 1.4 });
   });
 
   it('holds only what changed, and pastes back into mergeLook', () => {
@@ -336,6 +356,16 @@ describe('the look panel in a development build', () => {
     expect(document.querySelector('.lil-gui')).toBeNull();
   });
 
+  it('has the sun glow controls in the Sky and fog folder, and they drive the look', async () => {
+    const { look, tools } = await openPanel();
+    for (const label of ['sun glow', 'sun glow size']) {
+      expect(row(label).closest('.lil-gui')?.querySelector('.lil-title')?.textContent, label).toBe('Sky and fog');
+    }
+    look.set({ sunGlow: 0.35 });
+    expect(row('sun glow').querySelector('input')!.value).toBe('0.35');
+    tools.dispose();
+  });
+
   it('shows a change made from outside (the console) in its controls', async () => {
     const { look, tools } = await openPanel();
     look.set({ exposure: 1.37 });
@@ -357,10 +387,10 @@ describe('the look panel in a development build', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     const { look, tools } = await openPanel();
-    look.set({ exposure: 1.3, sunColor: '#ffeecc' });
+    look.set({ exposure: 1.3, sunColor: '#ffeecc', sunGlow: 0.6 });
     row('Copy settings').querySelector('button')!.click();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
-    expect(JSON.parse(writeText.mock.calls[0]![0] as string)).toEqual({ exposure: 1.3, sunColor: '#ffeecc' });
+    expect(JSON.parse(writeText.mock.calls[0]![0] as string)).toEqual({ exposure: 1.3, sunColor: '#ffeecc', sunGlow: 0.6 });
     expect(String(log.mock.calls[0]![0])).toContain('"exposure": 1.3');
     tools.dispose();
   });
