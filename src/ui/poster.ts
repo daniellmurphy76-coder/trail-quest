@@ -21,11 +21,30 @@ export interface PosterPageOptions extends PosterText {
  * cut-off. The caller puts it in a card (or in the Scout Book).
  */
 export function posterLines(lines: readonly string[]): HTMLUListElement {
+  if (usesWordGrid(lines)) {
+    // A long list of single words (the twelve Scout Law points) would push the last ones below the
+    // fold. Two numbered columns keep every word on screen and the order easy to follow.
+    const rows = Math.ceil(lines.length / 2);
+    const list = h(
+      'ul',
+      { class: 'tq-poster__lines tq-poster__lines--grid' },
+      ...lines.map((text, i) =>
+        h('li', { class: 'tq-poster__line' }, h('span', { class: 'tq-poster__num', attrs: { 'aria-hidden': 'true' } }, `${i + 1}`), text),
+      ),
+    );
+    list.style.setProperty('--tq-poster-rows', String(rows));
+    return list;
+  }
   return h(
     'ul',
     { class: 'tq-poster__lines' },
     ...lines.map((text) => h('li', { class: 'tq-poster__line' }, text)),
   );
+}
+
+/** Eight or more short lines (one or two words each) read best as two numbered columns. */
+export function usesWordGrid(lines: readonly string[]): boolean {
+  return lines.length >= 8 && lines.every((line) => line.trim().length <= 16 && line.trim().split(/\s+/).length <= 2);
 }
 
 /** The title, the optional hint and the list of lines, in the order they sit on the card. */

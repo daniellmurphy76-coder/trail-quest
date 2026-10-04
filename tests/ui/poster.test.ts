@@ -148,3 +148,26 @@ describe('posterOverlay (the peek)', () => {
     expect(press1).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('poster word grid', () => {
+  it('lays the twelve Scout Law points out as two numbered columns, in order', async () => {
+    const { posterLines, usesWordGrid } = await import('../../src/ui/poster');
+    const law = ['Trustworthy', 'Loyal', 'Helpful', 'Friendly', 'Courteous', 'Kind', 'Obedient', 'Cheerful', 'Thrifty', 'Brave', 'Clean', 'Reverent'];
+    expect(usesWordGrid(law)).toBe(true);
+    const list = posterLines(law);
+    expect(list.classList.contains('tq-poster__lines--grid')).toBe(true);
+    expect(list.style.getPropertyValue('--tq-poster-rows')).toBe('6');
+    const items = [...list.querySelectorAll('li')];
+    expect(items).toHaveLength(12);
+    expect(items[0]!.textContent).toBe('1Trustworthy');
+    expect(items[11]!.textContent).toBe('12Reverent');
+    expect(items[0]!.querySelector('.tq-poster__num')!.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('keeps sentences such as the Scout Oath as one full-width line each', async () => {
+    const { posterLines, usesWordGrid } = await import('../../src/ui/poster');
+    const oath = ['On my honor I will do my best', 'to do my duty to God and my country', 'and to obey the Scout Law;', 'to help other people at all times;', 'to keep myself physically strong,', 'mentally awake, and morally straight.'];
+    expect(usesWordGrid(oath)).toBe(false);
+    expect(posterLines(oath).classList.contains('tq-poster__lines--grid')).toBe(false);
+  });
+});

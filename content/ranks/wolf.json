@@ -93,12 +93,20 @@
                 ]
               },
               {
-                "title": "Scout Law",
+                "title": "Scout Law: A Scout is",
                 "lines": [
-                  "A Scout is trustworthy, loyal, helpful,",
-                  "friendly, courteous, kind,",
-                  "obedient, cheerful, thrifty,",
-                  "brave, clean, and reverent."
+                  "Trustworthy",
+                  "Loyal",
+                  "Helpful",
+                  "Friendly",
+                  "Courteous",
+                  "Kind",
+                  "Obedient",
+                  "Cheerful",
+                  "Thrifty",
+                  "Brave",
+                  "Clean",
+                  "Reverent"
                 ]
               }
             ]

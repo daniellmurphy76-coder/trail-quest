@@ -41,6 +41,47 @@
   overflow-wrap: anywhere;
 }
 
+/* Long lists of single words: two numbered columns, read down the first, then down the second. */
+.tq-poster__lines--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--tq-poster-rows, 6), auto);
+  grid-auto-flow: column;
+  gap: 8px 12px;
+}
+
+.tq-poster__lines--grid .tq-poster__line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  overflow-wrap: normal;
+}
+
+.tq-poster__num {
+  min-width: 1.4em;
+  font-size: 0.75em;
+  color: var(--tq-ink);
+  opacity: 0.6;
+  text-align: right;
+}
+
+/* Phones: one numbered column. They are narrow but tall, so all twelve still fit. */
+@media (max-width: 560px) {
+  .tq-poster__lines--grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    gap: 4px;
+  }
+
+  .tq-poster__lines--grid .tq-poster__line {
+    padding: 3px 12px;
+    font-size: 20px;
+    line-height: 1.3;
+  }
+}
+
 /* The button stays in reach on a very short screen: the card scrolls, the button waits at the bottom. */
 .tq-poster__actions {
   position: sticky;
