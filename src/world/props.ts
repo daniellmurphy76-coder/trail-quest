@@ -297,76 +297,64 @@ function tufts(rng: Rng, spots: readonly Spot[]): THREE.InstancedMesh | null {
   return mesh;
 }
 
-// ---- plant color --------------------------------------------------------------------------------
+// ---- plant variation ----------------------------------------------------------------------------
 
 /**
- * Every leaf and stem in the Kenney nature kit is painted one bright mint-teal, as a vertex color
- * (linear RGB, as the GLB stores it). Read straight, it looks like cyan clutter on the grass.
+ * True when every vertex color of `geometry` is a leaf green (green clearly the strongest channel), as
+ * for the grass and bush models. Flowers (petals) and mushrooms (red caps) are not, so they keep the
+ * colors they were painted with. A geometry with no vertex colors is not foliage.
  */
-const KENNEY_TEAL = new THREE.Color().setRGB(0.173, 0.847, 0.722);
-/** The grass green it is shifted to: a little deeper than the ground, so tufts still read against it. */
-const PLANT_GREEN = new THREE.Color(0x4e9b3a);
-/** What a teal vertex color is multiplied by to land on `PLANT_GREEN`, per channel. */
-const PLANT_TINT = new THREE.Color().setRGB(
-  PLANT_GREEN.r / KENNEY_TEAL.r,
-  PLANT_GREEN.g / KENNEY_TEAL.g,
-  PLANT_GREEN.b / KENNEY_TEAL.b,
-);
-
-/** True for the kit's teal (and its shades): green at least as strong as blue, both well above red. */
-function isKitTeal(r: number, g: number, b: number): boolean {
-  return g > 0.3 && g >= b && b >= r * 1.8;
-}
-
-/**
- * Multiply every teal vertex color of `geometry` by the teal-to-green tint, in place. Anything
- * else (petals, mushroom caps and stems) is left exactly as painted, so flowers keep their colors.
- * Returns how many vertices were teal and how many there are; a geometry with no vertex colors
- * reports none teal.
- */
-export function tintTealVertices(geometry: THREE.BufferGeometry): { teal: number; total: number } {
+export function isFoliageOnly(geometry: THREE.BufferGeometry): boolean {
   const color = geometry.getAttribute('color');
-  if (!color) return { teal: 0, total: 0 };
-  let teal = 0;
+  if (!color || color.count === 0) return false;
   for (let i = 0; i < color.count; i++) {
     const r = color.getX(i);
     const g = color.getY(i);
     const b = color.getZ(i);
-    if (!isKitTeal(r, g, b)) continue;
-    color.setXYZ(i, r * PLANT_TINT.r, g * PLANT_TINT.g, b * PLANT_TINT.b);
-    teal++;
+    if (!(g > 0.02 && g > r * 1.1 && g > b * 1.3)) return false;
   }
-  if (teal > 0) color.needsUpdate = true;
-  return { teal, total: color.count };
+  return true;
+}
+
+/** How far one foliage instance may differ from the painted green: lightness, and a nudge toward yellow or blue. */
+export const PLANT_LIGHTNESS_SPREAD = 0.12;
+export const PLANT_WARMTH_SPREAD = 0.07;
+
+/**
+ * Give each instance of a foliage-only plant mesh (grass, bushes) its own slight shift in lightness
+ * and warmth, so a field of tufts is not one flat green. The shift is a per-instance color that
+ * multiplies the painted vertex colors, so the geometry is never touched and the draw call count
+ * stays as it was. Flowers and mushrooms are left exactly as painted (no instance color is added).
+ * Draws from `rng` only for foliage, two numbers per instance.
+ */
+export function varyPlants(mesh: THREE.InstancedMesh, rng: Rng): void {
+  if (!isFoliageOnly(mesh.geometry)) return;
+  const shift = new THREE.Color();
+  for (let i = 0; i < mesh.count; i++) {
+    const light = 1 + (rng() * 2 - 1) * PLANT_LIGHTNESS_SPREAD;
+    const warm = (rng() * 2 - 1) * PLANT_WARMTH_SPREAD;
+    mesh.setColorAt(i, shift.setRGB(light * (1 + warm), light, light * (1 - warm)));
+  }
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
 }
 
 /**
- * Turn the kit's teal to grass green on a plant mesh made by `instancedModel` (it owns its
- * geometry, so tinting it touches no other mesh and keeps the draw call count as it was). When
- * the whole model is foliage (every vertex teal, as for grass and bushes) and `rng` is given, each
- * instance also gets its own slight shift in hue and lightness, so a field of tufts is not one
- * flat green. Flowers get the stems tinted and the petals untouched, and no per-instance shift.
+ * Kept so existing call sites keep compiling (Town Square tints its planter bushes with it). The
+ * old Kenney nature kit painted every leaf mint-teal and needed a recolor to grass green; the
+ * current plant models are painted in natural greens already, so this only adds the per-instance
+ * variation of `varyPlants` when a random source is given, and does nothing otherwise.
  */
 export function tintPlants(mesh: THREE.InstancedMesh, rng?: Rng): void {
-  const { teal, total } = tintTealVertices(mesh.geometry);
-  if (!rng || total === 0 || teal < total) return;
-  const shifted = new THREE.Color();
-  const multiplier = new THREE.Color();
-  for (let i = 0; i < mesh.count; i++) {
-    shifted.copy(PLANT_GREEN).offsetHSL((rng() * 2 - 1) * 0.025, 0, (rng() - 0.4) * 0.07);
-    // The vertex colors already carry the green, so the instance only carries the change from it.
-    mesh.setColorAt(i, multiplier.setRGB(shifted.r / PLANT_GREEN.r, shifted.g / PLANT_GREEN.g, shifted.b / PLANT_GREEN.b));
-  }
-  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  if (rng) varyPlants(mesh, rng);
 }
 
 /**
  * About `count * density` plants (see `ScatterPlantsOptions.density`; 60 percent by default)
  * scattered over `bounds`, never inside an `avoid` circle. Starts as one InstancedMesh of tiny
  * green tufts (1 draw call) and upgrades itself to the `plant.*` models (grass, flowers, bushes,
- * mushrooms; one draw call per model used, at most 8) when they load, recolored from the kit's
- * teal to grass green (see `tintPlants`). Same seed, same layout. Plants do not cast shadows,
- * they only receive them.
+ * mushrooms; one draw call per model used, at most 8) when they load. Grass and bushes get a slight
+ * per-instance shift in lightness and warmth (see `varyPlants`); flowers and mushrooms keep their
+ * painted colors. Same seed, same layout. Plants do not cast shadows, they only receive them.
  */
 export function scatterPlants(
   rng: Rng,
@@ -403,7 +391,7 @@ export function scatterPlants(
     usable.forEach((c, i) => {
       const mesh = instancedModel(c.id, buckets[i]!, { cast: false, receive: true });
       if (!mesh) return;
-      tintPlants(mesh, modelRng); // after every placement draw, so the layout never shifts
+      varyPlants(mesh, modelRng); // after every placement draw, so the layout never shifts
       meshes.push(mesh);
     });
     if (meshes.length === 0) return;

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { cloudPixels, createEnvironment, setShadowCasting } from '../../src/engine/environment';
+import { cloudPixels, createEnvironment, desaturate, setShadowCasting } from '../../src/engine/environment';
+import { DEFAULT_LOOK, sunDirection } from '../../src/engine/look';
 
 function lightsIn(scene: THREE.Scene): THREE.Light[] {
   const found: THREE.Light[] = [];
@@ -42,7 +43,9 @@ describe('createEnvironment', () => {
     const scene = new THREE.Scene();
     const env = createEnvironment(scene, { quality: 'high' });
     const sun = env.sun;
-    expect(sun.color.getHex()).toBe(0xfff1d6);
+    expect(sun.color.getHex()).toBe(new THREE.Color(DEFAULT_LOOK.sunColor).getHex());
+    expect(sun.color.r).toBeGreaterThan(sun.color.b); // warm
+    expect(sun.intensity).toBe(DEFAULT_LOOK.sunIntensity);
     expect(sun.intensity).toBeGreaterThan(1.5); // physically based lights: a full sun is about 3
     expect(sun.castShadow).toBe(true);
     expect(sun.shadow.mapSize.x).toBe(2048);
@@ -85,12 +88,15 @@ describe('createEnvironment', () => {
     expect(horizon.r).toBeGreaterThan(zenith.r);
   });
 
-  it('does not take the sky out of the tone-mapped scene by accident: the dome ignores fog and depth', () => {
+  it('draws the dome behind everything and tone maps it like the fog, so the horizon has no seam', () => {
     const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
     const mat = env.sky.material as THREE.ShaderMaterial;
     expect(mat.fog).toBe(false);
     expect(mat.depthWrite).toBe(false);
-    expect(mat.toneMapped).toBe(false);
+    expect(mat.depthTest).toBe(false);
+    // Fogged trees are tone mapped; a dome that skipped tone mapping would not match them.
+    expect(mat.toneMapped).toBe(true);
+    expect(mat.fragmentShader).toContain('tonemapping_fragment');
     expect(env.sky.renderOrder).toBeLessThan(0);
   });
 
@@ -260,5 +266,164 @@ describe('cloudPixels', () => {
   it('is deterministic per seed and differs between seeds', () => {
     expect(cloudPixels(32, 16, 1)).toEqual(cloudPixels(32, 16, 1));
     expect(cloudPixels(32, 16, 1)).not.toEqual(cloudPixels(32, 16, 2));
+  });
+});
+
+describe('environment and the look', () => {
+  it('starts from the default look and takes overrides', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    expect(env.look).toEqual(DEFAULT_LOOK);
+    const custom = createEnvironment(new THREE.Scene(), { quality: 'high', look: { sunIntensity: 1.25, fogNear: 12 } });
+    expect(custom.look.sunIntensity).toBe(1.25);
+    expect(custom.sun.intensity).toBe(1.25);
+    expect(custom.fog.near).toBe(12);
+    expect(custom.look.sunColor).toBe(DEFAULT_LOOK.sunColor);
+  });
+
+  it('puts the sun where the look says, and keeps it there as the player walks', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high', look: { sunAzimuth: 120, sunElevation: 30 } });
+    const [x, y, z] = sunDirection({ sunAzimuth: 120, sunElevation: 30 });
+    const dir = env.sun.position.clone().sub(env.sun.target.position).normalize();
+    expect(dir.distanceTo(new THREE.Vector3(x, y, z))).toBeLessThan(1e-9);
+    env.update(1 / 60, new THREE.Vector3(40, 0, -25));
+    const after = env.sun.position.clone().sub(env.sun.target.position).normalize();
+    expect(after.distanceTo(dir)).toBeLessThan(1e-9);
+  });
+
+  it('follows setLook: sun, hemisphere, fog, sky and environment intensity all move together', () => {
+    const scene = new THREE.Scene();
+    const env = createEnvironment(scene, { quality: 'high' });
+    env.setLook({
+      sunColor: '#ff0000',
+      sunIntensity: 1.5,
+      sunAzimuth: 200,
+      sunElevation: 60,
+      hemiSkyColor: '#00ff00',
+      hemiGroundColor: '#0000ff',
+      hemiIntensity: 0.9,
+      envIntensity: 2.5,
+      fogColor: '#336699',
+      fogNear: 10,
+      fogFar: 50,
+      skyZenithColor: '#102030',
+    });
+    expect(env.sun.color.getHex()).toBe(0xff0000);
+    expect(env.sun.intensity).toBe(1.5);
+    const dir = env.sun.position.clone().sub(env.sun.target.position).normalize();
+    const [x, y, z] = sunDirection({ sunAzimuth: 200, sunElevation: 60 });
+    expect(dir.distanceTo(new THREE.Vector3(x, y, z))).toBeLessThan(1e-9);
+    expect(env.hemisphere.color.getHex()).toBe(0x00ff00);
+    expect(env.hemisphere.groundColor.getHex()).toBe(0x0000ff);
+    expect(env.hemisphere.intensity).toBe(0.9);
+    expect(scene.environmentIntensity).toBe(2.5);
+    expect(env.fog.near).toBe(10);
+    expect(env.fog.far).toBe(50);
+
+    // The fog and the horizon are one color, so distant trees melt into the sky.
+    const sky = env.sky.material as THREE.ShaderMaterial;
+    const horizon = sky.uniforms.uHorizon!.value as THREE.Color;
+    const zenith = sky.uniforms.uZenith!.value as THREE.Color;
+    expect(env.fog.color.getHex()).toBe(0x336699);
+    expect(horizon.getHex()).toBe(0x336699);
+    expect(zenith.getHex()).toBe(0x102030);
+    expect((scene.background as THREE.Color).getHex()).toBe(0x336699);
+  });
+
+  it('ignores values it cannot use instead of breaking the scene', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    env.setLook({ sunIntensity: Number.NaN, sunColor: 'red' as never, fogNear: Number.POSITIVE_INFINITY });
+    expect(env.sun.intensity).toBe(DEFAULT_LOOK.sunIntensity);
+    expect(env.fog.near).toBe(DEFAULT_LOOK.fogNear);
+    expect(env.sun.color.getHex()).toBe(new THREE.Color(DEFAULT_LOOK.sunColor).getHex());
+  });
+
+  it('keeps the shadow box snapped to whole texels after the sun moves', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    env.setLook({ sunAzimuth: 15, sunElevation: 55 });
+    const toward = env.sun.position.clone().sub(env.sun.target.position).normalize();
+    const right = new THREE.Vector3(0, 1, 0).cross(toward).normalize();
+    const texel = 45 / 2048;
+    env.update(0, new THREE.Vector3(-3.37, 0, 8.91));
+    const t = env.sun.target.position;
+    expect(Math.abs(t.dot(right) / texel - Math.round(t.dot(right) / texel))).toBeLessThan(1e-6);
+  });
+
+  it('survives a sun straight overhead (the shadow box still has a horizontal axis)', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    env.setLook({ sunElevation: 90 });
+    env.update(0, new THREE.Vector3(5, 0, 5));
+    expect(Number.isFinite(env.sun.position.x + env.sun.position.y + env.sun.position.z)).toBe(true);
+  });
+
+  it('resizes the shadow map when the tier changes, and throws the old map away', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    let disposed = false;
+    env.sun.shadow.map = { dispose: () => (disposed = true) } as unknown as THREE.WebGLRenderTarget;
+    env.setQuality('medium');
+    expect(env.sun.shadow.mapSize.x).toBe(1024);
+    expect(env.sun.shadow.camera.right - env.sun.shadow.camera.left).toBe(35);
+    expect(disposed).toBe(true);
+    expect(env.sun.shadow.map).toBeNull();
+    env.setQuality('low');
+    expect(env.sun.shadow.mapSize.x).toBe(1024);
+    expect(env.sun.shadow.camera.right - env.sun.shadow.camera.left).toBe(30);
+    env.setQuality('high');
+    expect(env.sun.shadow.mapSize.x).toBe(2048);
+    expect(env.sun.shadow.camera.right - env.sun.shadow.camera.left).toBe(45);
+  });
+
+  it('has no environment map without a renderer, and leaves scene.environment empty', () => {
+    const scene = new THREE.Scene();
+    createEnvironment(scene, { quality: 'high' });
+    expect(scene.environment).toBeNull();
+    expect(scene.environmentIntensity).toBe(DEFAULT_LOOK.envIntensity);
+  });
+
+  it('is lit by the environment map first: the hemisphere light is only a small top-up', () => {
+    // The environment map carries the ambient (blue from above, green bounce from below). A big
+    // hemisphere light on top of it would light every shadow twice and flatten the scene again.
+    expect(DEFAULT_LOOK.hemiIntensity).toBeLessThanOrEqual(0.5);
+    expect(DEFAULT_LOOK.envIntensity).toBeGreaterThan(DEFAULT_LOOK.hemiIntensity * 2);
+    expect(DEFAULT_LOOK.sunIntensity).toBeGreaterThan(2.5);
+    expect(DEFAULT_LOOK.sunIntensity).toBeLessThan(4.5);
+  });
+
+  it('keeps the horizon a clear blue haze, not a flat white band', () => {
+    const horizon = new THREE.Color(DEFAULT_LOOK.fogColor);
+    const zenith = new THREE.Color(DEFAULT_LOOK.skyZenithColor);
+    const luminance = (c: THREE.Color): number => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+    expect(luminance(horizon)).toBeLessThan(0.8); // pure white is 1; the old cream haze was 0.8
+    expect(horizon.b - horizon.r).toBeGreaterThan(0.3); // tinted blue, not neutral
+    expect(luminance(horizon) - luminance(zenith)).toBeGreaterThan(0.3); // a real gradient to the zenith
+    expect(DEFAULT_LOOK.fogNear).toBeGreaterThan(15);
+    expect(DEFAULT_LOOK.fogFar).toBeLessThan(200); // fully fogged before the far plane
+  });
+
+  it('warm afternoon: a low sun with a warm color', () => {
+    const sun = new THREE.Color(DEFAULT_LOOK.sunColor);
+    expect(sun.r).toBeGreaterThan(sun.g);
+    expect(sun.g).toBeGreaterThan(sun.b);
+    expect(DEFAULT_LOOK.sunElevation).toBeGreaterThan(20);
+    expect(DEFAULT_LOOK.sunElevation).toBeLessThan(50);
+  });
+});
+
+describe('desaturate', () => {
+  const luminance = (c: THREE.Color): number => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+
+  it('keeps luminance and pulls the channels together', () => {
+    const c = new THREE.Color(0.1, 0.4, 0.9);
+    const before = luminance(c);
+    desaturate(c, 0.5);
+    expect(luminance(c)).toBeCloseTo(before, 6);
+    expect(c.b - c.r).toBeCloseTo((0.9 - 0.1) * 0.5, 6);
+  });
+
+  it('0 changes nothing and 1 makes gray', () => {
+    const same = desaturate(new THREE.Color(0.2, 0.5, 0.7), 0);
+    expect([same.r, same.g, same.b]).toEqual([0.2, 0.5, 0.7]);
+    const gray = desaturate(new THREE.Color(0.2, 0.5, 0.7), 1);
+    expect(gray.r).toBeCloseTo(gray.g, 9);
+    expect(gray.g).toBeCloseTo(gray.b, 9);
   });
 });

@@ -1,27 +1,38 @@
 import * as THREE from 'three';
+import { DEFAULT_LOOK, mergeLook, sunDirection, type LookSettings } from './look';
 import { getQuality, qualitySettings, type QualityTier } from './quality';
 import { mulberry32 } from './seed';
 
 /**
- * The look of the outdoors: a warm sun with soft shadows that follows the player, a sky and
- * hemisphere light, a gradient sky dome, fog that matches the horizon, and a few slow clouds.
+ * The look of the outdoors: a warm low sun with soft shadows that follows the player, a small
+ * hemisphere fill, an environment map made from the sky itself (blue from above, green bounced
+ * from the grass), a gradient sky dome, fog that matches the horizon, and a few slow clouds.
  *
- * A world calls `createEnvironment(scene, ...)` once and `environment.update(dt, player.position)`
- * every frame. Zones add only props; they no longer carry their own lights.
+ * Every number comes from `LookSettings` (look.ts), so the panel and the defaults live in one
+ * place. A world calls `createEnvironment(scene, ...)` once and `environment.update(dt,
+ * player.position)` every frame. Zones add only props; they carry no lights of their own.
  *
- * Cost: 1 draw call for the sky and one per cloud (8 by default), plus the sun's shadow pass.
+ * Cost: 1 draw call for the sky and one per cloud (8 by default), plus the sun's shadow pass. The
+ * environment map is built once with a PMREMGenerator (and again, only when the sky or ground
+ * colors change), never per frame.
+ *
+ * Light balance, in Three's physically based units (see look.ts): the sun lights a facing surface
+ * with `albedo * intensity * cos / PI`, so 3.3 at 38 degrees up gives grass about 0.7 of its
+ * albedo. The environment map adds roughly 0.35 from above and a little more from the sides, the
+ * hemisphere light only a 0.07 top-up. Together that is about the same total as the old flat
+ * hemisphere light, but now directional: shadows go blue-green instead of just darker.
  */
 
 export interface EnvironmentOptions {
   /** Defaults to `getQuality()`. */
   quality?: QualityTier;
-  /** Sky color at the horizon, also the fog color. */
-  horizonColor?: number;
-  /** Sky color straight up. */
-  zenithColor?: number;
-  sunColor?: number;
-  fogNear?: number;
-  fogFar?: number;
+  /** Starting look; anything missing comes from `DEFAULT_LOOK`. */
+  look?: Partial<LookSettings>;
+  /**
+   * The renderer, for building the environment map. Without it the scene has no environment map
+   * (the tests, which have no GL context, leave it out) and only the lights carry the ambient.
+   */
+  renderer?: THREE.WebGLRenderer;
   /** 6 to 10 reads as a sky; the default is 8. */
   cloudCount?: number;
   /** Seed for cloud shapes and places. */
@@ -36,6 +47,12 @@ export interface Environment {
   /** Holds the cloud sprites. */
   readonly clouds: THREE.Group;
   readonly fog: THREE.Fog;
+  /** The look in use now. */
+  readonly look: LookSettings;
+  /** Change the look. Invalid values are ignored; the sky and fog follow at once. */
+  setLook(partial: Partial<LookSettings>): void;
+  /** Change the shadow map size and reach (an automatic downgrade, or the developer panel). */
+  setQuality(tier: QualityTier): void;
   /** Keep the sun's shadow box centered on `focus` (the player) and drift the clouds. Call every frame. */
   update(dt: number, focus: THREE.Vector3): void;
   /** Remove everything from the scene and free GPU resources. */
@@ -43,29 +60,23 @@ export interface Environment {
 }
 
 // ---- tuning -------------------------------------------------------------------------------------
-// Light values are for Three's physically based lights (r155 and later): a diffuse surface facing
-// the sun reflects albedo * intensity / PI, so a "full" light is about 3. With ACES tone mapping
-// at exposure 1.05 these keep sunlit grass close to its painted color and shadows readable.
 
-const SUN_COLOR = 0xfff1d6;
-const SUN_INTENSITY = 2.8;
-/** Points from the player toward the sun. About 47 degrees up, from the south-east. */
-const SUN_DIRECTION = new THREE.Vector3(28, 36, 18).normalize();
 const SUN_DISTANCE = 60;
-const HEMI_SKY = 0xcfe3f5;
-const HEMI_GROUND = 0x6b8a3d;
-const HEMI_INTENSITY = 1.7;
-
-const HORIZON = 0xf1e6cc;
-const ZENITH = 0x2c64b4;
-const FOG_NEAR = 30;
-const FOG_FAR = 100;
 /**
- * The follow camera pitches down about 22 degrees with a 50 degree field of view, so only the
- * lowest few degrees of sky are ever on screen. The gradient therefore runs from horizon to zenith
+ * The follow camera pitches down about 9 degrees with a 50 degree field of view, so the top of
+ * the screen sees about 16 degrees of sky. The gradient therefore runs from horizon to zenith
  * over the lowest 30% of the view directions (sin of elevation 0 to 0.3) instead of all of them.
  */
 const SKY_GRADIENT_HEIGHT = 0.3;
+/** The environment map uses a gentler gradient: light really does come from the whole upper sky. */
+const ENV_GRADIENT_HEIGHT = 0.9;
+/**
+ * How much color the environment map loses before it lights anything. The visible sky is a rich
+ * blue; as a light source it would tint every shadow cyan. Desaturating it keeps shadows cool
+ * rather than colored.
+ */
+const ENV_DESATURATION = 0.6;
+const ENV_MAP_SIZE = 256;
 
 const DEFAULT_CLOUDS = 8;
 /** Clouds sit on a ring around the player: far away and low, so they peek over the tree line. */
@@ -94,6 +105,18 @@ export function setShadowCasting(object: THREE.Object3D, cast: boolean, receive:
     mesh.castShadow = transparent ? false : cast;
     mesh.receiveShadow = transparent ? false : receive;
   });
+}
+
+// ---- color helper -------------------------------------------------------------------------------
+
+/** Pull `color` toward its own luminance by `amount` (0 keeps it, 1 makes it gray). Changes `color`. */
+export function desaturate(color: THREE.Color, amount: number): THREE.Color {
+  const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+  const keep = 1 - amount;
+  color.r = luminance + (color.r - luminance) * keep;
+  color.g = luminance + (color.g - luminance) * keep;
+  color.b = luminance + (color.b - luminance) * keep;
+  return color;
 }
 
 // ---- cloud texture ------------------------------------------------------------------------------
@@ -164,25 +187,45 @@ const SKY_VERTEX = /* glsl */ `
   }
 `;
 
+/**
+ * Horizon to zenith above the horizon, `uGround` below it. The visible dome passes the horizon
+ * color as the ground (nothing below the horizon is ever seen); the environment map passes the
+ * grass color, which is what makes it bounce green light up into the shadows.
+ */
 const SKY_FRAGMENT = /* glsl */ `
   uniform vec3 uZenith;
   uniform vec3 uHorizon;
+  uniform vec3 uGround;
   uniform float uHeight;
   varying vec3 vDirection;
   void main() {
     float h = normalize(vDirection).y;
     float t = pow(clamp(h / uHeight, 0.0, 1.0), 0.65);
-    gl_FragColor = vec4(mix(uHorizon, uZenith, t), 1.0);
+    vec3 sky = mix(uHorizon, uZenith, t);
+    gl_FragColor = vec4(mix(uGround, sky, smoothstep(-0.12, 0.04, h)), 1.0);
+    #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
 `;
 
-function createSky(horizon: THREE.Color, zenith: THREE.Color): THREE.Mesh {
-  const material = new THREE.ShaderMaterial({
+/**
+ * `toneMapped` is true for the visible dome: it goes through the same tone mapping as the fog, so
+ * the horizon matches the faded trees exactly (before, the dome skipped tone mapping and the fog
+ * did not, which left a visible seam). It is false for the environment map, which wants raw radiance.
+ */
+function createSkyMaterial(
+  horizon: THREE.Color,
+  zenith: THREE.Color,
+  ground: THREE.Color,
+  height: number,
+  toneMapped: boolean,
+): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
     uniforms: {
       uZenith: { value: zenith },
       uHorizon: { value: horizon },
-      uHeight: { value: SKY_GRADIENT_HEIGHT },
+      uGround: { value: ground },
+      uHeight: { value: height },
     },
     vertexShader: SKY_VERTEX,
     fragmentShader: SKY_FRAGMENT,
@@ -190,13 +233,8 @@ function createSky(horizon: THREE.Color, zenith: THREE.Color): THREE.Mesh {
     depthWrite: false,
     depthTest: false,
     fog: false,
-    toneMapped: false, // the horizon must come out exactly the fog color
+    toneMapped,
   });
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(100, 24, 12), material);
-  sky.name = 'sky';
-  sky.renderOrder = -1000;
-  sky.frustumCulled = false;
-  return sky;
 }
 
 // ---- environment --------------------------------------------------------------------------------
@@ -210,44 +248,135 @@ interface Cloud {
 }
 
 export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions = {}): Environment {
-  const quality = qualitySettings(opts.quality ?? getQuality());
-  const horizon = new THREE.Color(opts.horizonColor ?? HORIZON);
-  const zenith = new THREE.Color(opts.zenithColor ?? ZENITH);
+  let quality = qualitySettings(opts.quality ?? getQuality());
+  let look = mergeLook(DEFAULT_LOOK, opts.look);
   const rng = mulberry32(opts.seed ?? 1977);
 
+  // Colors the dome, the fog and the environment map share. The dome's uniforms hold these very
+  // objects, so changing a color here changes the sky on the next frame.
+  const horizon = new THREE.Color(look.fogColor);
+  const zenith = new THREE.Color(look.skyZenithColor);
+
   // Sun. Its shadow camera is a square box `shadowDistance` wide that follows the player.
-  const half = quality.shadowDistance / 2;
-  const sun = new THREE.DirectionalLight(opts.sunColor ?? SUN_COLOR, SUN_INTENSITY);
+  const sun = new THREE.DirectionalLight(look.sunColor, look.sunIntensity);
   sun.name = 'sun';
   sun.castShadow = true;
-  sun.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
-  const cam = sun.shadow.camera;
-  cam.left = -half;
-  cam.right = half;
-  cam.top = half;
-  cam.bottom = -half;
-  cam.near = 1;
-  cam.far = SUN_DISTANCE + quality.shadowDistance * 2;
-  cam.updateProjectionMatrix();
   // Low-poly faces are big and flat: a small depth bias plus a push along the normal stops acne.
   sun.shadow.bias = -0.0002;
   sun.shadow.normalBias = 0.04;
-  sun.position.copy(SUN_DIRECTION).multiplyScalar(SUN_DISTANCE);
   scene.add(sun, sun.target);
 
-  const hemisphere = new THREE.HemisphereLight(HEMI_SKY, HEMI_GROUND, HEMI_INTENSITY);
+  /** Light-space axes of the sun and the size of one shadow-map texel, for snapping the box. */
+  const sunDir = new THREE.Vector3();
+  const lightRight = new THREE.Vector3();
+  const lightUp = new THREE.Vector3();
+  let texel = 1;
+  const focusNow = new THREE.Vector3();
+  const snapped = new THREE.Vector3();
+
+  const applyShadowQuality = (): void => {
+    const half = quality.shadowDistance / 2;
+    sun.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
+    const cam = sun.shadow.camera;
+    cam.left = -half;
+    cam.right = half;
+    cam.top = half;
+    cam.bottom = -half;
+    cam.near = 1;
+    cam.far = SUN_DISTANCE + quality.shadowDistance * 2;
+    cam.updateProjectionMatrix();
+    texel = quality.shadowDistance / quality.shadowMapSize;
+    // A map that already exists keeps its old size until it is thrown away; Three makes a new one.
+    if (sun.shadow.map) {
+      sun.shadow.map.dispose();
+      sun.shadow.map = null;
+    }
+  };
+
+  const applySunDirection = (): void => {
+    // Never straight up: the shadow box needs a horizontal axis to snap along.
+    const [x, y, z] = sunDirection({ sunAzimuth: look.sunAzimuth, sunElevation: Math.min(88, Math.max(2, look.sunElevation)) });
+    sunDir.set(x, y, z);
+    lightRight.set(0, 1, 0).cross(sunDir).normalize();
+    lightUp.copy(sunDir).cross(lightRight).normalize();
+  };
+
+  /**
+   * Keep the shadow box centered on `focus`, snapped to whole shadow-map texels. Without the
+   * snap, shadow edges shimmer as the player walks.
+   */
+  const moveSun = (focus: THREE.Vector3): void => {
+    focusNow.copy(focus);
+    const r = focus.dot(lightRight);
+    const u = focus.dot(lightUp);
+    snapped
+      .copy(focus)
+      .addScaledVector(lightRight, Math.round(r / texel) * texel - r)
+      .addScaledVector(lightUp, Math.round(u / texel) * texel - u);
+    sun.target.position.copy(snapped);
+    sun.position.copy(snapped).addScaledVector(sunDir, SUN_DISTANCE);
+  };
+
+  applyShadowQuality();
+  applySunDirection();
+  moveSun(new THREE.Vector3());
+
+  const hemisphere = new THREE.HemisphereLight(look.hemiSkyColor, look.hemiGroundColor, look.hemiIntensity);
   hemisphere.name = 'hemisphere';
   scene.add(hemisphere);
 
-  const sky = createSky(horizon, zenith);
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(100, 24, 12), createSkyMaterial(horizon, zenith, horizon, SKY_GRADIENT_HEIGHT, true));
+  sky.name = 'sky';
+  sky.renderOrder = -1000;
+  sky.frustumCulled = false;
   scene.add(sky);
 
-  const fog = new THREE.Fog(horizon.getHex(), opts.fogNear ?? FOG_NEAR, opts.fogFar ?? FOG_FAR);
+  const fog = new THREE.Fog(horizon.clone(), look.fogNear, look.fogFar);
   scene.fog = fog;
   const background = horizon.clone(); // fallback behind the dome
   scene.background = background;
 
-  // Clouds: sprites on a ring around the focus that turn slowly about it.
+  // ---- environment map: the sky as a light probe ----
+  // The same gradient, plus the grass color below the horizon, rendered once into a PMREM so every
+  // standard, Lambert and Phong material gets sky light from above and green bounce from below.
+  const envHorizon = new THREE.Color();
+  const envZenith = new THREE.Color();
+  const envGround = new THREE.Color();
+  let pmrem: THREE.PMREMGenerator | null = null;
+  let envScene: THREE.Scene | null = null;
+  let envTarget: THREE.WebGLRenderTarget | null = null;
+  let envDirty = false;
+  if (opts.renderer) {
+    pmrem = new THREE.PMREMGenerator(opts.renderer);
+    envScene = new THREE.Scene();
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), createSkyMaterial(envHorizon, envZenith, envGround, ENV_GRADIENT_HEIGHT, false));
+    dome.frustumCulled = false;
+    envScene.add(dome);
+    envDirty = true;
+  }
+
+  const rebuildEnvironmentMap = (): void => {
+    envDirty = false;
+    if (!pmrem || !envScene) return;
+    envHorizon.copy(horizon);
+    envZenith.copy(zenith);
+    desaturate(envHorizon, ENV_DESATURATION);
+    desaturate(envZenith, ENV_DESATURATION);
+    envGround.set(look.hemiGroundColor);
+    try {
+      const next = pmrem.fromScene(envScene, 0, 0.1, 100, { size: ENV_MAP_SIZE });
+      scene.environment = next.texture;
+      envTarget?.dispose();
+      envTarget = next;
+    } catch (err) {
+      console.warn('Environment map failed; lights only.', err);
+      scene.environment = null;
+      pmrem = null;
+    }
+  };
+
+  // Clouds: sprites on a ring around the focus that turn slowly about it. They go through tone
+  // mapping like everything else; the texture's white tops stay below the bloom threshold.
   const cloudGroup = new THREE.Group();
   cloudGroup.name = 'clouds';
   const textures: THREE.DataTexture[] = [];
@@ -255,9 +384,7 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
   for (let i = 0; i < CLOUD_VARIANTS; i++) {
     const texture = createCloudTexture(4100 + i * 37);
     textures.push(texture);
-    materials.push(
-      new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.92, depthWrite: false, fog: false, toneMapped: false }),
-    );
+    materials.push(new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.92, depthWrite: false, fog: false }));
   }
   const count = Math.max(0, Math.round(opts.cloudCount ?? DEFAULT_CLOUDS));
   const clouds: Cloud[] = [];
@@ -280,15 +407,6 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
   }
   scene.add(cloudGroup);
 
-  // ---- per frame ----
-
-  // Light-space axes of the sun, for snapping the shadow box to whole shadow-map texels. Without
-  // the snap, shadow edges shimmer as the player walks.
-  const lightRight = new THREE.Vector3(0, 1, 0).cross(SUN_DIRECTION).normalize();
-  const lightUp = SUN_DIRECTION.clone().cross(lightRight).normalize();
-  const texel = quality.shadowDistance / quality.shadowMapSize;
-  const snapped = new THREE.Vector3();
-
   const placeClouds = (focus: THREE.Vector3): void => {
     for (const c of clouds) {
       c.sprite.position.set(focus.x + Math.cos(c.angle) * c.distance, c.height, focus.z + Math.sin(c.angle) * c.distance);
@@ -296,17 +414,29 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
   };
   placeClouds(new THREE.Vector3());
 
-  const moveSun = (focus: THREE.Vector3): void => {
-    const r = focus.dot(lightRight);
-    const u = focus.dot(lightUp);
-    snapped
-      .copy(focus)
-      .addScaledVector(lightRight, Math.round(r / texel) * texel - r)
-      .addScaledVector(lightUp, Math.round(u / texel) * texel - u);
-    sun.target.position.copy(snapped);
-    sun.position.copy(snapped).addScaledVector(SUN_DIRECTION, SUN_DISTANCE);
+  // ---- applying the look ----
+
+  const applyLook = (): void => {
+    sun.color.set(look.sunColor);
+    sun.intensity = look.sunIntensity;
+    applySunDirection();
+    moveSun(focusNow);
+
+    hemisphere.color.set(look.hemiSkyColor);
+    hemisphere.groundColor.set(look.hemiGroundColor);
+    hemisphere.intensity = look.hemiIntensity;
+
+    horizon.set(look.fogColor);
+    zenith.set(look.skyZenithColor);
+    fog.color.copy(horizon);
+    fog.near = look.fogNear;
+    fog.far = look.fogFar;
+    background.copy(horizon);
+
+    scene.environmentIntensity = look.envIntensity;
   };
-  moveSun(new THREE.Vector3());
+  applyLook();
+  if (envDirty) rebuildEnvironmentMap();
 
   return {
     sun,
@@ -314,7 +444,24 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
     sky,
     clouds: cloudGroup,
     fog,
+    get look() {
+      return look;
+    },
+    setLook(partial: Partial<LookSettings>): void {
+      const before = look;
+      look = mergeLook(look, partial);
+      applyLook();
+      if (pmrem && (before.fogColor !== look.fogColor || before.skyZenithColor !== look.skyZenithColor || before.hemiGroundColor !== look.hemiGroundColor)) {
+        envDirty = true; // rebuilt at the next update, once per frame however fast a color is dragged
+      }
+    },
+    setQuality(tier: QualityTier): void {
+      quality = qualitySettings(tier);
+      applyShadowQuality();
+      moveSun(focusNow);
+    },
     update(dt: number, focus: THREE.Vector3): void {
+      if (envDirty) rebuildEnvironmentMap();
       moveSun(focus);
       for (const c of clouds) c.angle += c.speed * dt;
       placeClouds(focus);
@@ -323,10 +470,21 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
       scene.remove(sun, sun.target, hemisphere, sky, cloudGroup);
       if (scene.fog === fog) scene.fog = null;
       if (scene.background === background) scene.background = null;
+      if (envTarget && scene.environment === envTarget.texture) scene.environment = null;
       sun.dispose();
       hemisphere.dispose();
       sky.geometry.dispose();
       (sky.material as THREE.Material).dispose();
+      envTarget?.dispose();
+      pmrem?.dispose();
+      if (envScene) {
+        envScene.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.geometry.dispose();
+          (mesh.material as THREE.Material).dispose();
+        });
+      }
       for (const m of materials) m.dispose();
       for (const t of textures) t.dispose();
     },

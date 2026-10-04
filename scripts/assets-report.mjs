@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TOTAL_BUDGET, budgetFor } from './assets-budget.mjs';
+import { NATURE_TOTAL_BUDGET, TOTAL_BUDGET, budgetFor, isNatureModel } from './assets-budget.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicDir = path.join(root, 'public');
@@ -13,6 +13,7 @@ const kb = (bytes) => `${(bytes / 1024).toFixed(1)} KB`;
 const rows = [];
 const perPack = new Map();
 let total = 0;
+let natureTotal = 0;
 let problems = 0;
 
 for (const [id, entry] of Object.entries(manifest.models)) {
@@ -22,6 +23,7 @@ for (const [id, entry] of Object.entries(manifest.models)) {
   const over = size > budgetFor(id);
   if (!exists || over) problems++;
   total += size;
+  if (isNatureModel(entry)) natureTotal += size;
   const pack = perPack.get(entry.pack) ?? { count: 0, bytes: 0 };
   pack.count++;
   pack.bytes += size;
@@ -43,7 +45,9 @@ for (const [pack, p] of [...perPack].sort((a, b) => b[1].bytes - a[1].bytes)) {
 
 console.log(`\nTotal: ${rows.length} models, ${kb(total)} (${(total / 1024 / 1024).toFixed(2)} MB of ${TOTAL_BUDGET / 1024 / 1024} MB budget)`);
 if (total > TOTAL_BUDGET) problems++;
+console.log(`Nature models: ${kb(natureTotal)} (${(natureTotal / 1024 / 1024).toFixed(2)} MB of ${NATURE_TOTAL_BUDGET / 1024 / 1024} MB budget)`);
+if (natureTotal > NATURE_TOTAL_BUDGET) problems++;
 if (problems > 0) {
-  console.error(`${problems} problem(s): missing file, model over budget, or total over budget`);
+  console.error(`${problems} problem(s): missing file, model over budget, or total over budget (all models, or nature models)`);
   process.exit(1);
 }

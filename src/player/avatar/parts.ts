@@ -107,6 +107,11 @@ export class Mesher {
     return this.add(geometry, color, at);
   }
 
+  /** How many vertices have been added so far (0 means nothing to draw). */
+  get vertexCount(): number {
+    return this.positions.length / 3;
+  }
+
   build(): THREE.BufferGeometry {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(this.positions, 3));

@@ -10,10 +10,14 @@
 import * as THREE from 'three';
 import type { RankId, ZoneId } from '../activities/types';
 import { FollowCamera, type FollowTarget } from '../engine/camera';
+import { initDevtools } from '../engine/devtools';
 import { createEnvironment } from '../engine/environment';
 import { Input } from '../engine/input';
 import { WorldLabels, type WorldLabel } from '../engine/labels';
+import { createLookStore, type LookStore } from '../engine/look';
 import { GameLoop } from '../engine/loop';
+import { createPostPipeline, type PostPipeline } from '../engine/post';
+import { AutoDowngrade, getQuality, parseQualityOverride, setQuality, type QualityTier } from '../engine/quality';
 import { Renderer } from '../engine/renderer';
 import { defaultAvatar } from '../player/avatar/options';
 import { Player } from '../player/controller';
@@ -30,6 +34,10 @@ const DEN_CHIEF_ID = 'den-chief';
 
 export interface World {
   renderer: Renderer;
+  /** The look of the world (light, sky, fog, post effects). `look.set({ ... })` tunes it live. */
+  look: LookStore;
+  /** The post pipeline: ambient occlusion, bloom, tone mapping, SMAA. Draws the scene every frame. */
+  post: PostPipeline;
   loop: GameLoop;
   input: Input;
   scene: THREE.Scene;
@@ -86,8 +94,12 @@ export interface World {
 
 export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   const scene = new THREE.Scene();
+  const look = createLookStore();
+  // The renderer comes first: the sky is baked into an environment map with it.
+  const renderer = new Renderer(canvas, look.get());
+  let tier: QualityTier = getQuality();
   // Sun, sky, fog and clouds belong to the scene, not to a zone, so they carry across travel.
-  const environment = createEnvironment(scene);
+  const environment = createEnvironment(scene, { quality: tier, look: look.get(), renderer: renderer.gl });
 
   let denChiefHandler: () => void = () => {};
   let returnHandler: () => void = () => {
@@ -117,8 +129,40 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   };
   follow.snapTo({ position: player.position, facing: player.facing, isMoving: false });
 
-  const renderer = new Renderer(canvas);
-  renderer.onResize((w, h) => follow.setAspect(w / h));
+  const post = createPostPipeline(renderer.gl, scene, follow.camera, look.get(), tier);
+  renderer.onResize((w, h) => {
+    follow.setAspect(w / h);
+    post.setSize(w, h);
+  });
+  look.subscribe((next) => {
+    environment.setLook(next);
+    renderer.applyLook(next);
+    post.setSettings(next);
+  });
+
+  // Quality: a tier forced with ?quality= stays; otherwise a slow device steps down a tier and
+  // never back up (see AutoDowngrade).
+  const autoDowngrade = parseQualityOverride(window.location.search) === null ? new AutoDowngrade(tier) : null;
+  function applyTier(next: QualityTier): void {
+    if (next === tier) return;
+    tier = next;
+    setQuality(next);
+    environment.setQuality(next);
+    post.setTier(next);
+  }
+  const devtools = initDevtools({
+    renderer: renderer.gl,
+    ui,
+    look,
+    post,
+    tier: {
+      get: () => tier,
+      set(next) {
+        applyTier(next);
+        autoDowngrade?.setTier(next);
+      },
+    },
+  });
 
   const input = new Input({ target: canvas, ui });
 
@@ -235,13 +279,19 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       compass.update(player.root.position, follow.viewYaw);
       labels.update(renderer.width, renderer.height);
       environment.update(frameDt, player.root.position);
-      renderer.render(scene, follow.camera);
+      renderer.beginFrame();
+      post.render(frameDt);
+      devtools.frame(frameDt);
+      const cheaper = autoDowngrade?.sample(frameDt);
+      if (cheaper) applyTier(cheaper);
     },
   });
   loop.start();
 
   return {
     renderer,
+    look,
+    post,
     loop,
     input,
     scene,

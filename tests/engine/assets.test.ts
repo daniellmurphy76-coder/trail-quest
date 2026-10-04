@@ -30,8 +30,32 @@ const FAMILIES = [
   'pickup',
 ];
 
-/** Ids that must exist exactly. */
+/** Ids that must exist exactly. The tree, rock, plant, log and path ids are the ones the zones place from the nature kit. */
 const REQUIRED = [
+  'tree.pine',
+  'tree.pine.tall',
+  'tree.pine.round',
+  'tree.round',
+  'tree.oak',
+  'tree.fall',
+  'rock.large',
+  'rock.tall',
+  'rock.small',
+  'rock.flat',
+  'plant.bush',
+  'plant.bush.large',
+  'plant.grass',
+  'plant.grass.large',
+  'plant.flower.red',
+  'plant.flower.yellow',
+  'plant.flower.purple',
+  'plant.mushroom',
+  'log.single',
+  'log.large',
+  'log.stack',
+  'path.stone',
+  'fence.simple',
+  'fence.gate',
   'bridge',
   'stump',
   'tent',
@@ -137,5 +161,26 @@ describe('asset manifest', () => {
       expect(credits, `CREDITS.md mentions ${pack}`).toContain(`public/assets/models/${pack}/`);
     }
     expect(credits).toContain('CC0 1.0');
+  });
+
+  it('credits the KayKit Forest Nature Pack with its source page, license, and the date it was fetched', () => {
+    const credits = fs.readFileSync(path.resolve(__dirname, '../../CREDITS.md'), 'utf8');
+    const row = credits.split('\n').find((line) => line.includes('public/assets/models/kaykit-forest-nature/'));
+    expect(row, 'a CREDITS row for the KayKit pack').toBeDefined();
+    expect(row).toContain('https://kaylousberg.itch.io/kaykit-forest');
+    expect(row).toContain('CC0 1.0');
+    expect(row).toContain('2026-10-03');
+    const own = credits.split('\n').find((line) => line.includes('public/assets/models/trail-quest-original/'));
+    expect(own, 'a CREDITS row for the original gap fillers').toBeDefined();
+    expect(own).toContain('CC0 1.0');
+  });
+
+  it('does not list the Kenney Nature Kit trees, rocks, or plants as shipped any more', () => {
+    const credits = fs.readFileSync(path.resolve(__dirname, '../../CREDITS.md'), 'utf8');
+    const row = credits.split('\n').find((line) => line.includes('public/assets/models/kenney-nature-kit/'));
+    expect(row, 'the Kenney Nature Kit row is kept for the tents, fences, and bridge').toBeDefined();
+    for (const gone of ['tree_default', 'stone_largeA', 'plant_bush', 'flower_redA', 'mushroom_redGroup', 'stump_round']) {
+      expect(row, gone + ' is no longer shipped').not.toContain(gone);
+    }
   });
 });

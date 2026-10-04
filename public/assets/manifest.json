@@ -2,112 +2,118 @@
   "version": 1,
   "models": {
     "tree.pine": {
-      "path": "assets/models/kenney-nature-kit/tree_pineDefaultA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.2345,
-      "yOffset": 0.1617
+      "path": "assets/models/kaykit-forest-nature/tree-pine.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1.0137,
+      "yOffset": 0
     },
     "tree.pine.tall": {
-      "path": "assets/models/kenney-nature-kit/tree_pineTallA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.9226,
-      "yOffset": 0.1961
+      "path": "assets/models/kaykit-forest-nature/tree-pine-tall.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 0.9138,
+      "yOffset": 0
     },
     "tree.pine.round": {
-      "path": "assets/models/kenney-nature-kit/tree_pineRoundA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 4.0251,
-      "yOffset": 0.2013
+      "path": "assets/models/kaykit-forest-nature/tree-pine-round.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1.0137,
+      "yOffset": 0
     },
     "tree.round": {
-      "path": "assets/models/kenney-nature-kit/tree_default.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 2.6934,
-      "yOffset": 0.1347
+      "path": "assets/models/kaykit-forest-nature/tree-round.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 0.9589,
+      "yOffset": 0
     },
     "tree.oak": {
-      "path": "assets/models/kenney-nature-kit/tree_oak.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.4251,
-      "yOffset": 0.1713
+      "path": "assets/models/kaykit-forest-nature/tree-oak.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 0.6602,
+      "yOffset": 0
     },
     "tree.fall": {
-      "path": "assets/models/kenney-nature-kit/tree_oak_fall.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.4251,
-      "yOffset": 0.1713
+      "path": "assets/models/kaykit-forest-nature/tree-fall.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 0.5864,
+      "yOffset": 0
+    },
+    "tree.birch": {
+      "path": "assets/models/kaykit-forest-nature/tree-birch.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 0.9303,
+      "yOffset": 0
     },
     "rock.large": {
-      "path": "assets/models/kenney-nature-kit/stone_largeA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 2.7574,
-      "yOffset": 0.1379
+      "path": "assets/models/kaykit-forest-nature/rock-large.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1,
+      "yOffset": 0
     },
     "rock.tall": {
-      "path": "assets/models/kenney-nature-kit/stone_tallA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 2.4098,
-      "yOffset": 0.1205
+      "path": "assets/models/kaykit-forest-nature/rock-tall.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1,
+      "yOffset": 0
     },
     "rock.small": {
-      "path": "assets/models/kenney-nature-kit/stone_smallA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.0488,
-      "yOffset": 0.1524
+      "path": "assets/models/kaykit-forest-nature/rock-small.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1,
+      "yOffset": 0
     },
     "rock.flat": {
-      "path": "assets/models/kenney-nature-kit/stone_smallFlatA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 2.8238,
-      "yOffset": 0.1412
+      "path": "assets/models/kaykit-forest-nature/rock-flat.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1,
+      "yOffset": 0
     },
     "plant.bush": {
-      "path": "assets/models/kenney-nature-kit/plant_bush.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 4.5455,
-      "yOffset": 0.2273
+      "path": "assets/models/kaykit-forest-nature/plant-bush.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1.085,
+      "yOffset": 0
     },
     "plant.bush.large": {
-      "path": "assets/models/kenney-nature-kit/plant_bushLarge.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 7.4804,
-      "yOffset": 0.374
+      "path": "assets/models/kaykit-forest-nature/plant-bush-large.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1.3142,
+      "yOffset": 0
     },
     "plant.grass": {
-      "path": "assets/models/kenney-nature-kit/grass.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.0598,
-      "yOffset": 0.153
+      "path": "assets/models/kaykit-forest-nature/plant-grass.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1.5297,
+      "yOffset": 0
     },
     "plant.grass.large": {
-      "path": "assets/models/kenney-nature-kit/grass_large.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 4.401,
-      "yOffset": 0.2201
+      "path": "assets/models/kaykit-forest-nature/plant-grass-large.glb",
+      "pack": "kaykit-forest-nature",
+      "scale": 1.3173,
+      "yOffset": 0
     },
     "plant.flower.red": {
-      "path": "assets/models/kenney-nature-kit/flower_redA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 2.3932,
-      "yOffset": 0.1197
+      "path": "assets/models/trail-quest-original/plant-flower-red.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "plant.flower.yellow": {
-      "path": "assets/models/kenney-nature-kit/flower_yellowA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.6364,
-      "yOffset": 0.1818
+      "path": "assets/models/trail-quest-original/plant-flower-yellow.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "plant.flower.purple": {
-      "path": "assets/models/kenney-nature-kit/flower_purpleA.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 2.8866,
-      "yOffset": 0.1443
+      "path": "assets/models/trail-quest-original/plant-flower-purple.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "plant.mushroom": {
-      "path": "assets/models/kenney-nature-kit/mushroom_redGroup.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 2.3953,
-      "yOffset": 0.1198
+      "path": "assets/models/trail-quest-original/plant-mushroom.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "path.straight": {
       "path": "assets/models/kenney-nature-kit/ground_pathStraight.glb",
@@ -134,10 +140,10 @@
       "yOffset": 0.23
     },
     "path.stone": {
-      "path": "assets/models/kenney-nature-kit/path_stone.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 4,
-      "yOffset": 0.05
+      "path": "assets/models/trail-quest-original/path-stone.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "path.wood": {
       "path": "assets/models/kenney-nature-kit/path_wood.glb",
@@ -176,28 +182,28 @@
       "yOffset": 0.2
     },
     "stump": {
-      "path": "assets/models/kenney-nature-kit/stump_round.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 4.3584,
-      "yOffset": 0.2179
+      "path": "assets/models/trail-quest-original/stump.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "log.single": {
-      "path": "assets/models/kenney-nature-kit/log.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.0986,
-      "yOffset": 0.1549
+      "path": "assets/models/trail-quest-original/log-single.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "log.large": {
-      "path": "assets/models/kenney-nature-kit/log_large.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 2.8,
-      "yOffset": 0.14
+      "path": "assets/models/trail-quest-original/log-large.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "log.stack": {
-      "path": "assets/models/kenney-nature-kit/log_stack.glb",
-      "pack": "kenney-nature-kit",
-      "scale": 3.3803,
-      "yOffset": 0.169
+      "path": "assets/models/trail-quest-original/log-stack.glb",
+      "pack": "trail-quest-original",
+      "scale": 1,
+      "yOffset": 0
     },
     "tent": {
       "path": "assets/models/kenney-nature-kit/tent_detailedClosed.glb",

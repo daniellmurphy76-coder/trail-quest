@@ -10,7 +10,10 @@ import {
   RANK_IDS,
   defaultAvatar,
 } from '../../src/player/avatar/options';
-import { buildAvatar, type AvatarRig } from '../../src/player/avatar/rig';
+// The procedural Scout is the fallback while the Kenney model loads; these tests cover its internals.
+// The composite `buildAvatar` and the model rig are covered in blocky-rig.test.ts.
+import { buildProceduralAvatar as buildAvatar } from '../../src/player/avatar/procedural';
+import type { AvatarRig } from '../../src/player/avatar/rig-types';
 
 const DRAW_CALL_BUDGET = 30;
 
@@ -37,7 +40,7 @@ function run(rig: AvatarRig, seconds: number, state: { moving: boolean; speed: n
   for (let t = 0; t < seconds; t += 1 / 60) rig.update(1 / 60, state);
 }
 
-describe('avatar rig: building', () => {
+describe('procedural avatar rig: building', () => {
   it('builds with 7 draw calls: head, torso, two arms, two legs and a blob shadow', () => {
     const rig = buildAvatar(defaultAvatar('wolf'));
     const names = meshes(rig.root).map((m) => m.name).sort();
@@ -138,7 +141,7 @@ describe('avatar rig: building', () => {
   });
 });
 
-describe('avatar rig: setConfig', () => {
+describe('procedural avatar rig: setConfig', () => {
   it('swaps the hair and rebuilds only the head', () => {
     const rig = buildAvatar({ ...defaultAvatar('wolf'), hairStyle: 'short' });
     const geometry = (name: string): THREE.BufferGeometry => (joint(rig, name) as THREE.Mesh).geometry;
@@ -212,7 +215,7 @@ describe('avatar rig: setConfig', () => {
   });
 });
 
-describe('avatar rig: animation', () => {
+describe('procedural avatar rig: animation', () => {
   it('walk swings the arms and legs, opposite to each other', () => {
     const rig = buildAvatar(defaultAvatar('wolf'));
     const legL = joint(rig, 'leg-l');
@@ -333,7 +336,7 @@ describe('avatar rig: animation', () => {
   });
 });
 
-describe('avatar rig: dispose', () => {
+describe('procedural avatar rig: dispose', () => {
   it('frees the geometry and leaves the scene', () => {
     const scene = new THREE.Scene();
     const rig = buildAvatar(defaultAvatar('wolf'));
@@ -358,7 +361,7 @@ describe('avatar rig: dispose', () => {
   });
 });
 
-describe('Den Chief preset', () => {
+describe('Den Chief preset (procedural fallback)', () => {
   it('is tall, in a scout hat and glasses, with the cord', () => {
     expect(DEN_CHIEF_AVATAR).toMatchObject({ build: 'tall', hat: 'scout', glasses: true });
     const chief = createDenChief();

@@ -57,7 +57,7 @@ The game is built around a 3 to 5 minute daily session, Duolingo-style, not open
 
 - Scouting America owns requirement text and rank emblems. **Paraphrase; never paste requirement text verbatim.** Each adventure records its official source URL and fetch date.
 - No Scouting America or BSA logos, rank emblems, or trademarks in art. Badge art is original.
-- Models and audio are CC0 only (Kenney, Quaternius, CC0 sounds). Every asset appears in `CREDITS.md` with source URL and license.
+- Models and audio are CC0 only (Kenney, KayKit, Quaternius, CC0 sounds) or original work made for this project and dedicated to CC0. Every asset appears in `CREDITS.md` with source URL and license. Nature models come from the KayKit Forest Nature Pack, vertex-colored, one material each; keep new props in that palette.
 - Code license: MIT.
 
 ## Repo layout

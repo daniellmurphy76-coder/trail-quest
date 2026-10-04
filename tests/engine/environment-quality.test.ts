@@ -58,8 +58,8 @@ describe('detectQuality', () => {
 
 describe('quality settings', () => {
   it('high is a 2048 shadow map reaching 45 units; medium is 1024 reaching 35', () => {
-    expect(qualitySettings('high')).toEqual({ tier: 'high', shadowMapSize: 2048, shadowDistance: 45 });
-    expect(qualitySettings('medium')).toEqual({ tier: 'medium', shadowMapSize: 1024, shadowDistance: 35 });
+    expect(qualitySettings('high')).toMatchObject({ tier: 'high', shadowMapSize: 2048, shadowDistance: 45 });
+    expect(qualitySettings('medium')).toMatchObject({ tier: 'medium', shadowMapSize: 1024, shadowDistance: 35 });
     expect(QUALITY_SETTINGS.high.shadowMapSize).toBeGreaterThan(QUALITY_SETTINGS.medium.shadowMapSize);
   });
 });
@@ -80,7 +80,7 @@ describe('parseQualityOverride', () => {
 describe('getQuality', () => {
   it('reads the browser once and keeps the answer', () => {
     const first = getQuality();
-    expect(['high', 'medium']).toContain(first);
+    expect(['high', 'medium', 'low']).toContain(first);
     expect(getQuality()).toBe(first);
   });
 });
