@@ -23,6 +23,7 @@ import { defaultAvatar } from '../player/avatar/options';
 import { Player } from '../player/controller';
 import type { AvatarConfig } from '../save/types';
 import { setHorizonQuality } from '../world/horizon';
+import { setOccluderTarget } from '../world/occluder';
 import { tickWind } from '../world/wind';
 import { findInteractableInRange, type Interactable, type Zone } from '../world/zone';
 import { createZone, type ZoneDeps } from '../world/zones';
@@ -292,6 +293,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       compass.update(player.root.position, follow.viewYaw);
       labels.update(renderer.width, renderer.height);
       environment.update(frameDt, player.root.position);
+      setOccluderTarget(player.root.position); // props between the camera and the Scout fade
       renderer.beginFrame();
       post.render(frameDt);
       devtools.frame(frameDt);
