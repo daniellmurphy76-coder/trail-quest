@@ -24,6 +24,7 @@ import { Player } from '../player/controller';
 import type { AvatarConfig } from '../save/types';
 import { setHorizonQuality } from '../world/horizon';
 import { setOccluderTarget } from '../world/occluder';
+import { setWaterLook } from '../world/water';
 import { tickWind } from '../world/wind';
 import { findInteractableInRange, type Interactable, type Zone } from '../world/zone';
 import { createZone, type ZoneDeps } from '../world/zones';
@@ -103,6 +104,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   let tier: QualityTier = getQuality();
   // Sun, sky, fog and clouds belong to the scene, not to a zone, so they carry across travel.
   const environment = createEnvironment(scene, { quality: tier, look: look.get(), renderer: renderer.gl });
+  setWaterLook(look.get()); // the streams are lit by the same sun and sky
 
   let denChiefHandler: () => void = () => {};
   let returnHandler: () => void = () => {
@@ -142,6 +144,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   });
   look.subscribe((next) => {
     environment.setLook(next);
+    setWaterLook(next);
     renderer.applyLook(next);
     post.setSettings(next);
   });
