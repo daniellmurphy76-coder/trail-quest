@@ -9,6 +9,7 @@
  *   water.update(dt);                 // every fixed step, from the zone's update
  *   water.dispose();                  // frees the geometry, materials and texture
  *   water.setReducedMotion(true);     // optional live switch (see below)
+ *   setWaterLook(look);               // once, and on every look change: the sun and sky every water reads
  *
  *   interface StreamWaterOptions {
  *     path: { x: number; z: number }[]; // centerline, in the direction the water flows. 2 or more points.
@@ -29,26 +30,41 @@
  * triangle touches it: the ribbon is cut exactly at both ends of the window, so the ground (and the
  * bridge's own planks) show through. Without a gap the ribbon is one unbroken strip.
  *
- * Look. One ShaderMaterial, unlit, transparent, no depth write (renderOrder 1), with the scene fog:
+ * Look. One ShaderMaterial, transparent, no depth write (renderOrder 1), with the scene fog. It is
+ * lit by a small hand-made model that reads the sun and the sky from uniforms (see `setWaterLook`),
+ * not by Three's lights:
  *   - high and medium: two layers of stretched value noise scroll along the flow for soft light
- *     ripples and faint troughs; foam along both banks is broken up by a third noise; the color runs
- *     from `shallow` at the banks to `deep` in the middle, and the middle is a bit more opaque.
+ *     ripples and faint troughs. The same noise gives a slope, so the surface has a gentle normal
+ *     that tilts as the ripples pass. Foam along both banks is broken up by a third noise; the color
+ *     runs from `shallow` at the banks to `deep` in the middle, and the middle is a bit more opaque.
  *   - low: no noise. A static shallow-to-deep gradient, a static foam edge, and one slow band that
- *     scrolls along the flow. No sparkles.
+ *     scrolls along the flow. The surface is flat. No glints.
+ *   - all tiers: the color is multiplied by a light term (sky and hemisphere ambient plus the sun's
+ *     color times N dot L), so water darkens as the sun gets lower. At grazing angles it blends toward
+ *     the sky (Schlick fresnel, F0 0.03). It mirrors the sky dome's own gradient: pale horizon color
+ *     for the flat view far out, blue higher up. So far water melts into the haze.
+ *   - high and medium: sun glints. A tight specular lobe of the sun on the rippled normal, so a few
+ *     small bright flecks drift downstream with the ripples when you look toward the sun. They peak a
+ *     little over 1.0 (a tiny bloom kick) and are sparse. The ripples flatten out past about 18 units,
+ *     so far water is calm and does not shimmer.
+ *   - the edge: alpha melts in over WATER_SHORE (0.5) units from the outer edge of the ribbon, so the
+ *     water fades into the bank instead of ending on a line. No depth texture is read.
  *   - reduced motion: the clock stops at a fixed value and the sparkles hide, so the water is still
  *     colored and rippled but nothing flows.
- * The colors are unlit, so the sun does not change them. Tune them with `colors` rather than by hand.
+ * `colors` sets the water's own (albedo) colors; the lighting works on top of them.
  *
  * Sparkles (high and medium only): up to SPARKLE_MAX tiny additive points that drift downstream on
  * the surface and twinkle, one Points object with a 16 by 16 soft dot built from raw pixels (so it
  * builds in node). Their peak is 1.0, not tone-mapped away, and they ignore fog (they sit near the
  * player). They never leave the water body and never enter the gap.
  *
- * Draw calls: 2 on high and medium (the ribbon and the sparkles), 1 on low (the ribbon only).
+ * Draw calls: 2 on high and medium (the ribbon and the sparkles), 1 on low (the ribbon only). The glints
+ * and the sky tint are in the ribbon's shader, so they add none.
  * Triangles: two per 0.7 units of path (a 50 unit stream is about 140). CPU per frame: one sparkle
  * pass, a few dozen points. A non-finite or too-short path returns an empty group.
  */
 import * as THREE from 'three';
+import { DEFAULT_LOOK, sunDirection, type LookSettings } from '../engine/look';
 import { getQuality, type QualityTier } from '../engine/quality';
 import { mulberry32 } from '../engine/seed';
 
@@ -118,49 +134,174 @@ const DEEP = 0x2b7fc4;
 const SHALLOW = 0x7cc6ec;
 const FOAM = 0xf2faff;
 
+/** Reflectance of water looking straight down (Schlick's F0). Real water is about 0.02. */
+export const WATER_F0 = 0.03;
+/** The edge melts in over this far from the outer edge of the ribbon (0.3 of fringe, then 0.2 inside the bank). */
+export const WATER_SHORE = 0.5;
+/** How steep the ripples are: the surface slope is the noise slope times this. */
+const RIPPLE_TILT = 0.22;
+/** The ripples fade out between these distances from the camera, so far water is calm and does not shimmer. */
+const RIPPLE_FADE_NEAR = 18;
+const RIPPLE_FADE_FAR = 42;
+/** Sharpness of the sun glint (a Blinn lobe, about 3 degrees across), and its brightness. */
+const GLINT_SHINE = 350;
+const GLINT_GAIN = 1.3;
+/** The sky dome runs from the horizon to the zenith color over this much sine of elevation (SKY_GRADIENT_HEIGHT in environment.ts). */
+const SKY_HEIGHT = 0.3;
+/** Foam is white, so its light is capped to keep it under the bloom threshold. */
+const FOAM_LIGHT_CAP = 0.95;
+/** Ambient light on a flat surface: the sky halfway to the zenith, desaturated like the environment map. */
+const AMBIENT_SKY_MIX = 0.45;
+const AMBIENT_DESATURATION = 0.6;
+
+// ---- the light model, in TypeScript --------------------------------------------------------------
+
+const smoothstep = (a: number, b: number, x: number): number => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * How much of the sky shows in the water. `cosView` is N dot V (1 looking straight down, 0 at the
+ * horizon). Schlick: about WATER_F0 at 1, 1 at 0. The shader does the same sum.
+ */
+export function waterFresnel(cosView: number): number {
+  const c = Math.min(1, Math.max(0, cosView));
+  return WATER_F0 + (1 - WATER_F0) * Math.pow(1 - c, 5);
+}
+
+/**
+ * The alpha factor at the edge. `inside` is the distance in from the outer edge of the ribbon: 0 at the
+ * very edge (nothing), WATER_SHORE or more in the middle (full). The shader does the same sum.
+ */
+export function waterShore(inside: number, soft: number = WATER_SHORE): number {
+  return smoothstep(0, soft, inside);
+}
+
+/**
+ * The sun and sky every water reads. One set of uniforms is shared by all the water in the game (as the
+ * wind does with its clock), so `setWaterLook` reaches the streams in zones that are not on screen too.
+ * Colors are linear, like the scene's.
+ *
+ *   uSunDir      unit vector toward the sun
+ *   uSunColor    sun color times intensity over PI: what a surface facing the sun straight on gets
+ *   uAmbient     sky and hemisphere light on a flat surface (the environment map is not read directly)
+ *   uSkyHorizon  the fog color, which is also the sky's color at the horizon
+ *   uSkyZenith   the sky straight up
+ */
+const waterLight = {
+  uSunDir: { value: new THREE.Vector3(0, 1, 0) },
+  uSunColor: { value: new THREE.Color() },
+  uAmbient: { value: new THREE.Color() },
+  uSkyHorizon: { value: new THREE.Color() },
+  uSkyZenith: { value: new THREE.Color() },
+};
+
+/** Pull `color` toward its own luminance by `amount` (the same sum as `desaturate` in environment.ts). */
+function grayed(color: THREE.Color, amount: number): THREE.Color {
+  const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+  const keep = 1 - amount;
+  return color.setRGB(color.r * keep + luminance * amount, color.g * keep + luminance * amount, color.b * keep + luminance * amount);
+}
+
+/**
+ * Point every water at the world's sun and sky. Call it with the look at start and on every change
+ * (world.ts does); a water built before the call picks it up on its next frame. A new game starts
+ * with DEFAULT_LOOK, so a scene with no call (a test, a preview) is still lit the way the game is.
+ */
+export function setWaterLook(look: LookSettings): void {
+  // The same clamp environment.ts puts on the sun, so a flat sun never lights the water from the side.
+  const [x, y, z] = sunDirection({ sunAzimuth: look.sunAzimuth, sunElevation: Math.min(88, Math.max(2, look.sunElevation)) });
+  waterLight.uSunDir.value.set(x, y, z);
+  waterLight.uSunColor.value.set(look.sunColor).multiplyScalar(look.sunIntensity / Math.PI);
+  waterLight.uSkyHorizon.value.set(look.fogColor);
+  waterLight.uSkyZenith.value.set(look.skyZenithColor);
+  const sky = grayed(new THREE.Color(look.fogColor).lerp(new THREE.Color(look.skyZenithColor), AMBIENT_SKY_MIX), AMBIENT_DESATURATION);
+  const hemi = new THREE.Color(look.hemiSkyColor).multiplyScalar(look.hemiIntensity / Math.PI);
+  waterLight.uAmbient.value.copy(sky).multiplyScalar(look.envIntensity).add(hemi);
+}
+setWaterLook(DEFAULT_LOOK);
+
 // ---- shaders -------------------------------------------------------------------------------------
 
-/** `aFlow` is (arc length along the path, across the ribbon from -1 to 1). Fog comes from the scene. */
+/** A GLSL float literal: always has a decimal point (GLSL ES 3.00 has no implicit int to float). */
+const glsl = (n: number): string => (Number.isInteger(n) ? n.toFixed(1) : String(n));
+
+/**
+ * `aFlow` is (arc length along the path, across the ribbon from -1 to 1). `aTangent` is the flow
+ * direction on the ground (x, z). Fog comes from the scene.
+ */
 export const WATER_VERTEX_SHADER = /* glsl */ `
 attribute vec2 aFlow;
+attribute vec2 aTangent;
 varying vec2 vFlow;
+varying vec2 vTangent;
+varying vec3 vWorld;
 #include <fog_pars_vertex>
 void main() {
   vFlow = aFlow;
-  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  vec4 world = modelMatrix * vec4(position, 1.0);
+  vWorld = world.xyz;
+  vTangent = (mat3(modelMatrix) * vec3(aTangent.x, 0.0, aTangent.y)).xz;
+  vec4 mvPosition = viewMatrix * world;
   gl_Position = projectionMatrix * mvPosition;
   #include <fog_vertex>
 }
 `;
 
-/** Define TQ_RICH for the noise version (high and medium). Without it the cheap version is built. */
+/** Define TQ_RICH for the noise, normal and glint version (high and medium). Without it the cheap version is built. */
 export const WATER_FRAGMENT_SHADER = /* glsl */ `
 uniform float uTime;
 uniform float uHalf;
 uniform float uFringe;
+uniform float uShore;
 uniform float uSpeed;
 uniform vec2 uOffset;
 uniform vec3 uDeep;
 uniform vec3 uShallow;
 uniform vec3 uFoam;
+uniform vec3 uSunDir;
+uniform vec3 uSunColor;
+uniform vec3 uAmbient;
+uniform vec3 uSkyHorizon;
+uniform vec3 uSkyZenith;
 varying vec2 vFlow;
+varying vec2 vTangent;
+varying vec3 vWorld;
 #include <fog_pars_fragment>
 
+const float WATER_F0 = ${glsl(WATER_F0)};
+const float SKY_HEIGHT = ${glsl(SKY_HEIGHT)};
+const float FOAM_LIGHT_CAP = ${glsl(FOAM_LIGHT_CAP)};
+
 #ifdef TQ_RICH
+const float RIPPLE_TILT = ${glsl(RIPPLE_TILT)};
+const float RIPPLE_FADE_NEAR = ${glsl(RIPPLE_FADE_NEAR)};
+const float RIPPLE_FADE_FAR = ${glsl(RIPPLE_FADE_FAR)};
+const float GLINT_SHINE = ${glsl(GLINT_SHINE)};
+const float GLINT_GAIN = ${glsl(GLINT_GAIN)};
+
 float tqHash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
   p += dot(p, p + 45.32);
   return fract(p.x * p.y);
 }
-float tqNoise(vec2 p) {
+// Value noise and its slope: x is the noise, yz is how fast it changes along each axis.
+vec3 tqNoiseD(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
+  vec2 w = f * f * (3.0 - 2.0 * f);
+  vec2 dw = 6.0 * f * (1.0 - f);
   float a = tqHash(i);
   float b = tqHash(i + vec2(1.0, 0.0));
   float c = tqHash(i + vec2(0.0, 1.0));
   float d = tqHash(i + vec2(1.0, 1.0));
-  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  float k = a - b - c + d;
+  float v = a + (b - a) * w.x + (c - a) * w.y + k * w.x * w.y;
+  return vec3(v, dw * vec2(b - a + k * w.y, c - a + k * w.x));
+}
+float tqNoise(vec2 p) {
+  return tqNoiseD(p).x;
 }
 #endif
 
@@ -172,19 +313,39 @@ void main() {
   float depth = smoothstep(0.0, 1.0, clamp(edge / uHalf, 0.0, 1.0));
   vec3 col = mix(uShallow, uDeep, depth);
 
+  vec3 toEye = cameraPosition - vWorld;
+  float eyeDist = length(toEye);
+  vec3 V = toEye / max(eyeDist, 0.001);
+  vec3 N = vec3(0.0, 1.0, 0.0);
+
   #ifdef TQ_RICH
     float flow = uTime * uSpeed;
-    float n1 = tqNoise(vec2(s * 0.55 - flow * 0.6, u * 1.7) + uOffset);
-    float n2 = tqNoise(vec2(s * 1.3 - flow * 1.1, u * 3.1) + uOffset.yx + 17.0);
-    float mixed = n1 * 0.62 + n2 * 0.38;
+    vec3 n1 = tqNoiseD(vec2(s * 0.55 - flow * 0.6, u * 1.7) + uOffset);
+    vec3 n2 = tqNoiseD(vec2(s * 1.3 - flow * 1.1, u * 3.1) + uOffset.yx + 17.0);
+    float mixed = n1.x * 0.62 + n2.x * 0.38;
     float ripple = smoothstep(0.5, 0.82, mixed);
     float trough = 1.0 - smoothstep(0.18, 0.42, mixed);
     col = mix(col, uShallow, ripple * 0.35);
     col *= 1.0 - trough * 0.12;
+    // The surface tilts with the ripples: their slope along the flow and across it, turned into world x and z.
+    vec2 slope = vec2(n1.y * 0.55 * 0.62 + n2.y * 1.3 * 0.38, n1.z * 1.7 * 0.62 + n2.z * 3.1 * 0.38);
+    vec2 along = normalize(vTangent);
+    vec2 push = (along * slope.x + vec2(-along.y, along.x) * slope.y) * RIPPLE_TILT * (1.0 - smoothstep(RIPPLE_FADE_NEAR, RIPPLE_FADE_FAR, eyeDist));
+    N = normalize(vec3(-push.x, 1.0, -push.y));
   #else
     float band = 0.5 + 0.5 * sin((s - uTime * uSpeed) * 0.9);
     col = mix(col, uShallow, band * 0.3);
   #endif
+
+  // Light: the sky and the sun's warm color, darker as the sun gets lower.
+  vec3 lit = uAmbient + uSunColor * max(dot(N, uSunDir), 0.0);
+  col *= lit;
+
+  // Sky tint: Schlick fresnel, and the sky dome's own gradient in the mirrored direction.
+  float ndv = clamp(dot(N, V), 0.0, 1.0);
+  float fresnel = WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - ndv, 5.0);
+  float skyUp = clamp(reflect(-V, N).y / SKY_HEIGHT, 0.0, 1.0);
+  col = mix(col, mix(uSkyHorizon, uSkyZenith, pow(skyUp, 0.65)), fresnel);
 
   // Foam hugs both banks, and spills a little onto the shore.
   float foam = 1.0 - smoothstep(0.0, 0.55, edge);
@@ -193,12 +354,24 @@ void main() {
     foam *= 0.45 + 1.1 * fn;
   #endif
   foam = clamp(foam, 0.0, 1.0) * 0.9;
-  col = mix(col, uFoam, foam);
+  col = mix(col, uFoam * min(lit, vec3(FOAM_LIGHT_CAP)), foam);
 
-  // See-through, a touch more solid in the deep middle, fading to nothing across the shore.
-  float shore = 1.0 - smoothstep(0.0, uFringe, -edge);
+  // See-through, a touch more solid in the deep middle and where the sky shows.
   float alpha = mix(0.55, 0.86, depth);
-  alpha = mix(alpha, 0.95, foam) * shore;
+  alpha = mix(alpha, 0.95, foam);
+  alpha = mix(alpha, 0.97, fresnel);
+
+  #ifdef TQ_RICH
+    // Sun glints: a tight highlight where a ripple faces the half way point between the sun and the eye.
+    // They ride the same scroll as the ripples, so they drift downstream. Foam is rough, so it has none.
+    float glint = pow(max(dot(N, normalize(uSunDir + V)), 0.0), GLINT_SHINE) * (1.0 - foam);
+    col += uSunColor * (glint * GLINT_GAIN);
+    alpha = mix(alpha, 1.0, clamp(glint * 3.0, 0.0, 1.0));
+  #endif
+
+  // The edge melts into the bank: nothing at the outer edge, full uShore in.
+  float inside = uHalf + uFringe - abs(u);
+  alpha *= smoothstep(0.0, uShore, inside);
 
   gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
@@ -314,7 +487,8 @@ function waterSegments(line: Centerline, gap: WaterGap | undefined): Array<[numb
 
 /**
  * One strip per water segment: a row of two vertices (left and right edge) every WATER_SPACING,
- * with `aFlow` = (arc length, -1 or +1). Triangles all face up.
+ * with `aFlow` = (arc length, -1 or +1) and `aTangent` = the unit flow direction (x, z). Triangles
+ * all face up.
  */
 function buildRibbon(
   line: Centerline,
@@ -324,6 +498,7 @@ function buildRibbon(
 ): THREE.BufferGeometry {
   const positions: number[] = [];
   const flow: number[] = [];
+  const tangents: number[] = [];
   const indices: number[] = [];
 
   const triUp = (a: number, b: number, c: number): void => {
@@ -349,6 +524,7 @@ function buildRibbon(
       flow.push(s, -1);
       positions.push(p.x + nx * halfTotal, y, p.z + nz * halfTotal);
       flow.push(s, 1);
+      tangents.push(t.x, t.z, t.x, t.z);
       const row: [number, number] = [left, left + 1];
       if (previous) {
         triUp(previous[0], previous[1], row[0]);
@@ -361,6 +537,7 @@ function buildRibbon(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2));
+  geometry.setAttribute('aTangent', new THREE.Float32BufferAttribute(tangents, 2));
   geometry.setIndex(indices);
   geometry.computeBoundingSphere();
   return geometry;
@@ -449,6 +626,7 @@ export function createStreamWater(options: StreamWaterOptions): StreamWater {
       uTime: { value: 0 },
       uHalf: { value: half },
       uFringe: { value: WATER_FRINGE },
+      uShore: { value: WATER_SHORE },
       uSpeed: { value: FLOW_SPEED },
       uOffset: { value: new THREE.Vector2(rng() * 100, rng() * 100) },
       uDeep: { value: new THREE.Color(colors.deep ?? DEEP) },
@@ -456,6 +634,8 @@ export function createStreamWater(options: StreamWaterOptions): StreamWater {
       uFoam: { value: new THREE.Color(colors.foam ?? FOAM) },
     },
   ]);
+  // The sun and sky are shared by every water, so merge's copies are replaced with the shared objects.
+  Object.assign(uniforms, waterLight);
   const material = new THREE.ShaderMaterial({
     uniforms,
     vertexShader: WATER_VERTEX_SHADER,

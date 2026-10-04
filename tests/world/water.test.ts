@@ -1,15 +1,21 @@
 import * as THREE from 'three';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_LOOK, sunDirection } from '../../src/engine/look';
 import type { QualityTier } from '../../src/engine/quality';
 import {
   createStreamWater,
   FROZEN_TIME,
+  setWaterLook,
   SPARKLE_MAX,
+  WATER_F0,
   WATER_FRAGMENT_SHADER,
   WATER_FRINGE,
+  WATER_SHORE,
   WATER_SPACING,
   WATER_VERTEX_SHADER,
   WATER_Y,
+  waterFresnel,
+  waterShore,
   type StreamWaterOptions,
 } from '../../src/world/water';
 
@@ -281,7 +287,7 @@ describe('createStreamWater: the gap', () => {
 });
 
 describe('createStreamWater: the look', () => {
-  it('uses one transparent, unlit shader with the scene fog, drawn after the ground', () => {
+  it('uses one transparent shader with the scene fog, drawn after the ground', () => {
     const material = materialOf(build().root);
     expect(material).toBeInstanceOf(THREE.ShaderMaterial);
     expect(material.transparent).toBe(true);
@@ -322,6 +328,220 @@ describe('createStreamWater: the look', () => {
     const offset = (seed: number): THREE.Vector2 => materialOf(build({ seed }).root).uniforms.uOffset!.value as THREE.Vector2;
     expect(offset(3).equals(offset(3))).toBe(true);
     expect(offset(3).equals(offset(4))).toBe(false);
+  });
+});
+
+/** Keep the code a tier compiles: the lines inside `#ifdef TQ_RICH` stay only when `rich`, the `#else` ones only when not. */
+function expandShader(source: string, rich: boolean): string {
+  const out: string[] = [];
+  let mode: 'all' | 'rich' | 'cheap' = 'all';
+  for (const line of source.split('\n')) {
+    const t = line.trim();
+    if (t === '#ifdef TQ_RICH') mode = 'rich';
+    else if (t === '#else') mode = 'cheap';
+    else if (t === '#endif') mode = 'all';
+    else if (mode === 'all' || (mode === 'rich') === rich) out.push(line);
+  }
+  return out.join('\n');
+}
+
+const luminance = (c: THREE.Color): number => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+
+describe('createStreamWater: the lit look', () => {
+  afterEach(() => {
+    setWaterLook(DEFAULT_LOOK);
+  });
+
+  it('declares every uniform and attribute the shaders read', () => {
+    const water = build();
+    const material = materialOf(water.root);
+    const geometry = ribbonOf(water.root).geometry;
+    const uniformNames = [...WATER_FRAGMENT_SHADER.matchAll(/^uniform \w+ (\w+);/gm)].map((m) => m[1]!);
+    expect(uniformNames).toEqual(
+      expect.arrayContaining(['uSunDir', 'uSunColor', 'uAmbient', 'uSkyHorizon', 'uSkyZenith', 'uShore', 'uTime', 'uDeep', 'uShallow', 'uFoam']),
+    );
+    for (const name of uniformNames) expect(material.uniforms[name], name).toBeDefined();
+    const attributeNames = [...WATER_VERTEX_SHADER.matchAll(/^attribute \w+ (\w+);/gm)].map((m) => m[1]!);
+    expect(attributeNames).toEqual(expect.arrayContaining(['aFlow', 'aTangent']));
+    for (const name of attributeNames) expect(geometry.getAttribute(name), name).toBeDefined();
+  });
+
+  it('defines TQ_RICH on high and medium only, and keeps the ripple normal and the glint out of low', () => {
+    for (const tier of TIERS) {
+      const rich = tier !== 'low';
+      const defines = materialOf(build({ tier }).root).defines ?? {};
+      expect('TQ_RICH' in defines).toBe(rich);
+      expect(Object.keys(defines)).toEqual(rich ? ['TQ_RICH'] : []);
+    }
+    const low = expandShader(WATER_FRAGMENT_SHADER, false);
+    const rich = expandShader(WATER_FRAGMENT_SHADER, true);
+    for (const piece of ['GLINT_SHINE', 'tqNoiseD', 'RIPPLE_TILT']) {
+      expect(rich).toContain(piece);
+      expect(low).not.toContain(piece);
+    }
+    // Low is still lit, tinted by the sky and soft at the edge, just flat.
+    for (const piece of ['uSunDir', 'uAmbient', 'WATER_F0', 'uShore', 'uSkyZenith']) expect(low).toContain(piece);
+  });
+
+  it('glints only from the sun, on the rippled normal, and flattens the ripples with distance', () => {
+    expect(WATER_FRAGMENT_SHADER).not.toContain('${'); // every tuning number was filled in
+    expect(WATER_FRAGMENT_SHADER).toContain('normalize(uSunDir + V)');
+    expect(WATER_FRAGMENT_SHADER).toContain('smoothstep(RIPPLE_FADE_NEAR, RIPPLE_FADE_FAR, eyeDist)');
+    // The scroll that moves the ripples is the one that moves the slope, so the glints drift with the flow.
+    expect(WATER_FRAGMENT_SHADER).toContain('tqNoiseD(vec2(s * 0.55 - flow * 0.6');
+    expect(WATER_FRAGMENT_SHADER).toContain('tqNoiseD(vec2(s * 1.3 - flow * 1.1');
+  });
+
+  it('sends the tangent of each row along the path, as a unit vector across from the row', () => {
+    const water = build();
+    const geometry = ribbonOf(water.root).geometry;
+    const tangent = geometry.getAttribute('aTangent');
+    const { vertices } = ribbonData(water.root);
+    expect(tangent.count).toBe(vertices.length);
+    for (let i = 0; i < vertices.length; i += 2) {
+      const tx = tangent.getX(i);
+      const tz = tangent.getY(i);
+      expect(Math.hypot(tx, tz)).toBeCloseTo(1, 5);
+      expect(tangent.getX(i + 1)).toBe(tx);
+      expect(tangent.getY(i + 1)).toBe(tz);
+      // The row runs across the flow: left to right is perpendicular to the tangent.
+      const rx = vertices[i + 1]!.x - vertices[i]!.x;
+      const rz = vertices[i + 1]!.z - vertices[i]!.z;
+      expect(Math.abs(rx * tx + rz * tz)).toBeLessThan(1e-4);
+    }
+  });
+
+  describe('fresnel', () => {
+    it('is about F0 looking straight down, and about 1 at the horizon', () => {
+      expect(WATER_F0).toBeGreaterThanOrEqual(0.02);
+      expect(WATER_F0).toBeLessThanOrEqual(0.04);
+      expect(waterFresnel(1)).toBeCloseTo(WATER_F0, 6);
+      expect(waterFresnel(0)).toBeCloseTo(1, 6);
+      expect(waterFresnel(0.02)).toBeGreaterThan(0.9);
+    });
+
+    it('rises steadily as the view gets flatter, and stays between 0 and 1 for any input', () => {
+      let previous = waterFresnel(1);
+      for (let c = 0.99; c >= 0; c -= 0.01) {
+        const f = waterFresnel(c);
+        expect(f).toBeGreaterThanOrEqual(previous - 1e-12);
+        expect(f).toBeGreaterThanOrEqual(0);
+        expect(f).toBeLessThanOrEqual(1);
+        previous = f;
+      }
+      expect(waterFresnel(5)).toBeCloseTo(WATER_F0, 6); // clamped
+      expect(waterFresnel(-5)).toBeCloseTo(1, 6);
+    });
+
+    it('is a gentle tint close up (under 0.1 looking down 30 degrees) and a clear reflection far out', () => {
+      expect(waterFresnel(Math.sin((30 * Math.PI) / 180))).toBeLessThan(0.1);
+      // ...and a clear reflection of the sky far out, looking down 6 degrees.
+      expect(waterFresnel(Math.sin((6 * Math.PI) / 180))).toBeGreaterThan(0.4);
+    });
+
+    it('is the same sum in the shader', () => {
+      expect(WATER_FRAGMENT_SHADER).toContain(`const float WATER_F0 = ${WATER_F0};`);
+      expect(WATER_FRAGMENT_SHADER).toContain('WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - ndv, 5.0)');
+    });
+  });
+
+  describe('the soft edge', () => {
+    it('is nothing at the outer edge and full from WATER_SHORE in', () => {
+      expect(waterShore(0)).toBe(0);
+      expect(waterShore(-1)).toBe(0);
+      expect(waterShore(WATER_SHORE)).toBe(1);
+      expect(waterShore(WATER_SHORE + 5)).toBe(1);
+      expect(waterShore(WATER_SHORE / 2)).toBeCloseTo(0.5, 6);
+    });
+
+    it('rises steadily, with no step', () => {
+      let previous = 0;
+      for (let d = 0; d <= WATER_SHORE + 0.2; d += 0.005) {
+        const a = waterShore(d);
+        expect(a).toBeGreaterThanOrEqual(previous);
+        expect(a - previous).toBeLessThan(0.05); // no jump bigger than 5 percent in half a centimeter
+        previous = a;
+      }
+    });
+
+    it('melts in over 0.3 to 0.5 units, so the nominal bank is already see-through', () => {
+      expect(WATER_SHORE).toBeGreaterThanOrEqual(0.3);
+      expect(WATER_SHORE).toBeLessThanOrEqual(0.5);
+      // The bank is WATER_FRINGE in from the outer edge: partly faded there, and clear well in.
+      expect(waterShore(WATER_FRINGE)).toBeGreaterThan(0.3);
+      expect(waterShore(WATER_FRINGE)).toBeLessThan(0.9);
+    });
+
+    it('works out to nothing at both vertices of a row and full in the middle, in the shader as in TypeScript', () => {
+      const material = materialOf(build().root);
+      const half = material.uniforms.uHalf!.value as number;
+      const fringe = material.uniforms.uFringe!.value as number;
+      const soft = material.uniforms.uShore!.value as number;
+      expect(soft).toBe(WATER_SHORE);
+      // The shader's `inside = uHalf + uFringe - abs(u)` with u = across * (uHalf + uFringe).
+      const insideAt = (across: number): number => half + fringe - Math.abs(across) * (half + fringe);
+      expect(waterShore(insideAt(-1), soft)).toBe(0);
+      expect(waterShore(insideAt(1), soft)).toBe(0);
+      expect(waterShore(insideAt(0), soft)).toBe(1);
+      expect(WATER_FRAGMENT_SHADER).toContain('float inside = uHalf + uFringe - abs(u);');
+      expect(WATER_FRAGMENT_SHADER).toContain('alpha *= smoothstep(0.0, uShore, inside);');
+    });
+  });
+
+  describe('setWaterLook', () => {
+    it('starts from the default look: a warm sun from the default direction, the fog as the horizon', () => {
+      const uniforms = materialOf(build().root).uniforms;
+      const dir = uniforms.uSunDir!.value as THREE.Vector3;
+      const [x, y, z] = sunDirection(DEFAULT_LOOK);
+      expect(dir.length()).toBeCloseTo(1, 6);
+      expect(dir.x).toBeCloseTo(x, 6);
+      expect(dir.y).toBeCloseTo(y, 6);
+      expect(dir.z).toBeCloseTo(z, 6);
+      const sun = uniforms.uSunColor!.value as THREE.Color;
+      expect(sun.r).toBeGreaterThan(sun.b); // warm
+      expect((uniforms.uSkyHorizon!.value as THREE.Color).getHexString()).toBe(new THREE.Color(DEFAULT_LOOK.fogColor).getHexString());
+      expect((uniforms.uSkyZenith!.value as THREE.Color).getHexString()).toBe(new THREE.Color(DEFAULT_LOOK.skyZenithColor).getHexString());
+    });
+
+    it('lights flat water at about the brightness of sunlit ground, so the colors keep their look', () => {
+      const uniforms = materialOf(build().root).uniforms;
+      const flat = (uniforms.uAmbient!.value as THREE.Color).clone().add((uniforms.uSunColor!.value as THREE.Color).clone().multiplyScalar(Math.sin((DEFAULT_LOOK.sunElevation * Math.PI) / 180)));
+      expect(luminance(flat)).toBeGreaterThan(0.85);
+      expect(luminance(flat)).toBeLessThan(1.3);
+    });
+
+    it('is shared by all water, built before or after, so one call reaches every stream', () => {
+      const first = build();
+      setWaterLook({ ...DEFAULT_LOOK, sunElevation: 12, sunColor: '#ff8844', fogColor: '#aaccee' });
+      const second = build({ tier: 'low' });
+      for (const name of ['uSunDir', 'uSunColor', 'uAmbient', 'uSkyHorizon', 'uSkyZenith']) {
+        expect(materialOf(first.root).uniforms[name], name).toBe(materialOf(second.root).uniforms[name]);
+      }
+      const dir = materialOf(first.root).uniforms.uSunDir!.value as THREE.Vector3;
+      expect(dir.y).toBeCloseTo(Math.sin((12 * Math.PI) / 180), 6);
+      expect((materialOf(first.root).uniforms.uSkyHorizon!.value as THREE.Color).getHexString()).toBe(new THREE.Color('#aaccee').getHexString());
+    });
+
+    it('darkens the water as the sun gets lower, and turns it with the sun', () => {
+      const uniforms = materialOf(build().root).uniforms;
+      const noon = luminance(uniforms.uSunColor!.value as THREE.Color) * (uniforms.uSunDir!.value as THREE.Vector3).y;
+      setWaterLook({ ...DEFAULT_LOOK, sunElevation: 10, sunAzimuth: 200 });
+      const dusk = luminance(uniforms.uSunColor!.value as THREE.Color) * (uniforms.uSunDir!.value as THREE.Vector3).y;
+      expect(dusk).toBeLessThan(noon * 0.5);
+      const dir = uniforms.uSunDir!.value as THREE.Vector3;
+      expect(dir.z).toBeLessThan(0);
+      setWaterLook({ ...DEFAULT_LOOK, sunIntensity: 0 });
+      expect(luminance(uniforms.uSunColor!.value as THREE.Color)).toBe(0);
+    });
+
+    it('clamps the sun the way the environment does, so no look can aim it below the ground', () => {
+      const dir = materialOf(build().root).uniforms.uSunDir!.value as THREE.Vector3;
+      setWaterLook({ ...DEFAULT_LOOK, sunElevation: -30 });
+      expect(dir.y).toBeGreaterThan(0);
+      setWaterLook({ ...DEFAULT_LOOK, sunElevation: 120 });
+      expect(dir.y).toBeLessThan(1);
+      expect(dir.length()).toBeCloseTo(1, 6);
+    });
   });
 });
 
