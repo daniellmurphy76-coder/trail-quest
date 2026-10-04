@@ -1,7 +1,8 @@
 /**
  * "Make your Scout": the avatar editor. A full-screen overlay with a live 3D preview of the Scout
- * (drag or use the Turn buttons to look around) and big tabbed controls: Body, Hair, Face,
- * Clothes, Extras. Every option is a 56px swatch or little picture with a word under it and a
+ * (drag or use the Turn buttons to look around) and big tabbed controls: Hero, Body, Hair, Face,
+ * Clothes, Extras. The Hero tab offers three ready-made heroes: one tap sets a whole look, which the
+ * other tabs can then change. Every option is a 56px swatch or little picture with a word under it and a
  * check mark when picked, so nothing depends on color alone. Works with keyboard, mouse and touch.
  *
  * A few options are earned by playing (the scout hat, star eyes, the backpack, the gold shirt...).
@@ -13,6 +14,7 @@
  * editor still works and says the picture is not available.
  */
 import type { RankId } from '../../activities/types';
+import { HEROES, heroAvatar, heroOf, type HeroId } from '../../player/avatar/heroes';
 import { optionIcon, type IconGroup } from '../../player/avatar/icons';
 import {
   BUILDS,
@@ -70,9 +72,10 @@ export interface AvatarEditorOptions {
 
 export const AVATAR_EDITOR_TITLE = 'Make your Scout';
 
-type TabId = 'body' | 'hair' | 'face' | 'clothes' | 'extras';
+type TabId = 'hero' | 'body' | 'hair' | 'face' | 'clothes' | 'extras';
 
 const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
+  { id: 'hero', label: 'Hero' },
   { id: 'body', label: 'Body' },
   { id: 'hair', label: 'Hair' },
   { id: 'face', label: 'Face' },
@@ -86,8 +89,11 @@ interface GroupDef {
   choices: readonly Choice[];
   /** Colors show as a swatch; the rest show a little picture. */
   picture?: IconGroup;
-  get(look: FilledAvatar): string;
-  set(look: FilledAvatar, value: string): void;
+  /** The picked value, or '' when none of the options is picked (a hero after a change). */
+  get(look: FilledAvatar, rank: RankId): string;
+  set(look: FilledAvatar, value: string, rank: RankId): void;
+  /** A short line under each option's word, by value (the hero blurbs). */
+  notes?: Readonly<Record<string, string>>;
   /** False hides the group (hat color with no hat). */
   visible?(look: FilledAvatar): boolean;
   /** Set when some of this group's options have to be earned. */
@@ -100,6 +106,15 @@ const ON_OFF = (label: string): readonly Choice[] => [
 ];
 
 const GROUPS: readonly GroupDef[] = [
+  {
+    tab: 'hero',
+    title: 'Heroes',
+    choices: HEROES.map((hero) => ({ value: hero.id, label: hero.name })),
+    picture: 'hero',
+    notes: Object.fromEntries(HEROES.map((hero) => [hero.id, hero.blurb])),
+    get: (a, rank) => heroOf(a, rank) ?? '',
+    set: (a, v, rank) => Object.assign(a, heroAvatar(v as HeroId, rank)),
+  },
   { tab: 'body', title: 'Size', choices: BUILDS, picture: 'build', get: (a) => a.build, set: (a, v) => (a.build = v as FilledAvatar['build']) },
   { tab: 'body', title: 'Skin', choices: SKIN_TONES, get: (a) => a.skin, set: (a, v) => (a.skin = v) },
   { tab: 'hair', title: 'Hair style', choices: HAIR_STYLES, picture: 'hairStyle', get: (a) => a.hairStyle, set: (a, v) => (a.hairStyle = v as FilledAvatar['hairStyle']) },
@@ -143,12 +158,17 @@ interface GroupView {
  * reader can read it) but it is `aria-disabled` and never picks.
  */
 function optionButton(def: GroupDef, choice: Choice, lock?: CosmeticLock, level: LineLevel = 'grade2'): HTMLButtonElement {
+  const note = def.notes?.[choice.value];
   const face = h('span', { class: 'tq-opt__face', attrs: { 'aria-hidden': 'true' } });
   if (def.picture) face.append(optionIcon(def.picture, choice.value));
   else face.style.setProperty('--swatch', choice.value);
   face.append(h('span', { class: 'tq-opt__tick' }, '✓'));
   const classes = ['tq-opt', def.picture ? 'tq-opt--picture' : 'tq-opt--swatch'];
   const children = [face, h('span', { class: 'tq-opt__label' }, choice.label)];
+  if (note) {
+    classes.push('tq-opt--noted');
+    children.push(h('span', { class: 'tq-opt__note' }, note));
+  }
   if (lock) {
     classes.push('tq-opt--locked');
     children.push(
@@ -326,7 +346,7 @@ export function showAvatarEditor(host: HTMLElement, options: AvatarEditorOptions
     function refresh(): void {
       for (const view of groupViews) {
         view.section.hidden = view.def.visible ? !view.def.visible(look) : false;
-        const current = view.def.get(look);
+        const current = view.def.get(look, options.rank);
         for (const option of view.options) {
           const on = option.value === current;
           option.button.setAttribute('aria-checked', String(on));
@@ -343,7 +363,7 @@ export function showAvatarEditor(host: HTMLElement, options: AvatarEditorOptions
         return;
       }
       const next = { ...look };
-      def.set(next, choice.value);
+      def.set(next, choice.value, options.rank);
       look = next;
       refresh();
       preview?.setConfig(look);

@@ -4,7 +4,9 @@
  * no assets. Colors are fixed, friendly stand-ins; the real colors show in the live preview.
  */
 
-export type IconGroup = 'build' | 'hairStyle' | 'eyes' | 'glasses' | 'legs' | 'hat' | 'backpack';
+import { findHero } from './heroes';
+
+export type IconGroup = 'build' | 'hairStyle' | 'eyes' | 'glasses' | 'legs' | 'hat' | 'backpack' | 'hero';
 
 const NS = 'http://www.w3.org/2000/svg';
 const INK = '#1f2a1f';
@@ -206,5 +208,49 @@ export function optionIcon(group: IconGroup, value: string): SVGSVGElement {
       return hatIcon(value);
     case 'backpack':
       return backpackIcon(value === 'on');
+    case 'hero':
+      return heroIcon(value);
   }
+}
+
+// ---- hero ---------------------------------------------------------------------------------------
+
+/**
+ * A hero's head and shoulders in the hero's own colors (unlike the other pictures, which use stand-in
+ * colors), so the three tiles look like the three heroes.
+ */
+function heroIcon(id: string): SVGSVGElement {
+  const hero = findHero(id);
+  if (!hero) return svg();
+  const look = hero.look;
+  const hairColor = (el: SVGElement): SVGElement => {
+    if (el.getAttribute('fill') === HAIR) el.setAttribute('fill', look.hairColor);
+    return el;
+  };
+  const hair = look.hairStyle === 'none' ? { back: [], front: [] } : hairParts(look.hairStyle);
+  const eye = (x: number): SVGElement =>
+    look.eyes === 'happy' || (look.eyes === 'wink' && x > 24)
+      ? stroke(`M${x - 3} 31 Q${x} 26 ${x + 3} 31`, 2.2)
+      : ellipse(x, 29.5, 1.8, 2.6, INK);
+  const glasses = look.glasses
+    ? [
+        node('circle', { cx: 19, cy: 29.5, r: 4.4, fill: 'none', stroke: INK, 'stroke-width': 1.6 }),
+        node('circle', { cx: 29, cy: 29.5, r: 4.4, fill: 'none', stroke: INK, 'stroke-width': 1.6 }),
+      ]
+    : [];
+  const cap =
+    look.hat === 'cap'
+      ? [path('M11.5 26 A12.5 12.5 0 0 1 36.5 26 Z', look.hatColor), path('M30 24 L45 27 Q45 30 36 29 L30 28 Z', look.hatColor)]
+      : [];
+  return svg(
+    ...hair.back.map(hairColor),
+    path('M6 48 Q6 40 16 39 L32 39 Q42 40 42 48 Z', look.shirt),
+    circle(24, 29, 13, look.skin, true),
+    eye(19),
+    eye(29),
+    ...glasses,
+    stroke('M20 35 Q24 38 28 35', 2),
+    ...(look.hat === 'cap' ? [] : hair.front.map(hairColor)),
+    ...cap,
+  );
 }

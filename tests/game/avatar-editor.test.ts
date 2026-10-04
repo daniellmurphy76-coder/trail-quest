@@ -20,6 +20,7 @@ import {
   defaultAvatar,
   fillAvatar,
 } from '../../src/player/avatar/options';
+import { HEROES, heroAvatar } from '../../src/player/avatar/heroes';
 import { buttonByText, flush, makeHost, press } from '../ui/helpers';
 
 // happy-dom has no WebGL, so the preview gets a stand-in renderer that only counts what it is asked.
@@ -103,12 +104,13 @@ const selected = (title: string): string[] =>
     .map((b) => b.querySelector('.tq-opt__label')!.textContent!);
 
 describe('avatar editor: layout and words', () => {
-  it('is a dialog titled Make your Scout with the five tabs and the three buttons', () => {
+  it('is a dialog titled Make your Scout with the six tabs and the three buttons', () => {
     void open();
     const dialog = host.querySelector('[role="dialog"]')!;
     expect(dialog.getAttribute('aria-label')).toBe('Make your Scout');
     expect(host.querySelector('h2')!.textContent).toBe('Make your Scout');
     expect(Array.from(host.querySelectorAll('[role="tab"]')).map((t) => t.textContent)).toEqual([
+      'Hero',
       'Body',
       'Hair',
       'Face',
@@ -125,6 +127,7 @@ describe('avatar editor: layout and words', () => {
       const label = host.querySelector(`#${panel.getAttribute('aria-labelledby')}`)!.textContent!;
       byTab.set(label, Array.from(panel.querySelectorAll('.tq-avatar__group-title')).map((t) => t.textContent!));
     }
+    expect(byTab.get('Hero')).toEqual(['Heroes']);
     expect(byTab.get('Body')).toEqual(['Size', 'Skin']);
     expect(byTab.get('Hair')).toEqual(['Hair style', 'Hair color']);
     expect(byTab.get('Face')).toEqual(['Eyes', 'Glasses']);
@@ -294,19 +297,19 @@ describe('avatar editor: keyboard and touch', () => {
       Array.from(host.querySelectorAll<HTMLElement>('[role="tabpanel"]'))
         .filter((p) => !p.hidden)
         .map((p) => host.querySelector(`#${p.getAttribute('aria-labelledby')}`)!.textContent!);
-    expect(visible()).toEqual(['Body']);
-    expect(tab('Body').getAttribute('aria-selected')).toBe('true');
-    expect(tab('Body').tabIndex).toBe(0);
-    expect(tab('Hair').tabIndex).toBe(-1);
+    expect(visible()).toEqual(['Hero']);
+    expect(tab('Hero').getAttribute('aria-selected')).toBe('true');
+    expect(tab('Hero').tabIndex).toBe(0);
+    expect(tab('Body').tabIndex).toBe(-1);
 
-    tab('Body').focus();
-    tab('Body').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-    expect(visible()).toEqual(['Hair']);
-    expect(document.activeElement).toBe(tab('Hair'));
-    tab('Hair').dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    tab('Hero').focus();
+    tab('Hero').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(visible()).toEqual(['Body']);
+    expect(document.activeElement).toBe(tab('Body'));
+    tab('Body').dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
     expect(visible()).toEqual(['Extras']);
     tab('Extras').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-    expect(visible()).toEqual(['Body']); // wraps
+    expect(visible()).toEqual(['Hero']); // wraps
   });
 
   it('Enter and Space press the focused option, and the arrow keys move between options', () => {
@@ -337,7 +340,7 @@ describe('avatar editor: keyboard and touch', () => {
     lower.className = 'tq-overlay';
     host.append(lower);
     const result = open();
-    expect(document.activeElement).toBe(tab('Body'));
+    expect(document.activeElement).toBe(tab('Hero'));
     press(document, 'Escape'); // only the top overlay answers
     await expect(result).resolves.toBeNull();
     expect(host.contains(lower)).toBe(true);
@@ -556,5 +559,231 @@ describe('avatar editor: options that are earned', () => {
     void open({ unlocks: [] });
     const labels = Array.from(group('Hat').querySelectorAll('.tq-opt__label')).map((l) => l.textContent);
     expect(labels).toEqual(HAT_STYLES.map((c) => c.label));
+  });
+});
+
+describe('avatar editor: heroes', () => {
+  const tile = (name: string): HTMLButtonElement => radio('Heroes', name);
+  const neckerchief = defaultAvatar(rank).neckerchief;
+  const arrowRight = (el: HTMLElement): void => {
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  };
+
+  it('offers Trail Blazer, Camp Builder and Ranger, each with a picture and a short line, none picked at first', () => {
+    void open();
+    expect(Array.from(group('Heroes').querySelectorAll('.tq-opt__label')).map((l) => l.textContent)).toEqual([
+      'Trail Blazer',
+      'Camp Builder',
+      'Ranger',
+    ]);
+    for (const hero of HEROES) {
+      const option = tile(hero.name);
+      expect(option.querySelector('.tq-opt__face svg'), hero.name).not.toBeNull();
+      expect(option.classList.contains('tq-opt--noted'), hero.name).toBe(true);
+      const note = option.querySelector('.tq-opt__note')!.textContent!;
+      expect(note.trim(), hero.name).not.toBe('');
+      expect(note).toBe(hero.blurb);
+    }
+    expect(selected('Heroes')).toEqual([]);
+    expect(group('Heroes').querySelectorAll('[aria-checked="true"]')).toHaveLength(0);
+  });
+
+  it('opens on the Hero tab, so the three heroes are what a Scout sees first', () => {
+    void open();
+    expect(tab('Hero').getAttribute('aria-selected')).toBe('true');
+    expect(group('Heroes').closest<HTMLElement>('[role="tabpanel"]')!.hidden).toBe(false);
+    expect(group('Size').closest<HTMLElement>('[role="tabpanel"]')!.hidden).toBe(true);
+  });
+
+  it('checks the picked hero (with a tick, not color alone) and the other tabs follow it', async () => {
+    const result = open();
+    tile('Trail Blazer').click();
+    expect(selected('Heroes')).toEqual(['Trail Blazer']);
+    expect(tile('Trail Blazer').classList.contains('is-selected')).toBe(true);
+    expect(tile('Trail Blazer').querySelector('.tq-opt__tick')!.textContent).toBe('✓');
+    expect(tile('Camp Builder').getAttribute('aria-checked')).toBe('false');
+
+    tab('Body').click();
+    expect(selected('Size')).toEqual(['Small']);
+    expect(selected('Skin')).toEqual(['Peach']);
+    tab('Hair').click();
+    expect(selected('Hair style')).toEqual(['Spiky']);
+    expect(selected('Hair color')).toEqual(['Ginger']);
+    tab('Face').click();
+    expect(selected('Eyes')).toEqual(['Round']);
+    expect(selected('Glasses')).toEqual(['None']);
+    tab('Clothes').click();
+    expect(selected('Shirt')).toEqual(['Sky blue']);
+    expect(selected('Legs')).toEqual(['Shorts']);
+    tab('Extras').click();
+    expect(selected('Hat')).toEqual(['Cap']);
+    expect(group('Hat color').hidden).toBe(false);
+
+    // A different hero moves every tab again, and the first one lets go.
+    tab('Hero').click();
+    tile('Camp Builder').click();
+    expect(selected('Heroes')).toEqual(['Camp Builder']);
+    expect(selected('Size')).toEqual(['Medium']);
+    expect(selected('Hair style')).toEqual(['Curly']);
+    expect(selected('Glasses')).toEqual(['Glasses']);
+    expect(selected('Hat')).toEqual(['None']);
+    expect(group('Hat color').hidden).toBe(true);
+
+    buttonByText(host, 'Done').click();
+    await expect(result).resolves.toEqual(heroAvatar('camp-builder', rank));
+  });
+
+  for (const hero of HEROES) {
+    it(`Done resolves the whole ${hero.name} look with the rank neckerchief`, async () => {
+      const result = open();
+      tile(hero.name).click();
+      buttonByText(host, 'Done').click();
+      const look = (await result)!;
+      expect(look).toEqual(heroAvatar(hero.id, rank));
+      expect(look.neckerchief).toBe(neckerchief);
+      expect(look.bodyColor).toBe(look.shirt);
+      expect(fillAvatar(look, rank)).toEqual(look);
+    });
+  }
+
+  it('keeps the rank neckerchief for other ranks too, so a Bear hero is still a Bear', async () => {
+    for (const other of ['lion', 'bear', 'arrow-of-light'] as const) {
+      const result = showAvatarEditor(host, { initial: defaultAvatar(other), rank: other, unlocks: [] });
+      tile('Ranger').click();
+      buttonByText(host, 'Done').click();
+      const look = (await result)!;
+      expect(look).toEqual(heroAvatar('ranger', other));
+      expect(look.neckerchief).toBe(defaultAvatar(other).neckerchief);
+    }
+  });
+
+  it('unchecks the hero when anything else is changed, and keeps the rest of the hero look', async () => {
+    const result = open();
+    tile('Trail Blazer').click();
+    tab('Body').click();
+    radio('Skin', 'Tan').click();
+    expect(selected('Heroes')).toEqual([]);
+    expect(tile('Trail Blazer').classList.contains('is-selected')).toBe(false);
+    expect(selected('Size')).toEqual(['Small']);
+    expect(selected('Hair style')).toEqual(['Spiky']);
+    expect(selected('Skin')).toEqual(['Tan']);
+    buttonByText(host, 'Done').click();
+    await expect(result).resolves.toEqual({ ...heroAvatar('trail-blazer', rank), skin: '#d9a070' });
+  });
+
+  it('unchecks the hero for a change on any tab, and checks it again when the look is put back', () => {
+    void open();
+    tile('Camp Builder').click();
+    expect(selected('Heroes')).toEqual(['Camp Builder']);
+
+    radio('Size', 'Tall').click();
+    expect(selected('Heroes')).toEqual([]);
+    radio('Size', 'Medium').click();
+    expect(selected('Heroes')).toEqual(['Camp Builder']);
+
+    radio('Glasses', 'None').click();
+    expect(selected('Heroes')).toEqual([]);
+    radio('Glasses', 'Glasses').click();
+    expect(selected('Heroes')).toEqual(['Camp Builder']);
+
+    radio('Hat', 'Cap').click();
+    expect(selected('Heroes')).toEqual([]);
+    radio('Hat', 'None').click();
+    expect(selected('Heroes')).toEqual(['Camp Builder']);
+
+    radio('Scarf', 'Navy').click();
+    expect(selected('Heroes')).toEqual([]);
+  });
+
+  it('lets one hero take over from another, even after a change', () => {
+    void open();
+    tile('Ranger').click();
+    radio('Shoes', 'White').click();
+    expect(selected('Heroes')).toEqual([]);
+    tile('Trail Blazer').click();
+    expect(selected('Heroes')).toEqual(['Trail Blazer']);
+    expect(selected('Shoes')).toEqual(['Red']);
+    expect(selected('Size')).toEqual(['Small']);
+  });
+
+  it('opens with the hero checked when the Scout is already wearing that hero look', async () => {
+    const result = showAvatarEditor(host, {
+      initial: heroAvatar('ranger', rank),
+      rank,
+      unlocks: ALL_COSMETIC_UNLOCKS,
+    });
+    expect(selected('Heroes')).toEqual(['Ranger']);
+    expect(selected('Size')).toEqual(['Tall']);
+    buttonByText(host, 'Done').click();
+    await expect(result).resolves.toEqual(heroAvatar('ranger', rank));
+  });
+
+  it('checks the hero for another rank too, using that rank neckerchief', () => {
+    void showAvatarEditor(host, { initial: heroAvatar('camp-builder', 'webelos'), rank: 'webelos', unlocks: [] });
+    expect(selected('Heroes')).toEqual(['Camp Builder']);
+  });
+
+  it('checks no hero when the hero look has a different neckerchief, but still shows the look', () => {
+    void showAvatarEditor(host, { initial: { ...heroAvatar('ranger', rank), neckerchief: '#f2f2f2' }, rank });
+    expect(selected('Heroes')).toEqual([]);
+    expect(selected('Size')).toEqual(['Tall']);
+  });
+
+  it('works for a Scout who has earned nothing: every hero is open and Done adds nothing to it', async () => {
+    for (const hero of HEROES) {
+      const result = open({ unlocks: [] });
+      const option = tile(hero.name);
+      expect(option.hasAttribute('aria-disabled'), hero.name).toBe(false);
+      expect(option.classList.contains('tq-opt--locked'), hero.name).toBe(false);
+      expect(option.dataset.locked, hero.name).toBeUndefined();
+      expect(option.querySelector('.tq-opt__earn'), hero.name).toBeNull();
+      expect(option.querySelector('.tq-opt__lock'), hero.name).toBeNull();
+      option.click();
+      expect(selected('Heroes'), hero.name).toEqual([hero.name]);
+      buttonByText(host, 'Done').click();
+      const look = (await result)!;
+      expect(look, hero.name).toEqual(fillAvatar(look, rank, []));
+      expect(look, hero.name).toEqual(heroAvatar(hero.id, rank));
+    }
+  });
+
+  it('keeps every hero tile free while the earned options on the other tabs stay locked', () => {
+    void open({ unlocks: [] });
+    expect(group('Heroes').querySelectorAll('.tq-opt--locked')).toHaveLength(0);
+    expect(host.querySelectorAll('.tq-opt--locked')).toHaveLength(6); // hat x3, star eyes, backpack, gold shirt
+  });
+
+  it('answers Enter and Space on a hero tile, and moves between tiles with the arrow keys', () => {
+    void open();
+    const blazer = tile('Trail Blazer');
+    blazer.focus();
+    press(blazer, 'Enter');
+    expect(selected('Heroes')).toEqual(['Trail Blazer']);
+    const builder = tile('Camp Builder');
+    builder.focus();
+    press(builder, ' ');
+    expect(selected('Heroes')).toEqual(['Camp Builder']);
+    arrowRight(builder);
+    expect(document.activeElement).toBe(tile('Ranger'));
+    arrowRight(tile('Ranger'));
+    expect(document.activeElement).toBe(tile('Trail Blazer')); // wraps
+  });
+
+  it('lets Random take over from a hero, and then no hero is checked', async () => {
+    const result = open({ random: mulberry32(11) });
+    tile('Ranger').click();
+    buttonByText(host, 'Random').click();
+    expect(selected('Heroes')).toEqual([]);
+    buttonByText(host, 'Done').click();
+    const look = (await result)!;
+    expect(look).not.toEqual(heroAvatar('ranger', rank));
+    expect(look.neckerchief).toBe(neckerchief);
+  });
+
+  it('Cancel after picking a hero resolves null', async () => {
+    const result = open();
+    tile('Ranger').click();
+    buttonByText(host, 'Cancel').click();
+    await expect(result).resolves.toBeNull();
   });
 });
