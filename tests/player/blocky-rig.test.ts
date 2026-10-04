@@ -614,14 +614,16 @@ describe('buildAvatar with the model: dispose', () => {
     expect(() => run(next, 0.5, { moving: true, speed: 4 })).not.toThrow();
   });
 
-  it('does not free the shared blob geometry or material', () => {
+  it('does not free the shared blob geometry, material or texture', () => {
     const a = modelRig();
     const b = buildAvatar(look());
     const blob = node(b, 'avatar-blob') as THREE.Mesh;
-    let disposed = false;
-    blob.geometry.addEventListener('dispose', () => (disposed = true));
+    const freed: string[] = [];
+    blob.geometry.addEventListener('dispose', () => freed.push('geometry'));
+    (blob.material as THREE.MeshBasicMaterial).addEventListener('dispose', () => freed.push('material'));
+    (blob.material as THREE.MeshBasicMaterial).map!.addEventListener('dispose', () => freed.push('texture'));
     a.dispose();
-    expect(disposed).toBe(false);
+    expect(freed).toEqual([]);
   });
 });
 

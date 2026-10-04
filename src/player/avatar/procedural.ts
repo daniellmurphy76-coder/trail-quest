@@ -32,8 +32,53 @@ export const ONE_SHOT_SECONDS: Readonly<Partial<Record<Emote, number>>> = { chee
 
 /** One material for every body part: the color lives in the vertices. Never disposed. */
 const BODY_MATERIAL = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-export const BLOB_GEOMETRY = new THREE.CircleGeometry(0.55, 16).rotateX(-Math.PI / 2);
-export const BLOB_MATERIAL = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false });
+
+/**
+ * The soft contact shadow under every Scout: one shared geometry, material and texture, so a Scout costs one
+ * draw call and no allocations. It is transparent, so the sun shadow and the AO pass skip it; it just darkens
+ * the ground a little under the feet, with no hard edge.
+ */
+export const BLOB_RADIUS = 0.6;
+export const BLOB_LIFT = 0.03; // how far it floats above the ground
+export const BLOB_OPACITY = 0.32; // at the very middle
+
+/** A 64 by 64 black dot whose alpha eases from 1 in the middle to exactly 0 at the rim (and in the corners). */
+export function blobTexture(): THREE.DataTexture {
+  const size = 64;
+  const mid = (size - 1) / 2;
+  const data = new Uint8Array(size * size * 4); // red, green and blue stay 0: black
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = Math.min(1, Math.hypot(x - mid, y - mid) / mid); // 1 on the outermost texels
+      const a = 1 - d * d * (3 - 2 * d); // smoothstep, flipped
+      data[(y * size + x) * 4 + 3] = Math.round(255 * a);
+    }
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+export const BLOB_TEXTURE = blobTexture();
+export const BLOB_GEOMETRY = new THREE.PlaneGeometry(BLOB_RADIUS * 2, BLOB_RADIUS * 2).rotateX(-Math.PI / 2);
+export const BLOB_MATERIAL = new THREE.MeshBasicMaterial({
+  color: 0x000000,
+  map: BLOB_TEXTURE,
+  transparent: true,
+  opacity: BLOB_OPACITY,
+  depthWrite: false,
+  polygonOffset: true, // pulled toward the camera, so it never z-fights the ground
+  polygonOffsetFactor: -2,
+  polygonOffsetUnits: -2,
+});
+
+/** How much smaller the blob is while the Scout is `lift` units off the ground: a 0.2 cheer hop leaves 85%. */
+export function blobScale(lift: number): number {
+  return Math.max(0.6, 1 - lift * 0.75);
+}
 
 type Part = 'head' | 'torso' | 'arm' | 'leg';
 
@@ -118,10 +163,11 @@ export function buildProceduralAvatar(config: AvatarConfig, options: AvatarRigOp
   const armMeshes = [mesh('arm-l-mesh', 'arm', armL), mesh('arm-r-mesh', 'arm', armR)];
   const legMeshes = [mesh('leg-l-mesh', 'leg', legL), mesh('leg-r-mesh', 'leg', legR)];
 
+  let blob: THREE.Mesh | null = null;
   if (options.blobShadow ?? true) {
-    const blob = new THREE.Mesh(BLOB_GEOMETRY, BLOB_MATERIAL);
+    blob = new THREE.Mesh(BLOB_GEOMETRY, BLOB_MATERIAL);
     blob.name = 'avatar-blob';
-    blob.position.y = 0.03;
+    blob.position.y = BLOB_LIFT;
     body.add(blob);
   }
   setShadowCasting(root, true, true); // the blob is transparent, so it is skipped
@@ -172,6 +218,12 @@ export function buildProceduralAvatar(config: AvatarConfig, options: AvatarRigOp
     upper.rotation.x = w.walk * 0.06;
     upper.rotation.y = w.walk * s * 0.1;
     body.position.y = w.cheer * hop * 0.2;
+    if (blob) {
+      // The blob stays on the ground while the Scout hops, and shrinks a little as they rise.
+      blob.position.y = (BLOB_LIFT - body.position.y) / body.scale.y;
+      const s = blobScale(body.position.y);
+      blob.scale.set(s, 1, s);
+    }
 
     head.rotation.x = -w.cheer * 0.18;
     head.rotation.y = w.idle * Math.sin(clock * 0.8) * 0.12 - w.walk * s * 0.1;
