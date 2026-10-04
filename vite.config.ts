@@ -18,5 +18,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // Pins the quality tier so results do not depend on the CPU of the machine running them.
+    setupFiles: ['tests/setup-quality.ts'],
   },
 });
