@@ -18,6 +18,10 @@
  * Draw calls: about 24 with primitives only (28 with the four name signs, which are sprites). After
  * the swap about 39 (buildings 7, plants up to 8, streets 3, planters 5, flagpole 3, and so on).
  * The sun's shadow pass draws the casters a second time, about 25 more, so the zone stays near 65.
+ *
+ * Past the walls of trees, `addHorizon` (./horizon.ts) adds rolling hills, a distant tree line and distant rooftops:
+ * 3 more draw calls and about 11 to 14 thousand triangles. The ground rolls up to meet the hills outside the
+ * walkable square (see ./terrain.ts) and stays flat at y = 0 inside it.
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -26,19 +30,21 @@ import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { squareBounds } from './bounds';
 import { boxCollider, circleCollider, type Collider } from './collide';
+import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { createGround, createGroundApron } from './ground';
+import { addHorizon } from './horizon';
 import { labelSprite } from './placeholder-zone';
 import {
   flagpole,
   instancedModel,
   scatterPlants,
-  tintPlants,
   treeColliders,
   type AvoidCircle,
   type Placement,
   type Rng,
   type Spot,
 } from './props';
+import { zoneTerrain } from './terrain';
 import type { Interactable, Zone } from './zone';
 import type { ZoneDeps } from './zones';
 
@@ -47,7 +53,10 @@ import type { ZoneDeps } from './zones';
 /** The player may walk this far from the center in x and z (a 35 by 35 square). */
 export const TOWN_SQUARE_HALF = 17.5;
 const GROUND_SIZE = 60;
+const GROUND_SEGMENTS = 60;
 const SEED = 3303;
+/** Seed for the land beyond the walkable square and the horizon behind it (its own stream). */
+const HORIZON_SEED = SEED + 20;
 
 const GRASS_COLOR = 0x5f9e45;
 const PLAZA_COLOR = 0xcdc5b2;
@@ -83,8 +92,14 @@ const SIGN_LABEL_Y = 2.75;
 
 const TREE_COUNT = 18;
 const TREE_REACH = 19.5;
-/** A tree's crown is about this wide (radius), so it keeps this much extra room from props. */
-const TREE_CROWN_RADIUS = 1.3;
+/**
+ * Size range of the lawn trees (a multiplier). The KayKit crowns are about twice as wide as the old
+ * round ones, so the range is a little smaller than it was (0.9 to 1.4).
+ */
+const TREE_SCALE: readonly [number, number] = [0.85, 1.15];
+/** The widest a lawn tree's crown can grow, which is how much room it keeps from props. */
+export const TOWN_SQUARE_TREE_REACH = worstCrownReach(['tree.round'], TREE_SCALE);
+const TREE_CROWN_RADIUS = TOWN_SQUARE_TREE_REACH - 1;
 const PLANT_COUNT = 120;
 const PLANT_REACH = 20.5;
 
@@ -650,12 +665,15 @@ function planterParts(): PlanterParts {
 function lawnTreeSpots(rng: Rng, count: number, blocked: readonly Circle[]): Spot[] {
   const spots: Spot[] = [];
   const plazaClear = PLAZA_RADIUS + PLAZA_FEATHER + 0.5;
-  const streetClear = TOWN_SQUARE_STREET_HALF + 1.7;
+  // A trunk stands far enough from a street that its crown does not hang over the sidewalk.
+  const streetClear = TOWN_SQUARE_STREET_HALF + TOWN_SQUARE_TREE_REACH + 0.2;
+  const lane = cameraLane(SPAWN_POS); // the camera trails the player up the main street on arrival
   for (let attempt = 0; attempt < 900 && spots.length < count; attempt++) {
     const x = (rng() * 2 - 1) * TREE_REACH;
     const z = (rng() * 2 - 1) * TREE_REACH;
     if (Math.hypot(x, z) < plazaClear) continue;
     if (Math.abs(x) < streetClear || Math.abs(z) < streetClear) continue;
+    if (canopyHitsLane(x, z, TOWN_SQUARE_TREE_REACH, lane)) continue;
     if (BUILDINGS.some((b) => insideFootprint(x, z, b, 2.2))) continue;
     if (blocked.some((b) => Math.hypot(x - b.x, z - b.z) < b.r + TREE_CROWN_RADIUS)) continue;
     if (spots.some((s) => Math.hypot(x - s.x, z - s.z) < 3.2)) continue;
@@ -674,7 +692,11 @@ function buildTrees(rng: Rng, blocked: readonly Circle[]): Trees {
   const group = new THREE.Group();
   group.name = 'trees';
   const spots = lawnTreeSpots(rng, TREE_COUNT, blocked);
-  const placements: Placement[] = spots.map((s) => ({ ...s, yaw: rng() * Math.PI * 2, scale: 0.9 + rng() * 0.5 }));
+  const placements: Placement[] = spots.map((s) => ({
+    ...s,
+    yaw: rng() * Math.PI * 2,
+    scale: TREE_SCALE[0] + rng() * (TREE_SCALE[1] - TREE_SCALE[0]),
+  }));
   // Round crowns on short trunks, the same two parts for every tree.
   const trunks = instanceAll('tree-trunks', new THREE.CylinderGeometry(0.2, 0.3, 2.4, 6).translate(0, 1.2, 0), lambert(0x7b5230), placements);
   const crowns = instanceAll('tree-crowns', new THREE.IcosahedronGeometry(1.15, 1).translate(0, 3.3, 0), lambert(0xffffff), placements);
@@ -722,6 +744,7 @@ export function createTownSquare(deps: ZoneDeps): Zone {
   root.name = 'town-square';
 
   // Ground and plants use their own random streams, so moving one never shifts the others.
+  const terrain = zoneTerrain('town-square', TOWN_SQUARE_HALF, HORIZON_SEED);
   root.add(createGroundApron(GRASS_COLOR));
   root.add(
     createGround({
@@ -730,10 +753,23 @@ export function createTownSquare(deps: ZoneDeps): Zone {
       grass: GRASS_COLOR,
       dirt: PLAZA_COLOR,
       path: { center: { x: 0, z: 0 }, radius: PLAZA_RADIUS, feather: PLAZA_FEATHER },
-      segments: 60,
+      segments: GROUND_SEGMENTS,
       ripple: 0.02, // town lawns are flat; a small ripple also keeps the grass below the asphalt
+      terrain,
+      pebbles: false, // the plaza is paving, not dirt
     }),
   );
+  // Rolling hills, a distant tree line and far rooftops behind the lawn.
+  addHorizon(root, {
+    zoneId: 'town-square',
+    half: TOWN_SQUARE_HALF,
+    seed: HORIZON_SEED,
+    kind: 'town',
+    grass: GRASS_COLOR,
+    groundHalf: GROUND_SIZE / 2,
+    groundSegments: GROUND_SEGMENTS,
+    terrain,
+  });
 
   const spawn = new THREE.Vector3(SPAWN_POS.x, 0, SPAWN_POS.z);
 
@@ -928,7 +964,6 @@ export function createTownSquare(deps: ZoneDeps): Zone {
     if (assets.has('plant.bush')) {
       const bushes = instancedModel('plant.bush', planters.bushes, { cast: false, receive: true });
       if (bushes) {
-        tintPlants(bushes);
         root.remove(primitiveBushes);
         dispose(primitiveBushes);
         root.add(bushes);
@@ -944,7 +979,6 @@ export function createTownSquare(deps: ZoneDeps): Zone {
         ),
       );
       if (meshes.every((m) => m !== undefined)) {
-        for (const m of meshes) tintPlants(m!);
         root.remove(primitiveFlowers);
         dispose(primitiveFlowers);
         root.add(...(meshes as THREE.InstancedMesh[]));

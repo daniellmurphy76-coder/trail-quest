@@ -24,10 +24,17 @@
  * spawn are kept clear of colliders. The ball hops in the infield and has none, so it never stands
  * in the way of the walk from the spawn.
  *
- * Draw calls: 15 with primitives (apron, ground, track, cones, fence, gate, benches, scoreboard and its
- * label, stones, ball, trees 2, plants, Trail sign) and 23 after the swap (fence + gate 3, trees 2,
- * plants up to 8, the rest 1 each). The sun's shadow pass draws the
+ * Butterflies drift over the infield and birds circle high overhead (./critters.ts): 2 more draw calls
+ * on the high and medium tiers, none on the low tier.
+ *
+ * Draw calls: 19 with primitives (apron, ground, horizon 3, track, cones, fence, gate, benches, scoreboard,
+ * stones, ball, trees 2, plants, Trail sign, butterflies, birds) and about 27 after the swap (fence +
+ * gate 3, trees 2, plants up to 8, the rest 1 each). The sun's shadow pass draws the
  * casting props again. The budget is 80.
+ *
+ * Past the walls of trees, `addHorizon` (./horizon.ts) adds rolling hills, a distant tree line and far mountains:
+ * 3 more draw calls and about 11 to 14 thousand triangles. The ground rolls up to meet the hills outside the
+ * walkable square (see ./terrain.ts) and stays flat at y = 0 inside it.
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -36,7 +43,10 @@ import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
 import { boxCollider, circleCollider, type Collider } from './collide';
-import { createGround, createGroundApron } from './ground';
+import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
+import { applyGroundTexture, createGround, createGroundApron, createGroundTexture } from './ground';
+import { createBirds, createButterflies, type AvoidDisc } from './critters';
+import { addHorizon } from './horizon';
 import { labelSprite } from './placeholder-zone';
 import {
   instancedModel,
@@ -49,6 +59,7 @@ import {
   type Rng,
   type Spot,
 } from './props';
+import { zoneTerrain } from './terrain';
 import type { Interactable, Zone } from './zone';
 import type { ZoneDeps } from './zones';
 
@@ -65,6 +76,8 @@ export const FITNESS_FIELD_HALF = 17.5;
 export const FITNESS_TRACK = { cx: 0, cz: -1.5, a: 12.5, b: 8, width: 3 } as const;
 
 const SEED = 3108;
+/** Seed for the land beyond the walkable square and the horizon behind it (its own stream). */
+const HORIZON_SEED = SEED + 20;
 const GROUND_SIZE = 48;
 const GRASS_COLOR = 0x69ad4b;
 const DIRT_COLOR = 0xb58a5a;
@@ -105,8 +118,23 @@ const BALL_BOUNCE = 0.3;
 const TREE_COUNT = 32;
 const PLANT_COUNT = 130;
 
+/** Ambient life. Each has its own seed, so the critters never shift the trees, plants or open spots. */
+const BUTTERFLY_SEED = SEED + 31;
+const BIRD_SEED = SEED + 32;
+const BUTTERFLY_COUNT = 8;
+const BIRD_COUNT = 3;
+/** Butterflies drift over the infield, a rectangle that sits inside the oval's inner edge (its corners spill a little over the track). */
+const BUTTERFLY_AREA = { minX: -9, maxX: 9, minZ: -6.5, maxZ: 3.5 } as const;
+
 /** Models that replace the primitive props once they load. */
 const TREE_MODELS = ['tree.round', 'tree.oak'] as const;
+/**
+ * Size range of the tree models (a multiplier). The KayKit crowns are about twice as wide as the old
+ * cones, so the range is a little smaller than it was (0.9 to 1.35).
+ */
+const TREE_SCALE: readonly [number, number] = [0.8, 1.2];
+/** The widest a crown can grow, for keeping canopies out of the camera lane. */
+export const FITNESS_FIELD_TREE_REACH = worstCrownReach(TREE_MODELS, TREE_SCALE);
 const FITNESS_MODELS = [
   ...TREE_MODELS,
   'fence.simple',
@@ -330,6 +358,7 @@ export function createFitnessField(deps: ZoneDeps): Zone {
   const half = FITNESS_FIELD_HALF;
 
   // ---- ground: grass, the dirt track and its start line ---------------------------------------
+  const terrain = zoneTerrain('fitness-field', half, HORIZON_SEED);
   root.add(createGroundApron(GRASS_COLOR));
   root.add(
     createGround({
@@ -338,9 +367,21 @@ export function createFitnessField(deps: ZoneDeps): Zone {
       grass: GRASS_COLOR,
       dirt: DIRT_COLOR,
       ripple: 0.03,
+      terrain,
     }),
   );
-  const trackMaterial = vertexColorMaterial();
+  // Rolling hills, a distant tree line and far mountains behind the wall of trees.
+  addHorizon(root, {
+    zoneId: 'fitness-field',
+    half,
+    seed: HORIZON_SEED,
+    kind: 'outdoor',
+    grass: GRASS_COLOR,
+    groundHalf: GROUND_SIZE / 2,
+    terrain,
+  });
+  // The dirt track gets the same pebbles as a dirt clearing, in world space so they line up.
+  const trackMaterial = applyGroundTexture(vertexColorMaterial(), createGroundTexture(), 'pebbles');
   // Belt and braces against z-fighting where the track edge meets the grass ripple.
   trackMaterial.polygonOffset = true;
   trackMaterial.polygonOffsetFactor = -2;
@@ -419,6 +460,21 @@ export function createFitnessField(deps: ZoneDeps): Zone {
   setShadowCasting(ball, true, true);
   root.add(ball);
 
+  // ---- critters: butterflies over the infield, birds overhead -----------------------------------
+  // Decoration only. Butterflies steer round the ball and the cones so they never hover inside one.
+  const butterflyAvoid: AvoidDisc[] = [
+    { x: BALL.x, z: BALL.z, r: 0.9 },
+    ...CONE_SPOTS.map((c) => ({ x: c.x, z: c.z, r: 0.8 })),
+  ];
+  const butterflies = createButterflies({
+    count: BUTTERFLY_COUNT,
+    area: BUTTERFLY_AREA,
+    avoid: butterflyAvoid,
+    seed: BUTTERFLY_SEED,
+  });
+  const birds = createBirds({ count: BIRD_COUNT, center: { x: 0, z: 0 }, seed: BIRD_SEED });
+  root.add(butterflies.root, birds.root);
+
   // ---- the Trail sign, beside the spawn, turned to face the camera behind the player -----------
   const spawn = SPAWN.clone();
   const signX = spawn.x + SIGN_OFFSET_X;
@@ -441,10 +497,11 @@ export function createFitnessField(deps: ZoneDeps): Zone {
   // ---- trees around the edge, with a gap behind the spawn so the camera sees out ---------------
   const treeRng = mulberry32(SEED + 10);
   const treeSpots: Spot[] = [];
+  const lane = cameraLane(spawn); // the camera trails the player on arrival: no canopy over it
   for (let i = 0; i < TREE_COUNT; i++) {
     const p = perimeterPoint((i + treeRng() * 0.7) / TREE_COUNT, half + 2 + treeRng() * 2.2);
     const behindSpawn = p.z > half && Math.abs(p.x) < 9;
-    if (!behindSpawn) treeSpots.push(p);
+    if (!behindSpawn && !canopyHitsLane(p.x, p.z, FITNESS_FIELD_TREE_REACH, lane)) treeSpots.push(p);
   }
   const primitiveTrees = tree(treeRng, treeSpots);
   root.add(primitiveTrees);
@@ -529,7 +586,7 @@ export function createFitnessField(deps: ZoneDeps): Zone {
   const swapInModels = (): void => {
     const modelRng = mulberry32(SEED + 1); // separate stream, so the primitive layout never shifts
 
-    const trees = scatterModels('trees', TREE_MODELS, treeSpots, modelRng, [0.9, 1.35]);
+    const trees = scatterModels('trees', TREE_MODELS, treeSpots, modelRng, TREE_SCALE);
     if (trees) {
       root.remove(primitiveTrees);
       root.add(trees);
@@ -598,6 +655,8 @@ export function createFitnessField(deps: ZoneDeps): Zone {
       // The ball hops gently on the spot, so the infield feels alive.
       t += dt;
       ball.position.y = BALL.radius + BALL_BOUNCE * Math.abs(Math.sin(t * 2.2));
+      butterflies.update(dt);
+      birds.update(dt);
     },
   };
 }

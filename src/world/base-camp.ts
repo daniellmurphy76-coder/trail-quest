@@ -6,6 +6,9 @@ import { createDenChief } from '../player/avatar/presets';
 import { perimeterPoint, squareBounds } from './bounds';
 import { boxCollider, circleCollider, type Collider } from './collide';
 import { createGround, createGroundApron } from './ground';
+import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
+import { createBirds, createButterflies, createFireflies, type AvoidDisc } from './critters';
+import { addHorizon } from './horizon';
 import {
   CAMPFIRE_COLLIDER_RADIUS,
   campfire,
@@ -22,6 +25,7 @@ import {
   type Placement,
   type Spot,
 } from './props';
+import { zoneTerrain } from './terrain';
 import type { Interactable, Zone } from './zone';
 
 export interface BaseCampOptions {
@@ -33,6 +37,10 @@ const GROUND_SIZE = 60;
 const WALK_HALF = 25;
 const TREE_COUNT = 40;
 const SEED = 2026;
+/** Where the Scout arrives, facing the campfire (-z). */
+const SPAWN = { x: 0, z: 9 } as const;
+/** Seed for the land beyond the walkable square and the horizon behind it (its own stream). */
+const HORIZON_SEED = SEED + 20;
 
 const GRASS_COLOR = 0x5f9e45;
 const DIRT_COLOR = 0xb89a6a;
@@ -41,13 +49,28 @@ const CLEARING_RADIUS = 8;
 const CLEARING_FEATHER = 3;
 const PLANT_COUNT = 150;
 
+/** Ambient life. Each has its own seed, so the critters never shift the trees, rocks or plants. */
+const BUTTERFLY_SEED = SEED + 31;
+const BIRD_SEED = SEED + 32;
+const FIREFLY_SEED = SEED + 33;
+const BUTTERFLY_COUNT = 8;
+const BIRD_COUNT = 4;
+const FIREFLY_COUNT = 14;
+const FIREFLY_RADIUS = 3;
+/** Butterflies roam the open ground around the clearing, well inside the walkable square. */
+const BUTTERFLY_AREA = { minX: -16, maxX: 16, minZ: -11, maxZ: 15 } as const;
+
 /** Label height for the Den Chief: just above the hat of the tall avatar build (about 2.15 units). */
 const DEN_CHIEF_HEIGHT = 2.3;
 /** Seconds between the Den Chief's friendly waves. */
 const WAVE_EVERY = 14;
 
 /** Models that replace or add to the primitive props once they load. */
-const TREE_MODELS = ['tree.pine', 'tree.pine.tall', 'tree.round', 'tree.oak'] as const;
+const TREE_MODELS = ['tree.pine', 'tree.pine.tall', 'tree.round', 'tree.oak', 'tree.birch'] as const;
+/** Size range of the tree models (a multiplier). The wall stands well outside the clearing, so it keeps its old range. */
+const TREE_SCALE: readonly [number, number] = [0.85, 1.3];
+/** The widest a crown can grow, for keeping canopies out of the camera lane. */
+export const BASE_CAMP_TREE_REACH = worstCrownReach(TREE_MODELS, TREE_SCALE);
 const ROCK_MODELS = ['rock.large', 'rock.tall', 'rock.small'] as const;
 const BASE_CAMP_MODELS = [
   ...TREE_MODELS,
@@ -89,6 +112,7 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
 
   // Ground and plants use their own random streams, so the trees and rocks never move when the
   // ground or the plants change.
+  const terrain = zoneTerrain('base-camp', WALK_HALF, HORIZON_SEED);
   root.add(createGroundApron(GRASS_COLOR));
   root.add(
     createGround({
@@ -97,13 +121,26 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
       grass: GRASS_COLOR,
       dirt: DIRT_COLOR,
       path: { center: { x: 0, z: 0 }, radius: CLEARING_RADIUS, feather: CLEARING_FEATHER },
+      terrain,
     }),
   );
+  // Rolling hills, a distant tree line and far mountains behind the wall of trees.
+  addHorizon(root, {
+    zoneId: 'base-camp',
+    half: WALK_HALF,
+    seed: HORIZON_SEED,
+    kind: 'outdoor',
+    grass: GRASS_COLOR,
+    groundHalf: GROUND_SIZE / 2,
+    terrain,
+  });
 
   // Ring of trees just outside the walkable square, so the edge reads as a forest wall.
   const treeSpots: Spot[] = [];
+  const lane = cameraLane(SPAWN); // the camera trails the player on arrival: no canopy over it
   for (let i = 0; i < TREE_COUNT; i++) {
-    treeSpots.push(perimeterPoint((i + rng() * 0.7) / TREE_COUNT, WALK_HALF + 1.5 + rng() * 2));
+    const spot = perimeterPoint((i + rng() * 0.7) / TREE_COUNT, WALK_HALF + 1.5 + rng() * 2);
+    if (!canopyHitsLane(spot.x, spot.z, BASE_CAMP_TREE_REACH, lane)) treeSpots.push(spot);
   }
   const primitiveTrees = tree(rng, treeSpots);
   root.add(primitiveTrees);
@@ -131,7 +168,7 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
   cabin.rotation.y = Math.atan2(-cabin.position.x, -cabin.position.z); // door faces the campfire
   root.add(cabin);
 
-  const spawn = new THREE.Vector3(0, 0, 9);
+  const spawn = new THREE.Vector3(SPAWN.x, 0, SPAWN.z);
 
   // ---- colliders: footprints, not crowns -----------------------------------------------------------
   const cabinCollider = boxCollider(cabin.position.x, cabin.position.z, LODGE_HALF.hw, LODGE_HALF.hd, cabin.rotation.y);
@@ -148,6 +185,32 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
   denChief.root.position.set(3.4, 0, -1.8);
   denChief.root.rotation.y = Math.atan2(spawn.x - denChief.root.position.x, spawn.z - denChief.root.position.z);
   root.add(denChief.root);
+
+  // ---- critters: butterflies over the open ground, birds high overhead, fireflies at the fire ----
+  // Decoration only: none of it blocks the player. Butterflies steer round the fire, the Den Chief,
+  // the flagpole, the cabin, the rocks and the signpost, so they never hover inside a prop.
+  const butterflyAvoid: AvoidDisc[] = [
+    { x: 0, z: 0, r: 2 }, // the campfire
+    { x: denChief.root.position.x, z: denChief.root.position.z, r: 1.5 },
+    { x: pole.position.x, z: pole.position.z, r: 1.2 },
+    { x: cabin.position.x, z: cabin.position.z, r: 5.5 },
+    { x: -5.5, z: 3.5, r: 1 }, // signpost
+    ...rockSpots.map((r) => ({ x: r.x, z: r.z, r: 1.6 })),
+  ];
+  const butterflies = createButterflies({
+    count: BUTTERFLY_COUNT,
+    area: BUTTERFLY_AREA,
+    avoid: butterflyAvoid,
+    seed: BUTTERFLY_SEED,
+  });
+  const birds = createBirds({ count: BIRD_COUNT, center: { x: 0, z: 0 }, seed: BIRD_SEED });
+  const fireflies = createFireflies({
+    center: { x: 0, z: 0, y: 0 },
+    radius: FIREFLY_RADIUS,
+    count: FIREFLY_COUNT,
+    seed: FIREFLY_SEED,
+  });
+  root.add(butterflies.root, birds.root, fireflies.root);
 
   // Plants gather around the clearing's edge and at the feet of props, and keep off the dirt, the
   // spawn point, and the doorsteps. They are decoration only: the player walks through them.
@@ -188,16 +251,18 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
   };
 
   // ---- progressive swap: primitives stay until the models arrive -----------------------------------
-  // Draw calls after the swap (about 33): ground 2 (apron + ground), trees up to 4, rocks up to 3,
-  // campfire 5 (model 2, flames 2, embers 1), flagpole 3, cabin 1, tents 2, signpost 1, plants up
-  // to 8, Den Chief 7 (head, torso, two arms, two legs, blob shadow). Primitives only: about 28.
+  // Draw calls after the swap (about 39): ground 2 (apron + ground), horizon 3 (hills, tree line,
+  // peaks), trees up to 5, rocks up to 3, campfire 5 (model 2, flames 2, embers 1), flagpole 3, cabin 1,
+  // tents 2, signpost 1, plants up to 8, Den Chief 7 (head, torso, two arms, two legs, blob shadow),
+  // critters 3 (butterflies, birds, fireflies; butterflies and birds draw nothing on the low tier).
+  // Primitives only: about 34.
   // The sun's shadow pass draws the casting props a second time, about 20 more.
   let waveClock = 5; // the first wave comes a few seconds after the Scout arrives
 
   const swapInModels = (): void => {
     const modelRng = mulberry32(SEED + 1); // separate stream, so the primitive layout never shifts
 
-    const trees = scatterModels('trees', TREE_MODELS, treeSpots, modelRng, [0.85, 1.3]);
+    const trees = scatterModels('trees', TREE_MODELS, treeSpots, modelRng, TREE_SCALE);
     if (trees) {
       root.remove(primitiveTrees);
       root.add(trees);
@@ -267,6 +332,9 @@ export function createBaseCamp(opts: BaseCampOptions): Zone {
     colliders,
     update: (dt: number) => {
       fire.update(dt);
+      butterflies.update(dt);
+      birds.update(dt);
+      fireflies.update(dt);
       waveClock -= dt;
       if (waveClock <= 0) {
         denChief.play('wave');

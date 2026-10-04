@@ -5,6 +5,7 @@ import { createFitnessField, FITNESS_FIELD_HALF, FITNESS_TRACK } from '../../src
 import { personPlaceholder } from '../../src/world/props';
 import { findInteractableInRange } from '../../src/world/zone';
 import type { ZoneDeps } from '../../src/world/zones';
+import { critterDrawCalls, runZone, wingBodies } from './critter-helpers';
 
 function makeDeps() {
   const deps = { onTalkToDenChief: vi.fn<() => void>(), onReturnToBaseCamp: vi.fn<() => void>() };
@@ -241,11 +242,51 @@ describe('Fitness Field zone', () => {
   });
 
   it('stays inside the draw-call cap with placeholders, with room for the model swap', () => {
-    // 15 draw calls today (14 without the label sprite); the swap adds about 8 (gate, plant models). Cap 20 leaves headroom.
+    // 19 draw calls today (17 before the butterflies and birds, 2 more); the swap adds about 8 (gate, plant models). Cap 20 leaves headroom.
     expect(drawCalls(zone.root)).toBeLessThanOrEqual(20);
     const scene = new THREE.Scene();
     scene.add(zone.root, personPlaceholder(0xf2c14e, 1.95)); // the player
     expect(drawCalls(scene)).toBeLessThan(30);
+  });
+
+  it('adds 2 draw calls of ambient life: 8 butterflies over the infield (1) and 3 birds overhead (1)', () => {
+    expect(critterDrawCalls(zone.root.getObjectByName('butterflies')!)).toBe(1);
+    expect(critterDrawCalls(zone.root.getObjectByName('birds')!)).toBe(1);
+    expect(wingBodies(zone.root, 'butterfly-wings')).toHaveLength(8);
+    expect(wingBodies(zone.root, 'bird-wings')).toHaveLength(3);
+  });
+
+  it('keeps the butterflies over the infield, off the ball and the cones, and the birds in the sky, for a long flight', () => {
+    const z = createFitnessField(makeDeps());
+    const ball = z.root.getObjectByName('ball')!;
+    const cones = instancePoints(z.root.getObjectByName('cones') as THREE.InstancedMesh);
+    const violations: string[] = [];
+    const check = (): void => {
+      for (const p of wingBodies(z.root, 'butterfly-wings')) {
+        if (ellipseValue(p.x, p.z, 0) > 1) violations.push(`off the infield at ${p.x}, ${p.z}`); // inside the track's center line
+        if (p.y < 0.3 || p.y > 2) violations.push(`height ${p.y}`);
+        if (Math.hypot(p.x - ball.position.x, p.z - ball.position.z) < 0.9) violations.push('over the ball');
+        for (const c of cones) {
+          if (Math.hypot(p.x - c.x, p.z - c.z) < 0.8) violations.push('over a cone');
+        }
+      }
+      for (const p of wingBodies(z.root, 'bird-wings')) {
+        if (p.y <= 15 || Math.hypot(p.x, p.z) > 120 + 1e-6) violations.push(`bird at ${p.x}, ${p.y}, ${p.z}`);
+      }
+    };
+    check();
+    expect(() => runZone(z, 1800, check)).not.toThrow(); // half a minute at 60 Hz, checked every half second
+    expect(violations).toEqual([]);
+  });
+
+  it('flies the same way every time (seeded)', () => {
+    const a = createFitnessField(makeDeps());
+    const b = createFitnessField(makeDeps());
+    runZone(a, 300);
+    runZone(b, 300);
+    for (const name of ['butterfly-wings', 'bird-wings'] as const) {
+      expect(wingBodies(a.root, name).map((p) => p.toArray())).toEqual(wingBodies(b.root, name).map((p) => p.toArray()));
+    }
   });
 
   it('animates without throwing, and the ball hops but never sinks into the grass', () => {

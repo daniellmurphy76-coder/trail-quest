@@ -21,6 +21,10 @@
  * models take 3 calls, benches and gateway share one `log.single` call, the plant mix takes up to
  * 8), plus 1 for the sign's text label where a canvas exists. The sun's shadow pass draws the
  * casting props again, about 15 more. Far below the 80 target and the 150 budget.
+ *
+ * Past the walls of trees, `addHorizon` (./horizon.ts) adds rolling hills, a distant tree line and far mountains:
+ * 3 more draw calls and about 11 to 14 thousand triangles. The ground rolls up to meet the hills outside the
+ * walkable square (see ./terrain.ts) and stays flat at y = 0 inside it.
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -29,7 +33,10 @@ import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
 import { boxCollider, circleCollider, type Collider } from './collide';
+import { createBirds } from './critters';
+import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { createGround, createGroundApron } from './ground';
+import { addHorizon } from './horizon';
 import { labelSprite } from './placeholder-zone';
 import {
   CAMPFIRE_COLLIDER_RADIUS,
@@ -43,10 +50,13 @@ import {
   type Rng,
   type Spot,
 } from './props';
+import { zoneTerrain } from './terrain';
 import type { Interactable, Zone } from './zone';
 import type { ZoneDeps } from './zones';
 
 const SEED = 1105;
+/** Seed for the land beyond the walkable square and the horizon behind it (its own stream). */
+const HORIZON_SEED = SEED + 20;
 /** The player may walk this far from the center in x and z (35 by 35). Trees stand just outside. */
 const WALK_HALF = 17.5;
 const GROUND_SIZE = 56;
@@ -105,12 +115,12 @@ const ENTRANCE_HALF_WIDTH = 5.2; // the inner tree ring leaves this much room ei
 /**
  * On arrival the follow camera sits about 7.5 units behind the player and 3 up, so it is out past
  * z = 22, level with the outer tree wall. Keep a lane behind the spawn free of trees and plants:
- * for z beyond LANE_FROM_Z, nothing within LANE_HALF_WIDTH of x = 0. A tree's crown reaches about
- * CROWN_ALLOWANCE past its trunk, so tree trunks keep that much farther out.
+ * for z beyond LANE_FROM_Z, nothing within LANE_HALF_WIDTH of x = 0. A tree's crown reaches at most
+ * CROWN_ALLOWANCE past its trunk (the widest model at its largest size, see below), so tree trunks
+ * keep that much farther out.
  */
 const LANE_FROM_Z = 14;
 const LANE_HALF_WIDTH = 8;
-const CROWN_ALLOWANCE = 2.5;
 
 const FIREFLY_COUNT = 9;
 
@@ -131,6 +141,7 @@ const MODEL_IDS = [
   'tree.fall',
   'tree.oak',
   'tree.pine.tall',
+  'tree.birch',
   'log.single',
   'stump',
   'signpost.single',
@@ -145,7 +156,21 @@ const TREE_CHOICES: ReadonlyArray<{ id: string; weight: number }> = [
   { id: 'tree.fall', weight: 5 },
   { id: 'tree.oak', weight: 2 },
   { id: 'tree.pine.tall', weight: 2 },
+  { id: 'tree.birch', weight: 2 },
 ];
+
+/**
+ * Size ranges of the tree models (a multiplier): the outer wall is the taller one. The KayKit crowns
+ * are about twice as wide as the old cones, so both ranges are a little smaller than they were
+ * (0.95 to 1.4 and 0.8 to 1.1) to keep the grove from closing in.
+ */
+const OUTER_TREE_SCALE: readonly [number, number] = [0.85, 1.2];
+const INNER_TREE_SCALE: readonly [number, number] = [0.8, 1.1];
+const TREE_IDS = TREE_CHOICES.map((c) => c.id);
+/** The widest a crown of the outer wall or the inner grove can grow, for keeping canopies out of the camera lane. */
+export const CAMPFIRE_CIRCLE_TREE_REACH = worstCrownReach(TREE_IDS, OUTER_TREE_SCALE);
+const INNER_TREE_REACH = worstCrownReach(TREE_IDS, INNER_TREE_SCALE);
+const CROWN_ALLOWANCE = CAMPFIRE_CIRCLE_TREE_REACH;
 
 // ---- small helpers -------------------------------------------------------------------------------
 
@@ -334,6 +359,7 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
 
   // Ground, plants, lanterns, fireflies and the open spots use their own random streams, so nothing
   // else moves when one of them changes.
+  const terrain = zoneTerrain('campfire-circle', WALK_HALF, HORIZON_SEED);
   root.add(createGroundApron(GRASS_COLOR));
   root.add(
     createGround({
@@ -342,8 +368,19 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
       grass: GRASS_COLOR,
       dirt: DIRT_COLOR,
       path: { center: { x: 0, z: 0 }, radius: CLEARING_RADIUS, feather: CLEARING_FEATHER },
+      terrain,
     }),
   );
+  // Rolling hills, an autumn-tinted tree line and far mountains behind the wall of trees.
+  addHorizon(root, {
+    zoneId: 'campfire-circle',
+    half: WALK_HALF,
+    seed: HORIZON_SEED,
+    kind: 'outdoor',
+    grass: GRASS_COLOR,
+    groundHalf: GROUND_SIZE / 2,
+    terrain,
+  });
 
   // ---- campfire at the center -----------------------------------------------------------------
   const fire = campfire();
@@ -484,10 +521,12 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
   // ---- trees: a wall just outside the walkable square, and a ring round the grove ---------------
   // The inner ring leaves a gap at +z, where the gateway stands, and keeps off the rocks and woodpile.
   const treeSpots: Spot[] = [];
+  const lane = cameraLane(SPAWN); // the camera trails the player on arrival: no canopy over it
   for (let i = 0; i < OUTER_TREE_COUNT; i++) {
     // Draw first, then skip, so the other trees land the same with or without the camera lane.
     const spot = perimeterPoint((i + rng() * 0.7) / OUTER_TREE_COUNT, WALK_HALF + 1.5 + rng() * 2.5);
     if (spot.z > LANE_FROM_Z && Math.abs(spot.x) < LANE_HALF_WIDTH + CROWN_ALLOWANCE) continue;
+    if (canopyHitsLane(spot.x, spot.z, CAMPFIRE_CIRCLE_TREE_REACH, lane)) continue;
     treeSpots.push(spot);
   }
   const innerStart = treeSpots.length;
@@ -496,6 +535,7 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
     const a = ((i + rng() * 0.6) / INNER_TREE_COUNT) * Math.PI * 2;
     const spot = polar(a, INNER_RING + (rng() - 0.5) * 1.4);
     if (spot.z > 0 && Math.abs(spot.x) < ENTRANCE_HALF_WIDTH) continue;
+    if (canopyHitsLane(spot.x, spot.z, INNER_TREE_REACH, lane)) continue;
     if (decor.some((d) => Math.hypot(d.x - spot.x, d.z - spot.z) < 2.4)) continue;
     treeSpots.push(spot);
   }
@@ -593,6 +633,9 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
   // ---- fireflies --------------------------------------------------------------------------------
   const fireflies = createFireflies(mulberry32(SEED + 7));
   root.add(fireflies.points);
+  // A few birds gliding high over the grove (hidden on the low tier and under reduced motion).
+  const birds = createBirds({ count: 3, center: { x: 0, z: 0 }, seed: SEED + 32 });
+  root.add(birds.root);
 
   // ---- progressive swap: primitives stay until the models arrive --------------------------------
   const swapInModels = (): void => {
@@ -611,8 +654,8 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
           r -= usable[pick]!.weight;
           pick++;
         }
-        const [lo, hi] = i < innerStart ? [0.95, 1.4] : [0.8, 1.1];
-        buckets[pick]!.push({ ...spot, yaw: modelRng() * Math.PI * 2, scale: lo! + modelRng() * (hi! - lo!) });
+        const [lo, hi] = i < innerStart ? OUTER_TREE_SCALE : INNER_TREE_SCALE;
+        buckets[pick]!.push({ ...spot, yaw: modelRng() * Math.PI * 2, scale: lo + modelRng() * (hi - lo) });
       });
       const meshes: THREE.InstancedMesh[] = [];
       usable.forEach((c, i) => {
@@ -693,6 +736,7 @@ export function createCampfireCircle(deps: ZoneDeps): Zone {
     update: (dt: number) => {
       fire.update(dt);
       fireflies.update(dt);
+      birds.update(dt);
     },
   };
 }

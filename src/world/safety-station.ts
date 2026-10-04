@@ -19,6 +19,10 @@
  * houses, the fence, the stop sign, the lamps, both signposts, the first-aid tent, the slide, the
  * swing set and the sandbox. The street, the sidewalks and the paved path from the spawn stay
  * clear, and so do the open spots and the spawn.
+ *
+ * Past the walls of trees, `addHorizon` (./horizon.ts) adds rolling hills, a distant tree line and distant rooftops:
+ * 3 more draw calls and about 11 to 14 thousand triangles. The ground rolls up to meet the hills outside the
+ * walkable square (see ./terrain.ts) and stays flat at y = 0 inside it.
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -27,7 +31,9 @@ import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
 import { boxCollider, circleCollider, type Collider } from './collide';
+import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { createGround, createGroundApron } from './ground';
+import { addHorizon } from './horizon';
 import { labelSprite } from './placeholder-zone';
 import {
   instancedModel,
@@ -39,12 +45,15 @@ import {
   type Placement,
   type Spot,
 } from './props';
+import { zoneTerrain } from './terrain';
 import type { Interactable, Zone } from './zone';
 import type { ZoneDeps } from './zones';
 
 // ---- layout -------------------------------------------------------------------------------------
 
 const SEED = 3104;
+/** Seed for the land beyond the walkable square and the horizon behind it (its own stream). */
+const HORIZON_SEED = SEED + 20;
 /** The player may walk this far from the center in x and z (a 35 by 35 lawn). */
 const WALK_HALF = 17.5;
 const GROUND_SIZE = 50;
@@ -110,6 +119,13 @@ const EDGE_TREES: readonly Spot[] = [
 ];
 
 const TREE_MODELS = ['tree.round', 'tree.pine'] as const;
+/**
+ * Size range of the tree models (a multiplier). The KayKit crowns are about twice as wide as the old
+ * cones, so the range is a little smaller than it was (0.9 to 1.3).
+ */
+const TREE_SCALE: readonly [number, number] = [0.85, 1.2];
+/** The widest a crown can grow, for keeping canopies out of the camera lane. */
+export const SAFETY_STATION_TREE_REACH = worstCrownReach(TREE_MODELS, TREE_SCALE);
 const PLANT_MODELS = ['plant.grass', 'plant.grass.large', 'plant.flower.yellow', 'plant.flower.red', 'plant.bush'] as const;
 const STATION_MODELS = [
   'building.firestation',
@@ -590,8 +606,19 @@ export function createSafetyStation(deps: ZoneDeps): Zone {
   const primMaterial = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const spawn = SPAWN.clone();
 
+  const terrain = zoneTerrain('safety-station', WALK_HALF, HORIZON_SEED);
   root.add(createGroundApron(GRASS_COLOR));
-  root.add(createGround({ size: GROUND_SIZE, rng: mulberry32(SEED + 2), grass: GRASS_COLOR, dirt: GRASS_COLOR }));
+  root.add(createGround({ size: GROUND_SIZE, rng: mulberry32(SEED + 2), grass: GRASS_COLOR, dirt: GRASS_COLOR, terrain }));
+  // Rolling hills, a distant tree line and far rooftops behind the lawn.
+  addHorizon(root, {
+    zoneId: 'safety-station',
+    half: WALK_HALF,
+    seed: HORIZON_SEED,
+    kind: 'town',
+    grass: GRASS_COLOR,
+    groundHalf: GROUND_SIZE / 2,
+    terrain,
+  });
 
   const solid = <T extends THREE.Object3D>(object: T): T => {
     setShadowCasting(object, true, true);
@@ -684,12 +711,13 @@ export function createSafetyStation(deps: ZoneDeps): Zone {
 
   // ---- trees: a ring just outside the walkable square, minus the gap where the road leaves ----
   const treeSpots: Spot[] = [];
+  const lane = cameraLane(spawn); // the camera trails the player on arrival: no canopy over it
   for (let i = 0; i < TREE_COUNT; i++) {
     const p = perimeterPoint((i + rng() * 0.7) / TREE_COUNT, WALK_HALF + 1.5 + rng() * 2);
     const onRoad = Math.abs(p.z - ROAD_Z) < 4.2 && Math.abs(p.x) > WALK_HALF;
-    if (!onRoad) treeSpots.push(p);
+    if (!onRoad && !canopyHitsLane(p.x, p.z, SAFETY_STATION_TREE_REACH, lane)) treeSpots.push(p);
   }
-  treeSpots.push(...EDGE_TREES);
+  treeSpots.push(...EDGE_TREES.filter((t) => !canopyHitsLane(t.x, t.z, SAFETY_STATION_TREE_REACH, lane)));
   const primitiveTrees = tree(rng, treeSpots);
   root.add(primitiveTrees);
 
@@ -752,7 +780,7 @@ export function createSafetyStation(deps: ZoneDeps): Zone {
   const swapInModels = (): void => {
     const modelRng = mulberry32(SEED + 1); // separate stream, so the primitive layout never shifts
 
-    const trees = scatterModels('trees', TREE_MODELS, treeSpots, modelRng, [0.9, 1.3]);
+    const trees = scatterModels('trees', TREE_MODELS, treeSpots, modelRng, TREE_SCALE);
     if (trees) replace(primitiveTrees, trees);
 
     // The street needs both of its models, or the primitive asphalt stays.

@@ -17,10 +17,19 @@
  * exactly as wide as the bridge. The trailhead sign stands on its own landmark, so it has none. The
  * path, the open spots and the flat lookout are kept clear of colliders by construction.
  *
- * Draw calls: primitives about 23 (ground 2, path 1, stream 1, trees 2, rocks 1, stumps 1, plants 1,
- * bridge 1, signs 2, tent 1, firewood 1, seats 1, campfire 5, animals 3), plus 4 landmark labels in a
- * browser. After the models load about 40 (trees 4, rocks 3, plants up to 8, rabbit 2, the rest 1
- * each). The sun's shadow pass draws the casting props a second time.
+ * The stream is animated water (./water.ts): a shader ribbon with ripples, bank foam and sparkles, along
+ * the same centerline and width as the stream's colliders, cut open where the footbridge crosses. Butterflies
+ * drift over the meadow and birds circle high overhead (./critters.ts); both are decoration only.
+ *
+ * Draw calls: primitives 29 (ground 2, horizon 3, path 1, stream water 2 (ribbon, sparkles), butterflies 1,
+ * birds 1, trees 2, rocks 1, stumps 1, plants 1, bridge 1, signs 2, tent 1, firewood 1, seats 1,
+ * campfire 5, animals 3), plus 4 landmark labels in a browser. After the models load about 43 (trees 4,
+ * rocks 3, plants up to 8, rabbit 2, the rest 1 each). On the low tier the sparkles, butterflies and
+ * birds draw nothing (3 fewer). The sun's shadow pass draws the casting props a second time.
+ *
+ * Past the walls of trees, `addHorizon` (./horizon.ts) adds rolling hills, a distant tree line and far mountains:
+ * 3 more draw calls and about 11 to 14 thousand triangles. The ground rolls up to meet the hills outside the
+ * walkable square (see ./terrain.ts) and stays flat at y = 0 inside it.
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -29,7 +38,10 @@ import { setShadowCasting } from '../engine/environment';
 import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
 import { boxCollider, circleCollider, type BoxCollider, type Collider } from './collide';
-import { createGround, createGroundApron } from './ground';
+import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
+import { createBirds, createButterflies, type AvoidDisc } from './critters';
+import { applyGroundTexture, createGround, createGroundApron, createGroundTexture } from './ground';
+import { addHorizon } from './horizon';
 import { labelSprite } from './placeholder-zone';
 import {
   CAMPFIRE_COLLIDER_RADIUS,
@@ -44,12 +56,16 @@ import {
   type Rng,
   type Spot,
 } from './props';
+import { zoneTerrain } from './terrain';
+import { createStreamWater } from './water';
 import type { Interactable, Zone } from './zone';
 import type { ZoneDeps } from './zones';
 
 // ---- tuning -------------------------------------------------------------------------------------
 
 const SEED = 3301;
+/** Seed for the land beyond the walkable square and the horizon behind it (its own stream). */
+const HORIZON_SEED = SEED + 20;
 /**
  * The player may walk this far from the center in x and z (35 by 35; the existing zone tests cap a
  * zone at 35 across). Trees stand just outside.
@@ -62,8 +78,22 @@ const DIRT_COLOR = 0xb59468;
 const DIRT_EDGE_COLOR = 0x8d9d56; // where the path fades into the grass
 const LOOKOUT_PAD_COLOR = 0xaca28c;
 const CAMP_PAD_COLOR = 0xa58a5e;
-const STREAM_DEEP = 0x2f86c9;
-const STREAM_SHALLOW = 0x86cdee;
+
+/** Water and ambient life. Each has its own seed, so none of it shifts a tree, rock or plant. */
+const WATER_SEED = SEED + 30;
+const BUTTERFLY_SEED = SEED + 31;
+const BIRD_SEED = SEED + 32;
+const BUTTERFLY_COUNT = 10;
+const BIRD_COUNT = 3;
+/**
+ * Butterflies roam the south meadow, where the path runs from the spawn to the bridge. Its north edge
+ * stops short of the stream's south bank, and the avoid discs below keep them off the water either way.
+ */
+const BUTTERFLY_AREA = { minX: -12.5, maxX: 12.5, minZ: 1.5, maxZ: 12.5 } as const;
+/** Butterflies keep this far past the stream's banks (and start turning a little before that). */
+const BUTTERFLY_BANK_KEEP = 0.5;
+/** One avoid disc every this far along the stream; the discs overlap, so they leave no gap to slip through. */
+const BUTTERFLY_DISC_EVERY = 1.2;
 
 const SPAWN: Spot = { x: 0, z: 13.5 };
 /** The "Back to camp" sign stands this far to the left of the spawn (the spawn is out of its reach). */
@@ -81,9 +111,8 @@ const SPOT_EDGE_MARGIN = 1.5;
 const PATH_HALF = 1.15;
 const PATH_Y = 0.04;
 const PAD_Y = 0.046;
-const STREAM_Y = 0.065;
 const STREAM_HALF = 1.5; // the stream is 3 units wide
-const STREAM_FRINGE = 0.3; // soft, see-through shore on each side
+const STREAM_FRINGE = 0.3; // soft, see-through shore on each side (the water's own fringe is the same 0.3)
 const LOOKOUT_PAD_RADIUS = 2.6;
 const CAMP_PAD_CENTER: Spot = { x: 11.0, z: -11.6 };
 const CAMP_PAD_RADIUS = 4.0;
@@ -141,7 +170,19 @@ const PLANT_COUNT = 320;
 /** No trees in front of the entrance: the camera stands behind the spawn, outside the walkable square. */
 const ENTRANCE_HALF = 8;
 
-const TREE_MODELS = ['tree.pine', 'tree.pine.tall', 'tree.round', 'tree.oak'] as const;
+const TREE_MODELS = ['tree.pine', 'tree.pine.tall', 'tree.round', 'tree.oak', 'tree.birch'] as const;
+/**
+ * Size range of the tree models (a multiplier). The KayKit crowns are about twice as wide as the old
+ * cones, so the range is a little smaller than it was (0.85 to 1.35) to keep the woods from closing in.
+ */
+const TREE_SCALE: readonly [number, number] = [0.8, 1.2];
+/** The widest a crown can grow. Canopies stay off the path and out of the camera lane by this much. */
+export const NATURE_TRAIL_TREE_REACH = worstCrownReach(TREE_MODELS, TREE_SCALE);
+/**
+ * Inner trees keep this clearance (the scatter adds the path's half width and 0.5), which puts every
+ * trunk at least a crown's reach plus the path's half width from the path: no canopy over the path.
+ */
+const TREE_CLEARANCE = NATURE_TRAIL_TREE_REACH - 0.4;
 const NATURE_TRAIL_MODELS = [
   ...TREE_MODELS,
   'rock.large',
@@ -471,16 +512,20 @@ export function natureTrailLayout(): TrailLayout {
 
   // A ring of trees just outside the walkable square, with a gap for the entrance and the stream.
   const trees: Spot[] = [];
+  const lane = cameraLane(spawn); // the camera trails the player on arrival: no canopy over it
   for (let i = 0; i < RING_COUNT; i++) {
     const p = perimeterPoint((i + rng() * 0.8) / RING_COUNT, NATURE_TRAIL_HALF + 1.2 + rng() * 2.6);
     if (p.z > 0 && Math.abs(p.x) < ENTRANCE_HALF) continue;
+    if (canopyHitsLane(p.x, p.z, NATURE_TRAIL_TREE_REACH, lane)) continue;
     if (stream.nearest(p.x, p.z).dist < STREAM_HALF + 1.2) continue;
     trees.push(p);
   }
   // And clusters just inside the edge, so the forest is dense from the path too.
   const edgeBand = (x: number, z: number): boolean =>
-    Math.max(Math.abs(x), Math.abs(z)) >= NATURE_TRAIL_HALF - 4.2 && !(z > 8 && Math.abs(x) < ENTRANCE_HALF + 1);
-  trees.push(...scatter(mulberry32(SEED + 11), INNER_TREE_COUNT, 1.6, edgeBand, 2.4));
+    Math.max(Math.abs(x), Math.abs(z)) >= NATURE_TRAIL_HALF - 4.2 &&
+    !(z > 8 && Math.abs(x) < ENTRANCE_HALF + 1) &&
+    !canopyHitsLane(x, z, NATURE_TRAIL_TREE_REACH, lane);
+  trees.push(...scatter(mulberry32(SEED + 11), INNER_TREE_COUNT, TREE_CLEARANCE, edgeBand, 2.4));
 
   const smallRocks = scatter(mulberry32(SEED + 12), SMALL_ROCK_COUNT, 0.6, () => true, 3);
   for (const p of smallRocks) {
@@ -864,29 +909,12 @@ function pathMesh(layout: TrailLayout, rand: Rng): THREE.Mesh {
   b.disc(lookout, lookout.r - 0.6, lookout.r, PAD_Y, () => rgba(LOOKOUT_PAD_COLOR, 1, 1 + (rand() * 2 - 1) * 0.05), edge, rand);
   const camp = layout.campPad;
   b.disc(camp, camp.r - 0.7, camp.r, PAD_Y, () => rgba(CAMP_PAD_COLOR, 1, 1 + (rand() * 2 - 1) * 0.05), edge, rand);
-  const mesh = new THREE.Mesh(b.build(), new THREE.MeshLambertMaterial({ vertexColors: true }));
+  // Pebbles speckle the dirt, laid in world space so they line up with the ground's own clearing.
+  const material = applyGroundTexture(new THREE.MeshLambertMaterial({ vertexColors: true }), createGroundTexture(), 'pebbles');
+  const mesh = new THREE.Mesh(b.build(), material);
   mesh.name = 'path';
   mesh.receiveShadow = true;
   return mesh;
-}
-
-/** A 3 unit wide see-through blue strip with soft shores, from one side of the zone to the other. 1 draw call. */
-function streamMesh(layout: TrailLayout): { mesh: THREE.Mesh; material: THREE.MeshLambertMaterial } {
-  const b = new SurfaceBuilder(true);
-  const half = layout.streamHalf;
-  const shallow = (a: number): RGBA => rgba(STREAM_SHALLOW, a);
-  b.ribbon(layout.stream, 0.8, [
-    { offset: -half - STREAM_FRINGE, y: STREAM_Y, color: () => shallow(0) },
-    { offset: -half, y: STREAM_Y, color: () => shallow(0.6) },
-    { offset: 0, y: STREAM_Y, color: () => rgba(STREAM_DEEP, 0.8) },
-    { offset: half, y: STREAM_Y, color: () => shallow(0.6) },
-    { offset: half + STREAM_FRINGE, y: STREAM_Y, color: () => shallow(0) },
-  ]);
-  const material = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false });
-  const mesh = new THREE.Mesh(b.build(), material);
-  mesh.name = 'stream';
-  mesh.renderOrder = 1;
-  return { mesh, material };
 }
 
 // ---- the zone -------------------------------------------------------------------------------------
@@ -904,6 +932,7 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
   root.name = 'nature-trail';
 
   // Ground and surfaces use their own random streams, so props never move when they change.
+  const terrain = zoneTerrain('nature-trail', NATURE_TRAIL_HALF, HORIZON_SEED);
   root.add(createGroundApron(GRASS_COLOR));
   root.add(
     createGround({
@@ -912,11 +941,29 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
       grass: GRASS_COLOR,
       dirt: DIRT_COLOR,
       path: { center: { x: layout.spawn.x, z: layout.spawn.z - 0.5 }, radius: 3.4, feather: 2.6 },
+      terrain,
     }),
   );
+  // Rolling hills, a distant tree line and far mountains behind the wall of trees.
+  addHorizon(root, {
+    zoneId: 'nature-trail',
+    half: NATURE_TRAIL_HALF,
+    seed: HORIZON_SEED,
+    kind: 'outdoor',
+    grass: GRASS_COLOR,
+    groundHalf: GROUND_SIZE / 2,
+    terrain,
+  });
   root.add(pathMesh(layout, mulberry32(SEED + 3)));
-  const stream = streamMesh(layout);
-  root.add(stream.mesh);
+  // The stream: animated water along the same centerline and width as the stream's colliders, with the
+  // window left open where the footbridge crosses (the bridge's gap in the colliders is the same size).
+  const water = createStreamWater({
+    path: layout.stream.pts,
+    width: layout.streamHalf * 2,
+    gap: { center: layout.landmarks.footbridge, length: BRIDGE_GAP_HALF * 2 },
+    seed: WATER_SEED,
+  });
+  root.add(water.root);
 
   // ---- trees, rocks, stumps, plants ---------------------------------------------------------------
   const primitiveTrees = tree(mulberry32(SEED + 4), layout.trees);
@@ -957,6 +1004,24 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
       { edgeFalloff: 4 },
     ),
   );
+
+  // ---- critters: butterflies in the meadow, birds overhead ----------------------------------------
+  // Decoration only. Butterflies steer round the stream (a disc every step along it, as wide as the
+  // bank plus a little) and round every prop's footprint, so they never hover over water or inside a prop.
+  const butterflyAvoid: AvoidDisc[] = [];
+  for (let s = 0; s <= layout.stream.length + BUTTERFLY_DISC_EVERY; s += BUTTERFLY_DISC_EVERY) {
+    const p = layout.stream.pointAt(s);
+    butterflyAvoid.push({ x: p.x, z: p.z, r: layout.streamHalf + BUTTERFLY_BANK_KEEP });
+  }
+  for (const c of layout.blockers) butterflyAvoid.push({ x: c.x, z: c.z, r: c.r });
+  const butterflies = createButterflies({
+    count: BUTTERFLY_COUNT,
+    area: BUTTERFLY_AREA,
+    avoid: butterflyAvoid,
+    seed: BUTTERFLY_SEED,
+  });
+  const birds = createBirds({ count: BIRD_COUNT, center: { x: 0, z: 0 }, seed: BIRD_SEED });
+  root.add(butterflies.root, birds.root);
 
   // ---- landmark groups: each holds its label sprite (a browser has a canvas, node does not) ------
   const landmarkGroup = (id: string, p: Spot, label: string, labelHeight: number): THREE.Group => {
@@ -1061,7 +1126,7 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
   const swapInModels = (): void => {
     const modelRng = mulberry32(SEED + 6); // separate stream, so the primitive layout never shifts
 
-    const trees = scatterModels('trees', TREE_MODELS, layout.trees, modelRng, [0.85, 1.35]);
+    const trees = scatterModels('trees', TREE_MODELS, layout.trees, modelRng, TREE_SCALE);
     if (trees) {
       root.remove(primitiveTrees);
       root.add(trees);
@@ -1175,10 +1240,12 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
     update: (dt: number) => {
       time += dt;
       fire.update(dt);
+      water.update(dt);
+      butterflies.update(dt);
+      birds.update(dt);
       rabbit.animator?.update(dt);
       frog.animator?.update(dt);
       bird.holder.rotation.y = birdYaw + Math.sin(time * 0.8) * 0.5; // looks around
-      stream.material.opacity = 0.92 + 0.06 * Math.sin(time * 1.3); // a slow shimmer
     },
   };
 }

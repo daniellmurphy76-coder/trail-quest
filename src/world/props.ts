@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { assets } from '../engine/assets';
 import { setShadowCasting } from '../engine/environment';
+import { getQuality, type QualityTier } from '../engine/quality';
 import { mulberry32 } from '../engine/seed';
 import type { Bounds } from './bounds';
 import { circlesAt, TREE_TRUNK_RADIUS, type CircleCollider } from './collide';
+import { applyWindToMesh, windKindFor } from './wind';
 
 /** Seeded random source returning floats in [0, 1), for example `mulberry32(2026)`. */
 export type Rng = () => number;
@@ -35,7 +37,8 @@ function frac(v: number): number {
 
 /**
  * A stand of low-poly pine trees, one per spot. Size, turn, and leaf color vary using `rng`, so
- * the same seed always gives the same grove. Two draw calls total (trunks, crowns).
+ * the same seed always gives the same grove. Two draw calls total (trunks, crowns). The crowns sway
+ * a little in the wind (see wind.ts); the trunks stay still.
  */
 export function tree(rng: Rng, spots: readonly Spot[]): THREE.Group {
   const group = new THREE.Group();
@@ -62,6 +65,7 @@ export function tree(rng: Rng, spots: readonly Spot[]): THREE.Group {
   if (crowns.instanceColor) crowns.instanceColor.needsUpdate = true;
   setShadowCasting(trunks, true, true);
   setShadowCasting(crowns, true, true);
+  applyWindToMesh(crowns, 'tree', { inPlace: true }); // the crowns own their material
   group.add(trunks, crowns);
   return group;
 }
@@ -128,7 +132,9 @@ export interface ShadowOptions {
 /**
  * One InstancedMesh holding a copy of model `id` at every placement. Needs `assets.has(id)` and a
  * single-static-mesh model (trees, rocks, tents). Returns undefined if the model cannot be instanced.
- * Casts and receives sun shadows unless `shadows` says otherwise.
+ * Casts and receives sun shadows unless `shadows` says otherwise. Trees, bushes, grass and flowers
+ * sway in the wind (`windKindFor(id)`; the mesh gets its own copy of the model's material, and its
+ * shadow sways with it); rocks, stumps, logs, tents, buildings and the rest never do.
  */
 export function instancedModel(
   id: string,
@@ -147,6 +153,8 @@ export function instancedModel(
   });
   mesh.instanceMatrix.needsUpdate = true;
   setShadowCasting(mesh, shadows.cast ?? true, shadows.receive ?? true);
+  const wind = windKindFor(id);
+  if (wind) applyWindToMesh(mesh, wind);
   return mesh;
 }
 
@@ -198,9 +206,15 @@ export interface ScatterPlantsOptions {
   ids?: readonly string[];
   /**
    * Multiplier on `count`: the zones ask for a number, and this thins it (0.6 keeps 60 percent).
-   * Default `DEFAULT_PLANT_DENSITY`. Pass 1 to get exactly `count` (when there is room).
+   * Default `DEFAULT_PLANT_DENSITY`. Pass 1 to get exactly `count` on the `high` tier (when there
+   * is room); the quality tier thins it further (see `PLANT_TIER_DENSITY`).
    */
   density?: number;
+  /**
+   * The quality tier to thin for. Default: the session's tier (`getQuality()`, read once per call).
+   * Tests pass it to check the math without touching the session.
+   */
+  tier?: QualityTier;
   /**
    * Gather plants near the edges of the `avoid` circles. A candidate that is `d` units outside the
    * nearest circle is kept with probability exp(-d / edgeFalloff), so about a third survive at
@@ -214,6 +228,14 @@ export interface ScatterPlantsOptions {
  * first scatter was dense enough to read as clutter, so it is cut by 40 percent.
  */
 export const DEFAULT_PLANT_DENSITY = 0.6;
+
+/**
+ * How much of the plants a quality tier keeps, on top of `density`. Plants are most of the
+ * triangles a zone draws that a Scout never reads as detail, so the cheaper tiers thin them first:
+ * `high` keeps them all, `medium` (the M1 iPad) 65 percent, `low` 40 percent. The kept plants
+ * are the first of the full scatter, so a thinner tier is the same field with gaps, not a new one.
+ */
+export const PLANT_TIER_DENSITY: Readonly<Record<QualityTier, number>> = { high: 1, medium: 0.65, low: 0.4 };
 
 /** How often each `plant.*` model turns up: lots of grass, some flowers and bushes, the odd mushroom. */
 const PLANT_CHOICES: ReadonlyArray<{ id: string; weight: number }> = [
@@ -275,7 +297,7 @@ function tuftGeometry(): THREE.BufferGeometry {
   return merged ?? new THREE.ConeGeometry(0.1, 0.5, 3).translate(0, 0.25, 0);
 }
 
-/** Primitive stand-in: one InstancedMesh of green tufts. */
+/** Primitive stand-in: one InstancedMesh of green tufts, swaying like grass. */
 function tufts(rng: Rng, spots: readonly Spot[]): THREE.InstancedMesh | null {
   if (spots.length === 0) return null;
   const mesh = new THREE.InstancedMesh(tuftGeometry(), lambert(0xffffff), spots.length);
@@ -294,6 +316,7 @@ function tufts(rng: Rng, spots: readonly Spot[]): THREE.InstancedMesh | null {
   mesh.instanceMatrix.needsUpdate = true;
   if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   setShadowCasting(mesh, false, true);
+  applyWindToMesh(mesh, 'grass', { inPlace: true }); // the tufts own their material
   return mesh;
 }
 
@@ -339,22 +362,16 @@ export function varyPlants(mesh: THREE.InstancedMesh, rng: Rng): void {
 }
 
 /**
- * Kept so existing call sites keep compiling (Town Square tints its planter bushes with it). The
- * old Kenney nature kit painted every leaf mint-teal and needed a recolor to grass green; the
- * current plant models are painted in natural greens already, so this only adds the per-instance
- * variation of `varyPlants` when a random source is given, and does nothing otherwise.
- */
-export function tintPlants(mesh: THREE.InstancedMesh, rng?: Rng): void {
-  if (rng) varyPlants(mesh, rng);
-}
-
-/**
- * About `count * density` plants (see `ScatterPlantsOptions.density`; 60 percent by default)
- * scattered over `bounds`, never inside an `avoid` circle. Starts as one InstancedMesh of tiny
- * green tufts (1 draw call) and upgrades itself to the `plant.*` models (grass, flowers, bushes,
- * mushrooms; one draw call per model used, at most 8) when they load. Grass and bushes get a slight
- * per-instance shift in lightness and warmth (see `varyPlants`); flowers and mushrooms keep their
- * painted colors. Same seed, same layout. Plants do not cast shadows, they only receive them.
+ * About `count * density * tier` plants (see `ScatterPlantsOptions.density`, 60 percent by default,
+ * and `PLANT_TIER_DENSITY`: 100, 65 or 40 percent by quality tier) scattered over `bounds`, never
+ * inside an `avoid` circle. The tier is read once, when this is called, so a zone built after an
+ * automatic downgrade is thinner and one already built keeps its plants. Starts as one
+ * InstancedMesh of tiny green tufts (1 draw call) and upgrades itself to the `plant.*` models
+ * (grass, flowers, bushes, mushrooms; one draw call per model used, at most 8) when they load.
+ * Grass and bushes get a slight per-instance shift in lightness and warmth (see `varyPlants`);
+ * flowers and mushrooms keep their painted colors. Grass, flowers and bushes sway in the wind (see
+ * wind.ts); mushrooms stay still. Same seed, same layout. Plants do not cast shadows, they only
+ * receive them.
  */
 export function scatterPlants(
   rng: Rng,
@@ -365,7 +382,8 @@ export function scatterPlants(
 ): THREE.Group {
   const group = new THREE.Group();
   group.name = 'plants';
-  const wanted = Math.round(Math.max(0, count) * (options.density ?? DEFAULT_PLANT_DENSITY));
+  const tier = options.tier ?? getQuality();
+  const wanted = Math.round(Math.max(0, count) * (options.density ?? DEFAULT_PLANT_DENSITY) * PLANT_TIER_DENSITY[tier]);
   const spots = plantSpots(rng, wanted, bounds, avoid, options.edgeFalloff);
   // A separate stream for the models, so the layout is the same whichever art is showing.
   const modelRng = mulberry32(Math.floor(rng() * 0x100000000));

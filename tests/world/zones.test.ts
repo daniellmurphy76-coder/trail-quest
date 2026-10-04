@@ -9,6 +9,7 @@ import { createSafetyStation } from '../../src/world/safety-station';
 import { createTownSquare } from '../../src/world/town-square';
 import { createZone, ZONE_IDS, ZONE_LABELS, type ZoneDeps } from '../../src/world/zones';
 import { findInteractableInRange } from '../../src/world/zone';
+import { HORIZON_MAX_DRAW_CALLS, HORIZON_MAX_TRIANGLES, horizonStats } from '../../src/world/horizon';
 
 function makeDeps() {
   const deps = { onTalkToDenChief: vi.fn<() => void>(), onReturnToBaseCamp: vi.fn<() => void>() };
@@ -141,12 +142,31 @@ describe.each(OTHER_ZONES)('placeholder zone %s', (id) => {
     expect(deps.onTalkToDenChief).not.toHaveBeenCalled();
   });
 
-  it('stays well inside the draw-call budget', () => {
+  it('stays well inside the draw-call budget (the horizon is 3 of these)', () => {
     let calls = 0;
     zone.root.traverseVisible((o) => {
       if ((o as THREE.Mesh).isMesh || (o as THREE.Sprite).isSprite) calls++;
     });
     expect(calls).toBeLessThan(30);
+  });
+
+  it('has a horizon behind the walls of trees: hills, a tree line, and mountains or rooftops, within budget', () => {
+    const horizon = zone.root.getObjectByName('horizon')!;
+    expect(horizon).toBeDefined();
+    const stats = horizonStats(horizon);
+    expect(stats.drawCalls).toBeLessThanOrEqual(HORIZON_MAX_DRAW_CALLS);
+    expect(stats.triangles).toBeLessThanOrEqual(HORIZON_MAX_TRIANGLES);
+    const hills = horizon.getObjectByName('horizon-hills') as THREE.Mesh;
+    const position = hills.geometry.getAttribute('position');
+    for (let i = 0; i < position.count; i++) {
+      expect(Math.max(Math.abs(position.getX(i)), Math.abs(position.getZ(i)))).toBeGreaterThan(bounds.maxX);
+    }
+  });
+
+  it('has a textured, rolling ground with the apron under it', () => {
+    const ground = zone.root.getObjectByName('ground') as THREE.Mesh;
+    expect((ground.material as THREE.Material).userData.groundTexture).toBeDefined();
+    expect(zone.root.getObjectByName('ground-apron')).toBeDefined();
   });
 });
 

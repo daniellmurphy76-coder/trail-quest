@@ -10,6 +10,13 @@ export interface FollowTarget {
 }
 
 export const CAMERA_FOV = 50;
+export const CAMERA_NEAR = 0.1;
+/**
+ * How far the camera sees. The far mountains of the horizon (world/horizon.ts) stand up to 190 units
+ * from a zone's center, so up to about 225 from a camera at the zone's edge. The fog hides everything
+ * past 115 anyway; this only keeps the peaks from being cut off.
+ */
+export const CAMERA_FAR = 300;
 export const CAMERA_DISTANCE = 7.5;
 export const CAMERA_HEIGHT = 3;
 /** The camera looks at a point this far above the player's feet. */
@@ -34,7 +41,7 @@ const MAX_RECENTER_SWING = THREE.MathUtils.degToRad(100);
  * their facing once they stop. Position and look target are smoothed every frame.
  */
 export class FollowCamera {
-  readonly camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 0.1, 200);
+  readonly camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, CAMERA_NEAR, CAMERA_FAR);
 
   private yaw = Math.PI; // looking down -z, the default Three.js view
   private idleTime = 0;

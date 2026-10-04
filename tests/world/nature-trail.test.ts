@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { assets, type ModelAnimator } from '../../src/engine/assets';
 import { createNatureTrail, natureTrailLayout, NATURE_TRAIL_HALF } from '../../src/world/nature-trail';
+import { WATER_FRINGE, WATER_Y } from '../../src/world/water';
 import { findInteractableInRange } from '../../src/world/zone';
 import type { ZoneDeps } from '../../src/world/zones';
+import { critterDrawCalls, runZone, wingBodies } from './critter-helpers';
 
 function makeDeps() {
   const deps = { onTalkToDenChief: vi.fn<() => void>(), onReturnToBaseCamp: vi.fn<() => void>() };
@@ -23,6 +25,8 @@ function countDrawCalls(root: THREE.Object3D): number {
 const PLACEHOLDER_DRAW_CAP = 30;
 /** After the swap (fake models, one mesh each, two for the rabbit and the campfire), with the player and sky on top. */
 const SWAPPED_DRAW_CAP = 60;
+/** The bridge's window in the water: the stream's colliders leave the same 3 units (the deck is 3.1 wide). */
+const BRIDGE_GAP = 3;
 
 const deps = makeDeps();
 const zone = createNatureTrail(deps);
@@ -40,6 +44,14 @@ describe('Nature Trail zone', () => {
     expect(() => {
       for (let i = 0; i < 120; i++) zone.update(1 / 60);
     }).not.toThrow();
+  });
+
+  it('runs update for a long time (water, butterflies, birds, campfire) without throwing or going non-finite', () => {
+    const z = createNatureTrail(makeDeps());
+    expect(() => runZone(z, 1800)).not.toThrow(); // half a minute at 60 Hz
+    for (const p of [...wingBodies(z.root, 'butterfly-wings'), ...wingBodies(z.root, 'bird-wings')]) {
+      expect(Number.isFinite(p.x + p.y + p.z)).toBe(true);
+    }
   });
 
   it('is about 35 across with the spawn near the +z edge, on the trail, facing the zone', () => {
@@ -111,28 +123,123 @@ describe('Nature Trail zone', () => {
     expect(Math.hypot(landmarks.trailhead!.x - spawn.x, landmarks.trailhead!.z - spawn.z)).toBeGreaterThan(4);
   });
 
-  it('carries the path over a 3 unit wide see-through stream that crosses the whole zone, under the bridge', () => {
-    const stream = zone.root.getObjectByName('stream') as THREE.Mesh;
-    expect(stream).toBeDefined();
-    const material = stream.material as THREE.MeshLambertMaterial;
+  /** The water ribbon: a Mesh with a custom shader, named by createStreamWater. */
+  const ribbon = (): THREE.Mesh => zone.root.getObjectByName('stream-water-ribbon') as THREE.Mesh;
+
+  it('has animated water instead of the old flat strip, with no leftover stream mesh', () => {
+    const water = zone.root.getObjectByName('stream-water');
+    expect(water).toBeDefined();
+    expect(water!.parent).toBe(zone.root);
+    expect(ribbon()).toBeDefined();
+    const material = ribbon().material as THREE.ShaderMaterial;
+    expect(material.isShaderMaterial).toBe(true);
     expect(material.transparent).toBe(true);
-    expect(material.opacity).toBeLessThan(1);
+    // The old strip (a vertex-colored Lambert mesh called "stream") and its material are gone.
+    expect(zone.root.getObjectByName('stream')).toBeUndefined();
+    zone.root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const m = mesh.material as THREE.Material;
+      expect(m.type === 'MeshLambertMaterial' && m.transparent && (m as THREE.MeshLambertMaterial).vertexColors).toBe(false);
+    });
+  });
+
+  it('runs the water along the stream: same 3 unit width, whole zone, under the bridge, cut open at the bridge', () => {
     expect(layout.streamHalf * 2).toBe(3);
-    stream.geometry.computeBoundingBox();
-    const box = stream.geometry.boundingBox!;
+    const geometry = ribbon().geometry;
+    geometry.computeBoundingBox();
+    const box = geometry.boundingBox!;
     expect(box.min.x).toBeLessThanOrEqual(bounds.minX);
     expect(box.max.x).toBeGreaterThanOrEqual(bounds.maxX);
 
+    const position = geometry.getAttribute('position');
     const bridge = landmarks.footbridge!;
+    const bridgeS = layout.stream.nearest(bridge.x, bridge.z).s;
     expect(layout.stream.nearest(bridge.x, bridge.z).dist).toBeLessThan(0.3);
+    let widest = 0;
+    let before = 0;
+    let after = 0;
+    for (let i = 0; i < position.count; i++) {
+      const x = position.getX(i);
+      const z = position.getZ(i);
+      expect(position.getY(i)).toBeCloseTo(WATER_Y, 6);
+      const here = layout.stream.nearest(x, z);
+      widest = Math.max(widest, here.dist);
+      // Nothing inside the bridge's window (a stream gap of 3, the same as the colliders'), so the planks show.
+      expect(Math.abs(here.s - bridgeS)).toBeGreaterThanOrEqual(BRIDGE_GAP / 2 - 0.25);
+      if (here.s < bridgeS) before++;
+      else after++;
+    }
+    // Bank to bank plus the soft shore on each side.
+    expect(widest).toBeGreaterThan(layout.streamHalf + WATER_FRINGE - 0.15);
+    expect(widest).toBeLessThanOrEqual(layout.streamHalf + WATER_FRINGE + 0.05);
+    expect(before).toBeGreaterThan(50);
+    expect(after).toBeGreaterThan(50);
+
     // The path meets the stream only at the bridge.
     const wet = layout.path.pts.filter((p) => layout.stream.nearest(p.x, p.z).dist < layout.streamHalf);
     expect(wet.length).toBeGreaterThan(0);
     for (const p of wet) expect(Math.hypot(p.x - bridge.x, p.z - bridge.z)).toBeLessThan(2.5);
   });
 
-  it('builds the path and stream surfaces from finite, upward-facing triangles', () => {
-    for (const name of ['path', 'stream']) {
+  it('animates the water: update(dt) moves its clock', () => {
+    const z = createNatureTrail(makeDeps());
+    const uniforms = (z.root.getObjectByName('stream-water-ribbon') as THREE.Mesh).material as THREE.ShaderMaterial;
+    const before = uniforms.uniforms.uTime!.value as number;
+    runZone(z, 60);
+    expect(uniforms.uniforms.uTime!.value as number).toBeGreaterThan(before);
+  });
+
+  it('draws the water in 2 calls, the butterflies in 1 and the birds in 1: 3 more than the old strip', () => {
+    // The old strip was 1 draw call. The water (ribbon and sparkles) is 2, and the critters add 2 more.
+    expect(critterDrawCalls(zone.root.getObjectByName('stream-water')!)).toBe(2);
+    expect(critterDrawCalls(zone.root.getObjectByName('butterflies')!)).toBe(1);
+    expect(critterDrawCalls(zone.root.getObjectByName('birds')!)).toBe(1);
+  });
+
+  it('has about 10 butterflies in the meadow and 3 birds overhead, seeded', () => {
+    expect(wingBodies(zone.root, 'butterfly-wings')).toHaveLength(10);
+    expect(wingBodies(zone.root, 'bird-wings')).toHaveLength(3);
+    const again = createNatureTrail(makeDeps());
+    runZone(again, 300);
+    const first = createNatureTrail(makeDeps());
+    runZone(first, 300);
+    expect(wingBodies(again.root, 'butterfly-wings').map((p) => p.toArray())).toEqual(
+      wingBodies(first.root, 'butterfly-wings').map((p) => p.toArray()),
+    );
+  });
+
+  it('keeps the butterflies in the meadow, off the stream and out of every prop, for a long flight', () => {
+    const z = createNatureTrail(makeDeps());
+    const violations: string[] = [];
+    const check = (): void => {
+      for (const p of wingBodies(z.root, 'butterfly-wings')) {
+        if (!inside(p)) violations.push(`outside the zone at ${p.x}, ${p.z}`);
+        if (p.y < 0.3 || p.y > 2) violations.push(`height ${p.y}`);
+        if (layout.stream.nearest(p.x, p.z).dist < layout.streamHalf + 0.3) violations.push(`over the stream at ${p.x}, ${p.z}`);
+        for (const c of layout.blockers) {
+          if (Math.hypot(p.x - c.x, p.z - c.z) < c.r) violations.push(`inside a prop at ${c.x}, ${c.z}`);
+        }
+      }
+    };
+    check();
+    runZone(z, 1800, check); // half a minute at 60 Hz, checked every half second
+    expect(violations).toEqual([]);
+    const spread = wingBodies(z.root, 'butterfly-wings');
+    expect(new Set(spread.map((p) => p.x.toFixed(1))).size).toBeGreaterThan(5); // not all in one clump
+  });
+
+  it('keeps the birds up in the sky, circling the middle of the zone', () => {
+    const z = createNatureTrail(makeDeps());
+    runZone(z, 600);
+    for (const p of wingBodies(z.root, 'bird-wings')) {
+      expect(p.y).toBeGreaterThan(15);
+      expect(Math.hypot(p.x, p.z)).toBeLessThanOrEqual(120 + 1e-6);
+    }
+  });
+
+  it('builds the path and the water from finite, upward-facing triangles', () => {
+    for (const name of ['path', 'stream-water-ribbon']) {
       const mesh = zone.root.getObjectByName(name) as THREE.Mesh;
       expect(mesh, name).toBeDefined();
       const position = mesh.geometry.getAttribute('position');
@@ -150,8 +257,6 @@ describe('Nature Trail zone', () => {
         expect(uz * vx - ux * vz).toBeGreaterThanOrEqual(0); // normal points up (+y)
       }
     }
-    const stream = (zone.root.getObjectByName('stream') as THREE.Mesh).geometry;
-    expect(stream.getAttribute('color').itemSize).toBe(4); // per-vertex alpha for the soft shores
   });
 
   it('puts a rock cluster at the lookout with a clear flat spot in front', () => {
@@ -323,7 +428,7 @@ describe('Nature Trail model swap', () => {
     const rocks = z.root.getObjectByName('rocks')!;
     expect(rocks.children.map((c) => c.name).sort()).toEqual(['rock.large', 'rock.small', 'rock.tall']);
     const trees = z.root.getObjectByName('trees')!;
-    expect(trees.children.map((c) => c.name).sort()).toEqual(['tree.oak', 'tree.pine', 'tree.pine.tall', 'tree.round']);
+    expect(trees.children.map((c) => c.name).sort()).toEqual(['tree.birch', 'tree.oak', 'tree.pine', 'tree.pine.tall', 'tree.round']);
     expect(z.root.getObjectByName('signpost')).toBeDefined();
 
     // The bridge model is flattened to the player's height and runs north to south.

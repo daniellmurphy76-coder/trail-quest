@@ -1,9 +1,12 @@
 import * as THREE from 'three';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { assets } from '../../src/engine/assets';
 import { createBaseCamp } from '../../src/world/base-camp';
-import { isClear, PLAYER_RADIUS } from '../../src/world/collide';
+import { isClear, PLAYER_RADIUS, TREE_TRUNK_RADIUS } from '../../src/world/collide';
+import { horizonStats } from '../../src/world/horizon';
 import { personPlaceholder } from '../../src/world/props';
 import { findInteractableInRange } from '../../src/world/zone';
+import { critterDrawCalls, fireflyPositions, runZone, wingBodies } from '../world/critter-helpers';
 
 /** Draw calls for single-material meshes: one per visible Mesh or InstancedMesh. */
 function countDrawCalls(root: THREE.Object3D): number {
@@ -85,5 +88,109 @@ describe('Base Camp zone', () => {
 
   it('animates the campfire without throwing', () => {
     for (let i = 0; i < 120; i++) zone.update(1 / 60);
+  });
+
+  it('adds 3 draw calls of ambient life: 8 butterflies (1), 4 birds (1) and 14 fireflies at the fire (1)', () => {
+    expect(critterDrawCalls(zone.root.getObjectByName('butterflies')!)).toBe(1);
+    expect(critterDrawCalls(zone.root.getObjectByName('birds')!)).toBe(1);
+    expect(critterDrawCalls(zone.root.getObjectByName('fireflies')!)).toBe(1);
+    expect(wingBodies(zone.root, 'butterfly-wings')).toHaveLength(8);
+    expect(wingBodies(zone.root, 'bird-wings')).toHaveLength(4);
+    expect(fireflyPositions(zone.root)).toHaveLength(14);
+    const scene = new THREE.Scene();
+    scene.add(zone.root);
+    scene.add(personPlaceholder(0xf2c14e, 1.95)); // the player
+    expect(critterDrawCalls(scene)).toBeLessThan(40); // meshes and points together
+  });
+
+  it('keeps the fireflies within 3 units of the campfire, low, and the birds high over the camp, for a long run', () => {
+    const z = createBaseCamp({ onTalkToDenChief: () => {} });
+    const violations: string[] = [];
+    const check = (): void => {
+      for (const p of fireflyPositions(z.root)) {
+        if (Math.hypot(p.x, p.z) > 3 + 1e-6 || p.y < 0.5 - 1e-6 || p.y > 2.4 + 1e-6) violations.push(`firefly at ${p.x}, ${p.y}, ${p.z}`);
+      }
+      for (const p of wingBodies(z.root, 'bird-wings')) {
+        if (p.y <= 15 || Math.hypot(p.x, p.z) > 120 + 1e-6) violations.push(`bird at ${p.x}, ${p.y}, ${p.z}`);
+      }
+    };
+    check();
+    expect(() => runZone(z, 1800, check)).not.toThrow(); // half a minute at 60 Hz, checked every half second
+    expect(violations).toEqual([]);
+  });
+
+  it('keeps the butterflies inside the walkable square and out of the campfire and the Den Chief, for a long flight', () => {
+    const z = createBaseCamp({ onTalkToDenChief: () => {} });
+    const chief = z.interactables[0]!.position;
+    const violations: string[] = [];
+    const check = (): void => {
+      for (const p of wingBodies(z.root, 'butterfly-wings')) {
+        if (Math.max(Math.abs(p.x), Math.abs(p.z)) > 25) violations.push(`outside the square at ${p.x}, ${p.z}`);
+        if (p.y < 0.3 || p.y > 2) violations.push(`height ${p.y}`);
+        if (Math.hypot(p.x, p.z) < 2) violations.push('in the campfire');
+        if (Math.hypot(p.x - chief.x, p.z - chief.z) < 1.5) violations.push('on the Den Chief');
+        if (Math.hypot(p.x + 8, p.z + 8) < 1.2) violations.push('on the flagpole');
+        if (Math.hypot(p.x + 17, p.z + 12) < 5.5) violations.push('in the cabin');
+      }
+    };
+    check();
+    runZone(z, 1800, check); // half a minute at 60 Hz, checked every half second
+    expect(violations).toEqual([]);
+  });
+
+  it('flies the same way every time (seeded)', () => {
+    const a = createBaseCamp({ onTalkToDenChief: () => {} });
+    const b = createBaseCamp({ onTalkToDenChief: () => {} });
+    runZone(a, 300);
+    runZone(b, 300);
+    for (const name of ['butterfly-wings', 'bird-wings'] as const) {
+      expect(wingBodies(a.root, name).map((p) => p.toArray())).toEqual(wingBodies(b.root, name).map((p) => p.toArray()));
+    }
+    expect(fireflyPositions(a.root).map((p) => p.toArray())).toEqual(fireflyPositions(b.root).map((p) => p.toArray()));
+  });
+
+  it('has a horizon (3 draw calls): hills, a distant tree line and far mountains, all outside the 50 by 50 square', () => {
+    const horizon = zone.root.getObjectByName('horizon')!;
+    expect(horizon.children.map((c) => c.name).sort()).toEqual(['horizon-hills', 'horizon-peaks', 'horizon-trees']);
+    expect(horizonStats(horizon).drawCalls).toBe(3);
+  });
+
+  it('keeps the walkable square flat (within the 3 cm ripple) while the ground rolls up beyond the trees', () => {
+    const pos = (zone.root.getObjectByName('ground') as THREE.Mesh).geometry.getAttribute('position');
+    let beyond = 0;
+    for (let i = 0; i < pos.count; i++) {
+      const edge = Math.max(Math.abs(pos.getX(i)), Math.abs(pos.getZ(i)));
+      if (edge <= 25) expect(Math.abs(pos.getY(i))).toBeLessThanOrEqual(0.031);
+      else if (pos.getY(i) > 0.05) beyond++;
+    }
+    expect(beyond).toBeGreaterThan(20);
+  });
+});
+
+describe('Base Camp zone, models loaded', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('puts white birches in the tree mix with the pines, rounds and oaks', async () => {
+    vi.spyOn(assets, 'load').mockResolvedValue(undefined);
+    vi.spyOn(assets, 'has').mockReturnValue(true);
+    vi.spyOn(assets, 'instance').mockImplementation((id) => {
+      const group = new THREE.Group();
+      group.name = id;
+      group.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial()));
+      return group;
+    });
+    vi.spyOn(assets, 'instanced').mockImplementation((id, count) => {
+      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial(), count);
+      mesh.name = id;
+      return mesh;
+    });
+    const camp = createBaseCamp({ onTalkToDenChief: () => {} });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const trees = camp.root.getObjectByName('trees')!;
+    expect(trees.children.map((c) => c.name).sort()).toEqual(['tree.birch', 'tree.oak', 'tree.pine', 'tree.pine.tall', 'tree.round']);
+    const count = trees.children.reduce((n, c) => n + (c as THREE.InstancedMesh).count, 0);
+    expect(count).toBe(camp.colliders!.filter((c) => c.kind === 'circle' && c.r === TREE_TRUNK_RADIUS).length); // one trunk collider each
   });
 });

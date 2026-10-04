@@ -22,6 +22,8 @@ import { Renderer } from '../engine/renderer';
 import { defaultAvatar } from '../player/avatar/options';
 import { Player } from '../player/controller';
 import type { AvatarConfig } from '../save/types';
+import { setHorizonQuality } from '../world/horizon';
+import { tickWind } from '../world/wind';
 import { findInteractableInRange, type Interactable, type Zone } from '../world/zone';
 import { createZone, type ZoneDeps } from '../world/zones';
 import { guidedStartPose } from './guided-start';
@@ -111,6 +113,9 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   };
   const baseCamp = createZone('base-camp', zoneDeps);
   scene.add(baseCamp.root);
+  // Every zone built so far, the same set the traveler keeps (it builds each zone once and caches it).
+  // A tier drop reaches all of them, including the ones that are not in the scene right now.
+  const builtZones = new Map<ZoneId, Zone>([[baseCamp.id, baseCamp]]);
 
   // The look is replaced by the profile's avatar once the app knows who is playing (setPlayerAvatar).
   const player = new Player({ avatar: defaultAvatar('wolf'), rank: 'wolf' });
@@ -149,6 +154,9 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     setQuality(next);
     environment.setQuality(next);
     post.setTier(next);
+    // The horizon of every built zone follows the tier (low drops the far peaks and half the distant
+    // trees). A zone built later reads the new tier itself (setQuality above), so it needs no call.
+    for (const zone of builtZones.values()) setHorizonQuality(zone.root, next);
   }
   const devtools = initDevtools({
     renderer: renderer.gl,
@@ -245,7 +253,11 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   const traveler = createZoneTraveler({
     scene,
     initial: baseCamp,
-    createZone: (id) => createZone(id, zoneDeps),
+    createZone: (id) => {
+      const zone = createZone(id, zoneDeps);
+      builtZones.set(id, zone);
+      return zone;
+    },
     player,
     follow,
     followTarget,
@@ -269,6 +281,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       // Time spent in a dialog or screen is not "standing still": input is off, so restart the count.
       idleSeconds = player.isMoving || !input.isEnabled ? 0 : idleSeconds + dt;
       zone.update(dt);
+      tickWind(dt); // one wind clock for every swaying plant and tree, whichever zone is showing
       for (const fn of [...updaters]) fn(dt);
       const near = findInteractableInRange(player.position.x, player.position.z, zone.interactables);
       handleInteraction(near, state.actionPressed);
