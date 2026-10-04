@@ -26,6 +26,7 @@ import { createBaseCamp } from './base-camp';
 import { createCampfireCircle } from './campfire-circle';
 import { createFitnessField } from './fitness-field';
 import { createNatureTrail } from './nature-trail';
+import { ensureFireLight } from './props';
 import { createSafetyStation } from './safety-station';
 import { createTownSquare } from './town-square';
 import { ZONE_IDS, ZONE_LABELS } from './zone-ids';
@@ -40,7 +41,19 @@ export interface ZoneDeps {
   onReturnToBaseCamp: () => void;
 }
 
+/**
+ * Build the zone for `id`. Every zone it returns carries exactly one fire point light: the
+ * campfire's own where there is a fire, and a dark one (intensity 0, still visible) where there is
+ * not. The count of lights in the scene then stays the same wherever the player travels, so three
+ * never rebuilds its lit shaders on a zone change. See `ensureFireLight` in ./props.ts.
+ */
 export function createZone(id: ZoneId, deps: ZoneDeps): Zone {
+  const zone = buildZone(id, deps);
+  ensureFireLight(zone.root);
+  return zone;
+}
+
+function buildZone(id: ZoneId, deps: ZoneDeps): Zone {
   switch (id) {
     case 'base-camp':
       return createBaseCamp({ onTalkToDenChief: deps.onTalkToDenChief });

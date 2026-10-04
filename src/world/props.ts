@@ -7,7 +7,7 @@ import { mulberry32 } from '../engine/seed';
 import type { Bounds } from './bounds';
 import { circlesAt, TREE_TRUNK_RADIUS, type CircleCollider } from './collide';
 import { applyOccluderFadeToMesh, occluderFadeFor } from './occluder';
-import { applyWindToMesh, windKindFor } from './wind';
+import { applyWindToMesh, windKindFor, windMotionScale } from './wind';
 
 /** Seeded random source returning floats in [0, 1), for example `mulberry32(2026)`. */
 export type Rng = () => number;
@@ -445,8 +445,93 @@ export interface CampfireProp extends AnimatedProp {
 
 const EMBER_COUNT = 12;
 const FIRE_LIGHT_COLOR = 0xff9640;
-const FIRE_LIGHT_INTENSITY = 16; // candela; at 3 units it lights the ground about as strongly as the sky does
+/** Every fire light, lit or not, goes by this name (the registry and the tests count them). */
+export const FIRE_LIGHT_NAME = 'campfire-light';
+/**
+ * Where the light hangs above the ground, in the campfire's own space: just over the tip of the
+ * tallest flame (2.06), so the logs (top 0.94) and stones (top 0.63) are never close to it. A light
+ * inside the flame sat 0.6 from the log tops and blew them out to pale beige.
+ */
+export const FIRE_LIGHT_HEIGHT = 2.5;
+/**
+ * Candela, so the light at distance d (decay 2) adds I / d^2 on a surface facing it, and the sun adds
+ * 3.3. The nearest log vertex is 1.77 away: 13 / 1.77^2 = 4.2 (1.3 suns), 4.8 at the top of the
+ * flicker. On the ground it adds 0.99 at 2 units, 0.55 at 3, 0.31 at 4, 0.19 at 5 and 0.12 at 6.
+ */
+export const FIRE_LIGHT_INTENSITY = 13;
 const FIRE_LIGHT_RANGE = 14;
+/** The flicker moves the light this far either side of its resting intensity (0.15 is 15 percent). */
+export const FIRE_FLICKER_DEPTH = 0.15;
+
+/**
+ * The fire light's brightness as a multiple of its resting intensity at time `t` seconds: a sum of
+ * three sines whose speeds do not share a factor, so the pattern never visibly repeats. Always
+ * between 1 - FIRE_FLICKER_DEPTH and 1 + FIRE_FLICKER_DEPTH. With `reduced` (the player asked for
+ * less motion) it is a steady 1.
+ */
+export function fireFlicker(t: number, reduced = false): number {
+  if (reduced) return 1;
+  // The three weights (7, 5, 3) sum to 15, so the swing never passes the depth.
+  const swing = 7 * Math.sin(t * 4.3) + 5 * Math.sin(t * 9.1 + 1.1) + 3 * Math.sin(t * 15.7 + 2.3);
+  return 1 + (FIRE_FLICKER_DEPTH * swing) / 15;
+}
+
+/** The light a fire carries. It never casts shadows, and its numbers are the same lit or dormant. */
+function fireLight(intensity: number): THREE.PointLight {
+  const light = new THREE.PointLight(FIRE_LIGHT_COLOR, intensity, FIRE_LIGHT_RANGE, 2);
+  light.name = FIRE_LIGHT_NAME;
+  light.position.set(0, FIRE_LIGHT_HEIGHT, 0);
+  light.castShadow = false;
+  return light;
+}
+
+/**
+ * Give a zone with no campfire a dark fire light, so every zone carries exactly one point light.
+ * Three counts the lights in the scene when it builds a shader, and any change in that count (a
+ * zone with a fire to one without) recompiles every lit material, which is a hitch on travel. An
+ * intensity of 0 lights nothing but stays in the count, and `visible` stays true: a hidden light
+ * drops out of the count, which is the very change this avoids. A zone that already has a fire
+ * light is left alone. Returns the light.
+ */
+export function ensureFireLight(root: THREE.Object3D): THREE.PointLight {
+  const lit: THREE.PointLight[] = [];
+  root.traverse((o) => {
+    if ((o as THREE.PointLight).isPointLight && o.name === FIRE_LIGHT_NAME) lit.push(o as THREE.PointLight);
+  });
+  if (lit[0]) return lit[0];
+  const dark = fireLight(0);
+  dark.userData.dormant = true;
+  root.add(dark);
+  return dark;
+}
+
+/** Bark brown for the fire's logs and stone grey for its ring: the kit's own palette is tan, and it glared. */
+const MODEL_STONE_COLOR = 0x777c82;
+/** Multiplies the kit's orange wood palette (linear 0.60, 0.18, 0.09 on average) down to bark brown (about 0.10, 0.04, 0.02). */
+const MODEL_BARK_TINT = new THREE.Color().setRGB(0.17, 0.23, 0.2);
+
+/**
+ * Recolor the `campfire` model: the mesh named "wood" keeps the kit's texture (its darker and
+ * lighter faces stay) under a brown tint; every other mesh (the stone ring and the ash bed) becomes
+ * plain stone grey. Each mesh gets its own copy of the material, so the shared one is untouched.
+ * Materials that are not Lambert (a stand-in in a test) are left as they are.
+ */
+export function dressCampfireModel(model: THREE.Object3D): void {
+  model.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const source = mesh.material as THREE.MeshLambertMaterial;
+    if (!source.isMeshLambertMaterial) return;
+    const own = source.clone();
+    if (mesh.name === 'wood') {
+      own.color.copy(MODEL_BARK_TINT);
+    } else {
+      own.map = null;
+      own.color.set(MODEL_STONE_COLOR);
+    }
+    mesh.material = own;
+  });
+}
 
 /**
  * A flame: a teardrop of six faces whose vertex colors run from `base` at the bottom to `tip` at
@@ -501,8 +586,8 @@ function softDotTexture(): THREE.DataTexture {
 
 /**
  * Stone ring, crossed logs, a two-layer flame, rising embers, and a warm flickering light that
- * does not cast shadows. The stones and logs cast and receive shadows. 5 draw calls: stones, logs
- * (or the model's 2), outer flame, inner flame, embers.
+ * hangs above the flame and does not cast shadows (see FIRE_LIGHT_HEIGHT). The stones and logs cast
+ * and receive shadows. 5 draw calls: stones, logs (or the model's 2), outer flame, inner flame, embers.
  */
 export function campfire(): CampfireProp {
   const root = new THREE.Group();
@@ -560,10 +645,7 @@ export function campfire(): CampfireProp {
   );
   inner.position.y = 0.2;
 
-  const light = new THREE.PointLight(FIRE_LIGHT_COLOR, FIRE_LIGHT_INTENSITY, FIRE_LIGHT_RANGE, 2);
-  light.name = 'campfire-light';
-  light.position.set(0, 1.1, 0);
-  light.castShadow = false;
+  const light = fireLight(FIRE_LIGHT_INTENSITY);
 
   // Embers: a few glowing dots that rise, drift, and fade out, then start over at the fire.
   const emberPositions = new Float32Array(EMBER_COUNT * 3);
@@ -622,6 +704,7 @@ export function campfire(): CampfireProp {
       if (!assets.has('campfire')) return false;
       root.remove(stones, logs);
       const model = assets.instance('campfire');
+      dressCampfireModel(model);
       setShadowCasting(model, true, true);
       root.add(model);
       swapped = true;
@@ -629,17 +712,18 @@ export function campfire(): CampfireProp {
     },
     update(dt: number): void {
       t += dt;
-      // Sums of sines give a lively flicker with no per-frame randomness.
-      const tall = 1 + 0.14 * Math.sin(t * 11) + 0.08 * Math.sin(t * 23 + 1.3);
-      const wide = 1 + 0.07 * Math.sin(t * 17 + 0.6);
+      // Sums of sines give a lively flicker with no per-frame randomness. Under reduced motion the
+      // flames stand still and the light holds steady; the embers keep rising.
+      const motion = windMotionScale();
+      const tall = 1 + motion * (0.14 * Math.sin(t * 11) + 0.08 * Math.sin(t * 23 + 1.3));
+      const wide = 1 + motion * 0.07 * Math.sin(t * 17 + 0.6);
       outer.scale.set(wide, tall, wide);
-      outer.position.y = 0.2 + 0.03 * Math.sin(t * 13 + 0.4);
-      outer.rotation.y = t * 0.8;
-      inner.scale.set(1 / wide, 1 + 0.2 * Math.sin(t * 19 + 2.1), 1 / wide);
-      inner.position.y = 0.2 + 0.04 * Math.sin(t * 17 + 1.9);
-      inner.rotation.y = 0.5 - t * 1.3;
-      light.intensity = FIRE_LIGHT_INTENSITY * (0.86 + 0.1 * Math.sin(t * 13) + 0.06 * Math.sin(t * 29 + 1.1) + 0.04 * Math.sin(t * 47 + 2.3));
-      light.position.y = 1.1 + 0.08 * Math.sin(t * 9);
+      outer.position.y = 0.2 + motion * 0.03 * Math.sin(t * 13 + 0.4);
+      outer.rotation.y = motion * t * 0.8;
+      inner.scale.set(1 / wide, 1 + motion * 0.2 * Math.sin(t * 19 + 2.1), 1 / wide);
+      inner.position.y = 0.2 + motion * 0.04 * Math.sin(t * 17 + 1.9);
+      inner.rotation.y = 0.5 - motion * t * 1.3;
+      light.intensity = FIRE_LIGHT_INTENSITY * fireFlicker(t, motion === 0);
       updateEmbers();
     },
   };

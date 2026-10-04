@@ -4,6 +4,8 @@ import { mulberry32 } from '../../src/engine/seed';
 import { createBaseCamp } from '../../src/world/base-camp';
 import {
   campfire,
+  FIRE_FLICKER_DEPTH,
+  FIRE_LIGHT_INTENSITY,
   flagpole,
   lodge,
   personPlaceholder,
@@ -71,8 +73,8 @@ describe('campfire', () => {
     expect(scales.size).toBeGreaterThan(20);
     expect(heights.size).toBeGreaterThan(20);
     for (const v of intensities) {
-      expect(v / 1000).toBeGreaterThan(8);
-      expect(v / 1000).toBeLessThan(20);
+      expect(v / 1000).toBeGreaterThanOrEqual(FIRE_LIGHT_INTENSITY * (1 - FIRE_FLICKER_DEPTH) - 0.001);
+      expect(v / 1000).toBeLessThanOrEqual(FIRE_LIGHT_INTENSITY * (1 + FIRE_FLICKER_DEPTH) + 0.001);
     }
   });
 
