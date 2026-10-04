@@ -128,10 +128,11 @@
   gap: 8px;
 }
 
+/* Narrow side padding so all six tabs fit on one row in a 1024px iPad window; they stretch to fill. */
 .tq-avatar__tab {
   flex: 1 1 auto;
   min-height: 48px;
-  padding: 6px 16px;
+  padding: 6px 10px;
   font: inherit;
   font-weight: 700;
   line-height: 1.2;
@@ -256,6 +257,17 @@
 }
 
 .tq-opt__label {
+  overflow-wrap: anywhere;
+}
+
+/* A hero tile: a bigger picture, and a short line under the name. */
+.tq-opt--noted .tq-opt__face {
+  width: 84px;
+  height: 84px;
+}
+
+.tq-opt__note {
+  font-weight: 400;
   overflow-wrap: anywhere;
 }
 
