@@ -43,6 +43,7 @@ import {
   treeColliders,
   type AvoidCircle,
   type Placement,
+  type Rng,
   type Spot,
 } from './props';
 import { zoneTerrain } from './terrain';
@@ -274,6 +275,7 @@ const COLOR = {
   curb: 0xb9bcc0,
   white: 0xf5f5ef,
   concrete: 0xcdc8bd,
+  joint: 0x9a968c,
   mulch: 0xa57f55,
   sand: 0xe8d49b,
   blue: 0x2f6fd0,
@@ -436,12 +438,97 @@ function streetPrimitive(material: THREE.Material): THREE.Mesh {
   return b.build('street-primitive', material);
 }
 
-/** The near sidewalk, the strip in front of the fire station, and the path from the spawn to the crossing. */
+/** A hex color a little lighter or darker (`k` around 1), so paving stones are never all the same. */
+function toned(hex: number, k: number): number {
+  return new THREE.Color(hex).multiplyScalar(k).getHex();
+}
+
+/** Paving heights: the joint bed, the slabs on it, the kerb stones around it. All clear the lawn's 3 cm ripple. */
+const BED_TOP = 0.045;
+const SLAB_BASE = 0.04;
+const SLAB_TOP = 0.065;
+const KERB_TOP = 0.095;
+const KERB_WIDTH = 0.16;
+/** The thin joint left between slabs (and between kerb stones), and the size slabs are cut to. */
+const SLAB_JOINT = 0.05;
+const SLAB_LENGTH = 1.2;
+const SLAB_WIDTH = 0.95;
+
+interface PavedEdges {
+  minX?: boolean;
+  maxX?: boolean;
+  minZ?: boolean;
+  maxZ?: boolean;
+}
+
+/**
+ * A paved rectangle that reads as stone, not paper: a dark bed, a grid of slabs on it (each a shade
+ * of its own, with a thin joint between them, standing a couple of centimeters above the bed), and a
+ * kerb stone along each edge named in `kerbs`, taller than the slabs so the edge has a lip. `gap`
+ * leaves the kerbs open between two points along their length (where another path joins).
+ */
+function pavedStrip(
+  b: PartBuilder,
+  rand: Rng,
+  [minX, maxX, minZ, maxZ]: readonly [number, number, number, number],
+  kerbs: PavedEdges,
+  gap?: readonly [number, number],
+): void {
+  const cx = (minX + maxX) / 2;
+  const cz = (minZ + maxZ) / 2;
+  b.box(COLOR.joint, maxX - minX, BED_TOP, maxZ - minZ, cx, 0, cz);
+
+  const kerbStone = (length: number, along: 'x' | 'z', x: number, z: number): void => {
+    if (gap && (along === 'x' ? x : z) > gap[0] && (along === 'x' ? x : z) < gap[1]) return;
+    const color = toned(COLOR.curb, 1 + (rand() - 0.5) * 0.12);
+    if (along === 'x') b.box(color, length - SLAB_JOINT, KERB_TOP, KERB_WIDTH, x, 0, z);
+    else b.box(color, KERB_WIDTH, KERB_TOP, length - SLAB_JOINT, x, 0, z);
+  };
+  const kerbRow = (from: number, to: number, along: 'x' | 'z', fixed: number): void => {
+    const count = Math.max(1, Math.round((to - from) / SLAB_LENGTH));
+    const step = (to - from) / count;
+    for (let i = 0; i < count; i++) {
+      const mid = from + step * (i + 0.5);
+      if (along === 'x') kerbStone(step, 'x', mid, fixed);
+      else kerbStone(step, 'z', fixed, mid);
+    }
+  };
+  if (kerbs.minZ) kerbRow(minX, maxX, 'x', minZ + KERB_WIDTH / 2);
+  if (kerbs.maxZ) kerbRow(minX, maxX, 'x', maxZ - KERB_WIDTH / 2);
+  if (kerbs.minX) kerbRow(minZ, maxZ, 'z', minX + KERB_WIDTH / 2);
+  if (kerbs.maxX) kerbRow(minZ, maxZ, 'z', maxX - KERB_WIDTH / 2);
+
+  // The slabs fill what the kerbs leave, cut to whole slabs along the longer side.
+  const x0 = minX + (kerbs.minX ? KERB_WIDTH : 0);
+  const x1 = maxX - (kerbs.maxX ? KERB_WIDTH : 0);
+  const z0 = minZ + (kerbs.minZ ? KERB_WIDTH : 0);
+  const z1 = maxZ - (kerbs.maxZ ? KERB_WIDTH : 0);
+  const lengthAlongX = x1 - x0 >= z1 - z0;
+  const cols = Math.max(1, Math.round((x1 - x0) / (lengthAlongX ? SLAB_LENGTH : SLAB_WIDTH)));
+  const rows = Math.max(1, Math.round((z1 - z0) / (lengthAlongX ? SLAB_WIDTH : SLAB_LENGTH)));
+  const sw = (x1 - x0) / cols;
+  const sd = (z1 - z0) / rows;
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      const color = toned(COLOR.concrete, 1 + (rand() - 0.5) * 0.14);
+      b.box(color, sw - SLAB_JOINT, SLAB_TOP - SLAB_BASE, sd - SLAB_JOINT, x0 + sw * (i + 0.5), SLAB_BASE, z0 + sd * (j + 0.5));
+    }
+  }
+}
+
+/**
+ * The near sidewalk, the strip in front of the fire station, and the path from the spawn to the
+ * crossing, each a run of paving slabs (see `pavedStrip`). The two sidewalks have a kerb on the lawn
+ * side only (the road has its own curb on the other); the path has one down both sides and the near
+ * sidewalk's kerb opens where the path joins it.
+ */
 function sidewalkPrimitive(material: THREE.Material): THREE.Mesh {
   const b = new PartBuilder();
-  b.box(COLOR.concrete, ROAD_HALF_LENGTH * 2, 0.06, 1.85, 0, 0, SIDEWALK_Z);
-  b.box(COLOR.concrete, ROAD_HALF_LENGTH * 2, 0.06, 1.45, 0, 0, -9.675);
-  b.box(COLOR.concrete, 2.2, 0.05, 17.6, 0, 0, 7.2);
+  const rand = mulberry32(SEED + 5); // its own stream: the stones never move anything else
+  const half = ROAD_HALF_LENGTH;
+  pavedStrip(b, rand, [-half, half, SIDEWALK_Z - 0.925, SIDEWALK_Z + 0.925], { maxZ: true }, [-1.1, 1.1]);
+  pavedStrip(b, rand, [-half, half, -9.675 - 0.725, -9.675 + 0.725], { minZ: true });
+  pavedStrip(b, rand, [-1.1, 1.1, -1.6, 16.0], { minX: true, maxX: true });
   return b.build('sidewalks', material);
 }
 

@@ -40,7 +40,19 @@ import { perimeterPoint, squareBounds } from './bounds';
 import { boxCollider, circleCollider, type BoxCollider, type Collider } from './collide';
 import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { createBirds, createButterflies, type AvoidDisc } from './critters';
-import { applyGroundTexture, createGround, createGroundApron, createGroundTexture } from './ground';
+import {
+  applyGroundTexture,
+  createGround,
+  createGroundApron,
+  createGroundTexture,
+  dirtColorAt,
+  grassColorAt,
+  PATH_EDGE_BAND,
+  PATH_EDGE_SINK,
+  pathEdgeColor,
+  pathEdgeDirt,
+  type RGB,
+} from './ground';
 import { addHorizon } from './horizon';
 import {
   CAMPFIRE_COLLIDER_RADIUS,
@@ -74,9 +86,11 @@ const GROUND_SIZE = 50;
 
 const GRASS_COLOR = 0x58a042;
 const DIRT_COLOR = 0xb59468;
-const DIRT_EDGE_COLOR = 0x8d9d56; // where the path fades into the grass
 const LOOKOUT_PAD_COLOR = 0xaca28c;
 const CAMP_PAD_COLOR = 0xa58a5e;
+
+/** Seed of the ground's coarse patch field; the path and the pads read the same one, so they meet the ground without a seam. */
+const PATCH_SEED = SEED + 5;
 
 /** Water and ambient life. Each has its own seed, so none of it shifts a tree, rock or plant. */
 const WATER_SEED = SEED + 30;
@@ -791,15 +805,29 @@ function instancedPrimitive(
 
 type RGBA = readonly [number, number, number, number];
 
-function rgba(hex: number, alpha = 1, shade = 1): RGBA {
+/** A color as plain linear numbers, the way `createGround` reads it. */
+function linear(hex: number): RGB {
   const c = new THREE.Color(hex);
-  return [Math.min(1, c.r * shade), Math.min(1, c.g * shade), Math.min(1, c.b * shade), alpha];
+  return [c.r, c.g, c.b];
 }
 
-/** A flat mesh builder: vertex-colored triangles that always face up. */
+/** A color from the ground's own math, with a shade (1 = as is) and full alpha. */
+function shaded(c: RGB, shade = 1): RGBA {
+  return [Math.min(1, c[0] * shade), Math.min(1, c[1] * shade), Math.min(1, c[2] * shade), 1];
+}
+
+/** The color of a surface at a ground point (x, z). */
+type ColorAt = (x: number, z: number) => RGBA;
+
+/**
+ * A flat mesh builder: vertex-colored triangles that always face up. Each vertex also carries a
+ * `dirt` weight (1 = path, 0 = grass) for the ground texture's `blend` mode, so the pebbles fade
+ * into the ground's own blade speckle across an edge instead of stopping at a line.
+ */
 class SurfaceBuilder {
   private readonly positions: number[] = [];
   private readonly colors: number[] = [];
+  private readonly dirts: number[] = [];
   private readonly indices: number[] = [];
   private readonly withAlpha: boolean;
 
@@ -807,10 +835,11 @@ class SurfaceBuilder {
     this.withAlpha = withAlpha;
   }
 
-  vertex(x: number, y: number, z: number, c: RGBA): number {
+  vertex(x: number, y: number, z: number, c: RGBA, dirt = 1): number {
     this.positions.push(x, y, z);
     this.colors.push(c[0], c[1], c[2]);
     if (this.withAlpha) this.colors.push(c[3]);
+    this.dirts.push(dirt);
     return this.positions.length / 3 - 1;
   }
 
@@ -829,7 +858,7 @@ class SurfaceBuilder {
   ribbon(
     line: Polyline,
     spacing: number,
-    profile: readonly { offset: number; y: number; color: () => RGBA }[],
+    profile: readonly { offset: number; y: number; color: ColorAt; dirt?: number }[],
     include: (p: Spot) => boolean = () => true,
   ): void {
     const stations = Math.max(1, Math.ceil(line.length / spacing));
@@ -842,7 +871,11 @@ class SurfaceBuilder {
         continue;
       }
       const t = line.tangentAt(s);
-      const row = profile.map((v) => this.vertex(p.x - t.z * v.offset, v.y, p.z + t.x * v.offset, v.color()));
+      const row = profile.map((v) => {
+        const x = p.x - t.z * v.offset;
+        const z = p.z + t.x * v.offset;
+        return this.vertex(x, v.y, z, v.color(x, z), v.dirt);
+      });
       if (previous) {
         for (let k = 0; k < row.length - 1; k++) {
           this.tri(previous[k]!, previous[k + 1]!, row[k]!);
@@ -853,23 +886,33 @@ class SurfaceBuilder {
     }
   }
 
-  /** A round patch: solid inside `inner`, fading to `edge` by `outer`, with a slightly ragged rim. */
-  disc(center: Spot, inner: number, outer: number, y: number, color: () => RGBA, edge: RGBA, rand: Rng): void {
+  /**
+   * A round patch with a slightly ragged rim: rings from the middle out, each with its own radius,
+   * height and color. The outer ring is meant to be the grass's own color, a hair lower.
+   */
+  disc(center: Spot, color: ColorAt, rings: readonly { r: number; y: number; color: ColorAt; dirt?: number }[], rand: Rng): void {
     const segments = 28;
-    const c = this.vertex(center.x, y, center.z, color());
-    const innerRing: number[] = [];
-    const outerRing: number[] = [];
-    for (let i = 0; i < segments; i++) {
-      const a = (i / segments) * Math.PI * 2;
-      const ragged = 1 + (rand() - 0.5) * 0.14;
-      innerRing.push(this.vertex(center.x + Math.cos(a) * inner * ragged, y, center.z + Math.sin(a) * inner * ragged, color()));
-      outerRing.push(this.vertex(center.x + Math.cos(a) * outer * ragged, y - 0.008, center.z + Math.sin(a) * outer * ragged, edge));
-    }
-    for (let i = 0; i < segments; i++) {
-      const j = (i + 1) % segments;
-      this.tri(c, innerRing[i]!, innerRing[j]!);
-      this.tri(innerRing[i]!, outerRing[i]!, innerRing[j]!);
-      this.tri(innerRing[j]!, outerRing[i]!, outerRing[j]!);
+    const c = this.vertex(center.x, rings[0]!.y, center.z, color(center.x, center.z));
+    const ragged = Array.from({ length: segments }, () => 1 + (rand() - 0.5) * 0.14);
+    let previous: number[] | null = null;
+    for (const ring of rings) {
+      const row: number[] = [];
+      for (let i = 0; i < segments; i++) {
+        const a = (i / segments) * Math.PI * 2;
+        const x = center.x + Math.cos(a) * ring.r * ragged[i]!;
+        const z = center.z + Math.sin(a) * ring.r * ragged[i]!;
+        row.push(this.vertex(x, ring.y, z, ring.color(x, z), ring.dirt));
+      }
+      for (let i = 0; i < segments; i++) {
+        const j = (i + 1) % segments;
+        if (!previous) {
+          this.tri(c, row[i]!, row[j]!);
+        } else {
+          this.tri(previous[i]!, row[i]!, previous[j]!);
+          this.tri(previous[j]!, row[i]!, row[j]!);
+        }
+      }
+      previous = row;
     }
   }
 
@@ -881,35 +924,74 @@ class SurfaceBuilder {
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(this.positions, 3));
     geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(this.colors, this.withAlpha ? 4 : 3));
+    geometry.setAttribute('dirt', new THREE.Float32BufferAttribute(this.dirts, 1));
     geometry.setIndex(this.indices);
     return geometry;
   }
 }
 
-/** The dirt path (and the two flat pads). It stops at the stream's banks; the bridge carries it over. 1 draw call. */
+const GRASS_RGB = linear(GRASS_COLOR);
+const DIRT_RGB = linear(DIRT_COLOR);
+const LOOKOUT_PAD_RGB = linear(LOOKOUT_PAD_COLOR);
+const CAMP_PAD_RGB = linear(CAMP_PAD_COLOR);
+/** The path's worn rim is this far in from its edge. */
+const PATH_RIM_WIDTH = 0.3;
+
+/**
+ * The dirt path (and the two flat pads). It stops at the stream's banks; the bridge carries it over.
+ * Every edge blends into the grass: a rim a little darker than the dirt, then a band (PATH_EDGE_BAND wide)
+ * that eases to the very color the ground shows there, sinking a hair, so the path reads as a worn,
+ * packed surface lifted a few centimeters, not a sticker. 1 draw call.
+ */
 function pathMesh(layout: TrailLayout, rand: Rng): THREE.Mesh {
   const b = new SurfaceBuilder(false);
-  const dirt = (): RGBA => rgba(DIRT_COLOR, 1, 1 + (rand() * 2 - 1) * 0.07);
-  const edge = rgba(DIRT_EDGE_COLOR);
+  /** A surface of `base` dirt, as the ground's clearing would show it here, with a touch of grain. */
+  const dirtAt =
+    (base: RGB, grain: number): ColorAt =>
+    (x, z) =>
+      shaded(dirtColorAt(base, x, z, PATCH_SEED), 1 + (rand() * 2 - 1) * grain);
+  /** The edge band, a fraction `t` of the way from the rim (0) to the grass (1). */
+  const bank =
+    (base: RGB, t: number): ColorAt =>
+    (x, z) =>
+      shaded(pathEdgeColor(dirtColorAt(base, x, z, PATCH_SEED), grassColorAt(GRASS_RGB, x, z, PATCH_SEED), t));
+  const sink = (t: number): number => PATH_Y - PATH_EDGE_SINK * t;
+  const dirt = dirtAt(DIRT_RGB, 0.07);
   const hw = layout.pathHalf;
+  const band = PATH_EDGE_BAND;
   b.ribbon(
     layout.path,
     0.5,
     [
-      { offset: -hw - 0.4, y: PATH_Y - 0.008, color: () => edge },
-      { offset: -hw, y: PATH_Y, color: dirt },
+      { offset: -hw - band, y: sink(1), color: bank(DIRT_RGB, 1), dirt: pathEdgeDirt(1) },
+      { offset: -hw - band / 2, y: sink(0.35), color: bank(DIRT_RGB, 0.5), dirt: pathEdgeDirt(0.5) },
+      { offset: -hw, y: PATH_Y, color: bank(DIRT_RGB, 0) },
+      { offset: -hw + PATH_RIM_WIDTH, y: PATH_Y, color: dirt },
       { offset: 0, y: PATH_Y, color: dirt },
-      { offset: hw, y: PATH_Y, color: dirt },
-      { offset: hw + 0.4, y: PATH_Y - 0.008, color: () => edge },
+      { offset: hw - PATH_RIM_WIDTH, y: PATH_Y, color: dirt },
+      { offset: hw, y: PATH_Y, color: bank(DIRT_RGB, 0) },
+      { offset: hw + band / 2, y: sink(0.35), color: bank(DIRT_RGB, 0.5), dirt: pathEdgeDirt(0.5) },
+      { offset: hw + band, y: sink(1), color: bank(DIRT_RGB, 1), dirt: pathEdgeDirt(1) },
     ],
     (p) => layout.stream.nearest(p.x, p.z).dist >= layout.streamHalf + STREAM_FRINGE + 0.1,
   );
+  /** Rings for a pad of radius `r`: solid, then the rim, then the band, so a pad's edge blends like the path's. */
+  const pad = (r: number, base: RGB): { r: number; y: number; color: ColorAt; dirt?: number }[] => [
+    { r: r - band - PATH_RIM_WIDTH, y: PAD_Y, color: dirtAt(base, 0.05) },
+    { r: r - band, y: PAD_Y, color: bank(base, 0) },
+    { r: r - band / 2, y: PAD_Y - PATH_EDGE_SINK * 0.35, color: bank(base, 0.5), dirt: pathEdgeDirt(0.5) },
+    { r, y: PAD_Y - PATH_EDGE_SINK, color: bank(base, 1), dirt: pathEdgeDirt(1) },
+  ];
   const lookout = layout.lookoutPad;
-  b.disc(lookout, lookout.r - 0.6, lookout.r, PAD_Y, () => rgba(LOOKOUT_PAD_COLOR, 1, 1 + (rand() * 2 - 1) * 0.05), edge, rand);
+  b.disc(lookout, dirtAt(LOOKOUT_PAD_RGB, 0.05), pad(lookout.r, LOOKOUT_PAD_RGB), rand);
   const camp = layout.campPad;
-  b.disc(camp, camp.r - 0.7, camp.r, PAD_Y, () => rgba(CAMP_PAD_COLOR, 1, 1 + (rand() * 2 - 1) * 0.05), edge, rand);
-  // Pebbles speckle the dirt, laid in world space so they line up with the ground's own clearing.
-  const material = applyGroundTexture(new THREE.MeshLambertMaterial({ vertexColors: true }), createGroundTexture(), 'pebbles');
+  b.disc(camp, dirtAt(CAMP_PAD_RGB, 0.05), pad(camp.r, CAMP_PAD_RGB), rand);
+  // Pebbles speckle the dirt, laid in world space so they line up with the ground's own clearing, and fade
+  // into its blades across the edge band (the `dirt` weight). The offset is a safety net against z-fighting.
+  const material = applyGroundTexture(new THREE.MeshLambertMaterial({ vertexColors: true }), createGroundTexture(), 'blend');
+  material.polygonOffset = true;
+  material.polygonOffsetFactor = -2;
+  material.polygonOffsetUnits = -2;
   const mesh = new THREE.Mesh(b.build(), material);
   mesh.name = 'path';
   mesh.receiveShadow = true;
@@ -940,6 +1022,7 @@ export function createNatureTrail(deps: ZoneDeps): Zone {
       grass: GRASS_COLOR,
       dirt: DIRT_COLOR,
       path: { center: { x: layout.spawn.x, z: layout.spawn.z - 0.5 }, radius: 3.4, feather: 2.6 },
+      patchSeed: PATCH_SEED,
       terrain,
     }),
   );

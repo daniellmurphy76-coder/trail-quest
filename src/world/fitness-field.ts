@@ -44,7 +44,19 @@ import { mulberry32 } from '../engine/seed';
 import { perimeterPoint, squareBounds } from './bounds';
 import { boxCollider, circleCollider, type Collider } from './collide';
 import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
-import { applyGroundTexture, createGround, createGroundApron, createGroundTexture } from './ground';
+import {
+  applyGroundTexture,
+  createGround,
+  createGroundApron,
+  createGroundTexture,
+  dirtColorAt,
+  grassColorAt,
+  PATH_EDGE_BAND,
+  PATH_EDGE_SINK,
+  pathEdgeColor,
+  pathEdgeDirt,
+  type RGB,
+} from './ground';
 import { createBirds, createButterflies, type AvoidDisc } from './critters';
 import { addHorizon } from './horizon';
 import {
@@ -82,10 +94,13 @@ const GRASS_COLOR = 0x69ad4b;
 const DIRT_COLOR = 0xb58a5a;
 const LINE_COLOR = 0xf4f1e6;
 
+/** Seed of the ground's coarse patch field; the track reads the same one, so it meets the grass without a seam. */
+const PATCH_SEED = SEED + 5;
 const TRACK_Y = 0.035; // above the grass (ripple is 0.03 peak to peak), so nothing z-fights
 const LINE_Y = 0.06; // the start line sits just above the track
 const TRACK_SEGMENTS = 120;
-const TRACK_ROWS = 3; // quads across the track, so the edges can fade toward grass
+/** The track's worn rim is this far in from its edge; beyond the edge a band of PATH_EDGE_BAND blends into the grass. */
+const TRACK_RIM_WIDTH = 0.35;
 const START_LINE_THETA = Math.PI / 2 + 0.55; // on the near straight, left of center
 const START_LINE_WIDTH = 0.4;
 
@@ -219,25 +234,36 @@ function instancedPrimitive(
 
 // ---- the track ----------------------------------------------------------------------------------
 
+/** A color as plain linear numbers, the way `createGround` reads it. */
+function linear(hex: number): RGB {
+  const c = new THREE.Color(hex);
+  return [c.r, c.g, c.b];
+}
+
 /**
  * The dirt oval and the start line as one flat, vertex-colored mesh (1 draw call). The oval is a
- * ring of quads between the inner and outer track ellipses; the two edge rows fade a little toward
- * grass so the edge looks worn in, and every vertex gets a touch of random brightness. The start
- * line is a white quad across the near straight, a hair above the dirt.
+ * ring of quads between the inner and outer track ellipses, with a band outside each edge. Across
+ * the edge the color goes from a rim a little darker than the dirt out to the very color the grass
+ * shows there, sinking a hair, so the track blends into the lawn like a worn path. Every vertex gets
+ * a touch of random brightness. The start line is a white quad across the near straight, a hair
+ * above the dirt. Each vertex also carries a `dirt` weight (1 on the track, 0 at the band's outer
+ * end) so the pebbles fade into the grass's blades.
  */
 function trackGeometry(rng: Rng): THREE.BufferGeometry {
   const half = FITNESS_TRACK.width / 2;
-  const grass = new THREE.Color(GRASS_COLOR);
-  const dirt = new THREE.Color(DIRT_COLOR);
+  const band = PATH_EDGE_BAND;
+  const grass = linear(GRASS_COLOR);
+  const dirt = linear(DIRT_COLOR);
   const line = new THREE.Color(LINE_COLOR);
   const positions: number[] = [];
   const colors: number[] = [];
+  const dirts: number[] = [];
   const indices: number[] = [];
-  const tmp = new THREE.Color();
 
-  const push = (p: Spot, y: number, color: THREE.Color): number => {
+  const push = (p: Spot, y: number, color: RGB, weight = 1): number => {
     positions.push(p.x, y, p.z);
-    colors.push(color.r, color.g, color.b);
+    colors.push(color[0], color[1], color[2]);
+    dirts.push(weight);
     return positions.length / 3 - 1;
   };
   /** Two triangles for the quad (v00, v10 along the track; v01, v11 one step outward). Normal up. */
@@ -245,19 +271,35 @@ function trackGeometry(rng: Rng): THREE.BufferGeometry {
     indices.push(v00, v10, v01, v10, v11, v01);
   };
 
+  // Across the track, from the infield out: the edge band, the rim, the dirt, the rim, the band.
+  const profile: { offset: number; y: number; t?: number }[] = [
+    { offset: -half - band, y: TRACK_Y - PATH_EDGE_SINK, t: 1 },
+    { offset: -half - band / 2, y: TRACK_Y - PATH_EDGE_SINK * 0.35, t: 0.5 },
+    { offset: -half, y: TRACK_Y, t: 0 },
+    { offset: -half + TRACK_RIM_WIDTH, y: TRACK_Y },
+    { offset: 0, y: TRACK_Y },
+    { offset: half - TRACK_RIM_WIDTH, y: TRACK_Y },
+    { offset: half, y: TRACK_Y, t: 0 },
+    { offset: half + band / 2, y: TRACK_Y - PATH_EDGE_SINK * 0.35, t: 0.5 },
+    { offset: half + band, y: TRACK_Y - PATH_EDGE_SINK, t: 1 },
+  ];
   for (let i = 0; i < TRACK_SEGMENTS; i++) {
     const theta = (i / TRACK_SEGMENTS) * Math.PI * 2;
-    for (let r = 0; r <= TRACK_ROWS; r++) {
-      const offset = -half + (r / TRACK_ROWS) * FITNESS_TRACK.width;
-      const edge = r === 0 || r === TRACK_ROWS ? 0.3 : 0;
-      tmp.copy(dirt).multiplyScalar(1 + (rng() * 2 - 1) * 0.07).lerp(grass, edge);
-      push(trackPoint(theta, offset), TRACK_Y, tmp);
+    for (const v of profile) {
+      const at = trackPoint(theta, v.offset);
+      const base = dirtColorAt(dirt, at.x, at.z, PATCH_SEED);
+      if (v.t === undefined) {
+        const grain = 1 + (rng() * 2 - 1) * 0.07;
+        push(at, v.y, [Math.min(1, base[0] * grain), Math.min(1, base[1] * grain), Math.min(1, base[2] * grain)]);
+      } else {
+        push(at, v.y, pathEdgeColor(base, grassColorAt(grass, at.x, at.z, PATCH_SEED), v.t), pathEdgeDirt(v.t));
+      }
     }
   }
-  const stride = TRACK_ROWS + 1;
+  const stride = profile.length;
   for (let i = 0; i < TRACK_SEGMENTS; i++) {
     const next = (i + 1) % TRACK_SEGMENTS;
-    for (let r = 0; r < TRACK_ROWS; r++) {
+    for (let r = 0; r < stride - 1; r++) {
       quad(i * stride + r, next * stride + r, i * stride + r + 1, next * stride + r + 1);
     }
   }
@@ -266,15 +308,16 @@ function trackGeometry(rng: Rng): THREE.BufferGeometry {
   const { a, b } = FITNESS_TRACK;
   const speed = Math.hypot(a * Math.sin(START_LINE_THETA), b * Math.cos(START_LINE_THETA));
   const delta = START_LINE_WIDTH / 2 / speed;
-  const v00 = push(trackPoint(START_LINE_THETA - delta, -half), LINE_Y, line);
-  const v10 = push(trackPoint(START_LINE_THETA + delta, -half), LINE_Y, line);
-  const v01 = push(trackPoint(START_LINE_THETA - delta, half), LINE_Y, line);
-  const v11 = push(trackPoint(START_LINE_THETA + delta, half), LINE_Y, line);
+  const v00 = push(trackPoint(START_LINE_THETA - delta, -half), LINE_Y, [line.r, line.g, line.b]);
+  const v10 = push(trackPoint(START_LINE_THETA + delta, -half), LINE_Y, [line.r, line.g, line.b]);
+  const v01 = push(trackPoint(START_LINE_THETA - delta, half), LINE_Y, [line.r, line.g, line.b]);
+  const v11 = push(trackPoint(START_LINE_THETA + delta, half), LINE_Y, [line.r, line.g, line.b]);
   quad(v00, v10, v01, v11);
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('dirt', new THREE.Float32BufferAttribute(dirts, 1));
   const normals = new Float32Array(positions.length);
   for (let i = 1; i < normals.length; i += 3) normals[i] = 1;
   geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
@@ -367,6 +410,7 @@ export function createFitnessField(deps: ZoneDeps): Zone {
       dirt: DIRT_COLOR,
       ripple: 0.03,
       terrain,
+      patchSeed: PATCH_SEED,
     }),
   );
   // Rolling hills, a distant tree line and far mountains behind the wall of trees.
@@ -379,8 +423,9 @@ export function createFitnessField(deps: ZoneDeps): Zone {
     groundHalf: GROUND_SIZE / 2,
     terrain,
   });
-  // The dirt track gets the same pebbles as a dirt clearing, in world space so they line up.
-  const trackMaterial = applyGroundTexture(vertexColorMaterial(), createGroundTexture(), 'pebbles');
+  // The dirt track gets the same pebbles as a dirt clearing, in world space so they line up, and they fade into
+  // the grass's blades across its edge band (the `dirt` weight).
+  const trackMaterial = applyGroundTexture(vertexColorMaterial(), createGroundTexture(), 'blend');
   // Belt and braces against z-fighting where the track edge meets the grass ripple.
   trackMaterial.polygonOffset = true;
   trackMaterial.polygonOffsetFactor = -2;
