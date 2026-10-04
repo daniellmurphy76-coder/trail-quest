@@ -1,8 +1,12 @@
 import * as THREE from 'three';
 import { DEFAULT_LOOK, type LookSettings } from './look';
+import { MAX_PIXEL_RATIO } from './quality';
 
 /**
  * Owns the WebGLRenderer: tone mapping, shadows, sizing, pixel ratio, and teardown.
+ *
+ * The pixel ratio is the screen's own, capped at 2 and by `setPixelRatioLimit`, which is how the
+ * game lowers its resolution when frames run slow (see `AutoDowngrade` in quality.ts).
  *
  * Tone mapping is ACES with the exposure from the look. That is what draws the scene on its own
  * (the `low` tier, or when the post pipeline cannot run). While the post pipeline is active it
@@ -13,6 +17,8 @@ export class Renderer {
   readonly gl: THREE.WebGLRenderer;
   private w = 1;
   private h = 1;
+  private ratio = 1;
+  private ratioLimit = MAX_PIXEL_RATIO;
   private dirty = true;
   private readonly resizeListeners: Array<(width: number, height: number) => void> = [];
 
@@ -44,7 +50,24 @@ export class Renderer {
     return this.h;
   }
 
-  /** Called with the new CSS size whenever the surface changes, before the next render. */
+  /** The pixel ratio the surface is drawn at: the screen's, under the limit. */
+  get pixelRatio(): number {
+    return this.ratio;
+  }
+
+  /**
+   * Draw at no more than this pixel ratio (at most 2, whatever the screen offers). The surface is
+   * resized at once and the resize listeners hear about it, so the post pipeline refits its buffers.
+   */
+  setPixelRatioLimit(limit: number): void {
+    if (!(limit > 0)) return;
+    const next = Math.min(limit, MAX_PIXEL_RATIO);
+    if (next === this.ratioLimit) return;
+    this.ratioLimit = next;
+    this.applySize();
+  }
+
+  /** Called with the new CSS size whenever the surface changes (or its pixel ratio does), before the next render. */
   onResize(listener: (width: number, height: number) => void): void {
     this.resizeListeners.push(listener);
     listener(this.w, this.h);
@@ -86,11 +109,13 @@ export class Renderer {
     const vv = window.visualViewport;
     const w = Math.max(1, Math.round(this.canvas.clientWidth || vv?.width || window.innerWidth));
     const h = Math.max(1, Math.round(this.canvas.clientHeight || vv?.height || window.innerHeight));
-    this.gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const ratio = Math.min(window.devicePixelRatio || 1, this.ratioLimit);
+    this.gl.setPixelRatio(ratio);
     this.gl.setSize(w, h, false);
-    if (w === this.w && h === this.h && this.resizeListeners.length > 0) return;
+    if (w === this.w && h === this.h && ratio === this.ratio && this.resizeListeners.length > 0) return;
     this.w = w;
     this.h = h;
+    this.ratio = ratio;
     for (const listener of this.resizeListeners) listener(w, h);
   }
 }
