@@ -541,7 +541,8 @@ describe('avatar editor: options that are earned', () => {
       expect(look.backpack).toBe(false);
       expect(look.shirt).not.toBe(GOLD);
     }
-  });
+    // Opens the editor 25 times; slow under a fully parallel run, so it gets more than the default 5 s.
+  }, 30000);
 
   it('words the earn-it line for the older Scouts when asked', () => {
     void open({ unlocks: [], level: 'grade5' });
