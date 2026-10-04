@@ -109,36 +109,43 @@ export function createBlockyRig(model: BlockyAsset, initial: FilledAvatar, optio
   let headMesh: THREE.Mesh | null = null;
   let torsoMesh: THREE.Mesh | null = null;
 
-  const attach = (name: string, geometry: THREE.BufferGeometry, parent: THREE.Object3D): THREE.Mesh => {
+  const attach = (name: string, geometry: THREE.BufferGeometry, parent: THREE.Object3D, castShadow: boolean): THREE.Mesh => {
     const mesh = new THREE.Mesh(geometry, ATTACHMENT_MATERIAL);
     mesh.name = name;
-    mesh.castShadow = true;
+    mesh.castShadow = castShadow;
     mesh.receiveShadow = true;
     parent.add(mesh);
     return mesh;
   };
-  const swap = (old: THREE.Mesh | null, name: string, geometry: THREE.BufferGeometry | null, parent: THREE.Object3D): THREE.Mesh | null => {
+  const swap = (
+    old: THREE.Mesh | null,
+    name: string,
+    geometry: THREE.BufferGeometry | null,
+    parent: THREE.Object3D,
+    castShadow: boolean,
+  ): THREE.Mesh | null => {
     if (old) {
       old.removeFromParent();
       old.geometry.dispose();
     }
-    return geometry ? attach(name, geometry, parent) : null;
+    return geometry ? attach(name, geometry, parent, castShadow) : null;
   };
   const buildAttachments = (): void => {
     const nextHead = keyOf.head(current);
     if (nextHead !== headKey) {
       headKey = nextHead;
-      headMesh = swap(headMesh, 'head-attachments', buildHeadAttachments(current), head);
+      // The head set (hair, hat, glasses) does not cast: a hat brim hangs just above the face, and its shadow
+      // would darken most of the face while the sun is high. It still receives, and the head and body still cast.
+      headMesh = swap(headMesh, 'head-attachments', buildHeadAttachments(current), head, false);
     }
     const nextTorso = keyOf.torso(current);
     if (nextTorso !== torsoKey) {
       torsoKey = nextTorso;
-      torsoMesh = swap(torsoMesh, 'torso-attachments', buildTorsoAttachments(current, { denChiefCord }), torso);
+      torsoMesh = swap(torsoMesh, 'torso-attachments', buildTorsoAttachments(current, { denChiefCord }), torso, true);
     }
   };
-  buildAttachments();
-
-  setShadowCasting(group, true, true); // the blob is transparent, so it is skipped
+  setShadowCasting(group, true, true); // the body parts; the blob is transparent, so it is skipped
+  buildAttachments(); // sets its own flags, so this comes after
 
   const applyBuild = (): void => {
     group.scale.setScalar(BLOCKY_BUILD_SCALE[current.build]);
