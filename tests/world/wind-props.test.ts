@@ -14,6 +14,7 @@ import {
   tree,
   type AvoidCircle,
 } from '../../src/world/props';
+import { hasOccluderFade, occluderFadeFor } from '../../src/world/occluder';
 import { hasWind, WIND_CACHE_KEY, WIND_KINDS, windKindFor } from '../../src/world/wind';
 
 const bounds = { minX: -24, maxX: 24, minZ: -24, maxZ: 24 };
@@ -33,8 +34,14 @@ const meshesOf = (root: THREE.Object3D): THREE.Mesh[] => {
   return found;
 };
 const swaysAt = (mesh: THREE.Mesh): boolean => hasWind(mesh.material as THREE.Material);
+/** Nothing at all patched: no sway, no fade, no shadow material of its own. */
 const isStill = (mesh: THREE.Mesh, shared?: THREE.Material): boolean =>
   !swaysAt(mesh) && mesh.customDepthMaterial === undefined && (mesh.material as THREE.Material).onBeforeCompile === plain && (shared === undefined || mesh.material === shared);
+/** Does not sway, and has no shadow material of its own; whether it fades is a separate question. */
+const doesNotSway = (mesh: THREE.Mesh): boolean => !swaysAt(mesh) && mesh.customDepthMaterial === undefined;
+/** Fades where it hides the Scout but never sways: on a copy of the shared material, or (inPlace) its own. */
+const fadesOnly = (mesh: THREE.Mesh, shared?: THREE.Material): boolean =>
+  doesNotSway(mesh) && hasOccluderFade(mesh.material as THREE.Material) && (shared === undefined || mesh.material !== shared);
 
 /**
  * Pretend every model loaded, all of them painted with ONE material (as when several models of a kit
@@ -86,17 +93,28 @@ describe('wind on model props (instancedModel)', () => {
   });
 
   it('never sways rocks, stumps, logs, tents, mushrooms or buildings, even though they share the very same source material', () => {
-    const ids = ['rock.large', 'rock.tall', 'rock.small', 'rock.flat', 'stump', 'log.single', 'log.large', 'log.stack', 'tent', 'tent.small', 'tent.open', 'plant.mushroom', 'building.firestation', 'street.lamp', 'fence.simple', 'signpost'];
-    for (const id of ids) {
+    const fading = ['rock.large', 'rock.tall', 'rock.small', 'rock.flat', 'stump', 'log.single', 'log.large', 'log.stack', 'tent', 'tent.small', 'tent.open'];
+    const untouched = ['plant.mushroom', 'building.firestation', 'street.lamp', 'fence.simple', 'signpost'];
+    for (const id of [...fading, ...untouched]) {
       expect(windKindFor(id), id).toBeNull();
-      const mesh = instancedModel(id, placements)!;
-      expect(isStill(mesh, SHARED), id).toBe(true);
+      expect(doesNotSway(instancedModel(id, placements)!), id).toBe(true);
+    }
+    // rocks, stumps, logs and tents fade where they hide the Scout, on a copy; the rest are not touched at all
+    for (const id of fading) {
+      expect(occluderFadeFor(id), id).toBe(true);
+      expect(fadesOnly(instancedModel(id, placements)!, SHARED), id).toBe(true);
+    }
+    for (const id of untouched) {
+      expect(occluderFadeFor(id), id).toBe(false);
+      expect(isStill(instancedModel(id, placements)!, SHARED), id).toBe(true);
     }
     // ...even after trees (same source material) were made to sway
     const trees = instancedModel('tree.round', placements)!;
     expect(swaysAt(trees)).toBe(true);
-    expect(isStill(instancedModel('rock.large', placements)!, SHARED)).toBe(true);
+    expect(fadesOnly(instancedModel('rock.large', placements)!, SHARED)).toBe(true);
     expect(hasWind(SHARED)).toBe(false);
+    expect(hasOccluderFade(SHARED)).toBe(false);
+    expect(SHARED.onBeforeCompile).toBe(plain);
   });
 
   it('keeps the shadow flags and the placements as they were', () => {
@@ -114,7 +132,7 @@ describe('wind on model props (instancedModel)', () => {
     expect(trees.children.length).toBeGreaterThan(0);
     for (const m of meshesOf(trees)) expect(swaysAt(m), m.name).toBe(true);
     const rocks = scatterModels('rocks', ['rock.large', 'rock.small'], spots, mulberry32(1), [0.8, 1.4])!;
-    for (const m of meshesOf(rocks)) expect(isStill(m, SHARED), m.name).toBe(true);
+    for (const m of meshesOf(rocks)) expect(fadesOnly(m, SHARED), m.name).toBe(true);
   });
 });
 
@@ -165,13 +183,14 @@ describe('wind on the primitive props', () => {
     expect(swaysAt(crowns!)).toBe(true);
     expect(crowns!.customDepthMaterial).toBeInstanceOf(THREE.MeshDepthMaterial);
     expect(crowns!.castShadow).toBe(true);
-    expect(isStill(trunks!)).toBe(true);
+    expect(fadesOnly(trunks!)).toBe(true); // the trunks fade with the crowns, but stand still
   });
 
   it('never sways the rocks, the fire, the flagpole, the lodge or a person', () => {
-    const still: THREE.Object3D[] = [rock(mulberry32(1), spots), campfire().root, flagpole(), lodge(), personPlaceholder(0xf2c14e, 1.95)];
+    const still: THREE.Object3D[] = [campfire().root, flagpole(), lodge(), personPlaceholder(0xf2c14e, 1.95)];
     for (const root of still) {
       for (const mesh of meshesOf(root)) expect(isStill(mesh), `${root.name} ${mesh.name}`).toBe(true);
     }
+    for (const mesh of meshesOf(rock(mulberry32(1), spots))) expect(fadesOnly(mesh), mesh.name).toBe(true);
   });
 });

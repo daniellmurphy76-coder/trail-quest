@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { injectOccluderFade, isShadowMaterial } from './occluder';
 
 /**
  * Wind: a gentle sway for trees, bushes, grass and flowers, done entirely in the vertex shader, so
@@ -25,6 +26,9 @@ import * as THREE from 'three';
  * The sun's shadow pass draws trees with a depth material. `windDepthMaterial` is the same sway on
  * a `MeshDepthMaterial`; `applyWindToMesh` sets it as the mesh's `customDepthMaterial`, so a shadow
  * sways with the tree that throws it. It reads the same shared uniforms, so the two never disagree.
+ *
+ * The same patch also carries the occluder fade (occluder.ts) on every lit material, so a bush or tree
+ * that stands between the camera and the Scout drops part of itself. The depth materials never get it.
  *
  * Under `prefers-reduced-motion` the sway is zero: every wind shader multiplies by `uWindScale`,
  * which is 0 while that preference is on (re-read about once a second, so toggling it in the system
@@ -264,9 +268,10 @@ const WIND_VERTEX_GLSL = /* glsl */ `
 }
 `;
 
-/** The `onBeforeCompile` argument, as far as the wind patch needs it. */
+/** The `onBeforeCompile` argument, as far as the wind patch needs it (the fragment shader is for the occluder fade). */
 export interface WindShader {
   vertexShader: string;
+  fragmentShader?: string;
   uniforms: Record<string, THREE.IUniform>;
 }
 
@@ -288,9 +293,10 @@ function uniformsFor(options: WindOptions): WindUniforms {
 /**
  * Put the sway into a vertex shader. Exposed so tests can look at the result; the materials do
  * this through `applyWind`. A shader with no `begin_vertex` chunk (a material that does not use
- * the standard vertex path) is left alone.
+ * the standard vertex path) is left alone. `fade` (default true) also puts in the occluder fade;
+ * the shadow pass's depth materials pass false, so a shadow stays whole.
  */
-export function injectWind(shader: WindShader, uniforms: WindUniforms): void {
+export function injectWind(shader: WindShader, uniforms: WindUniforms, fade = true): void {
   if (!shader.vertexShader.includes('#include <begin_vertex>')) return;
   shader.uniforms.uWindTime = windTime;
   shader.uniforms.uWindScale = windScale;
@@ -300,6 +306,7 @@ export function injectWind(shader: WindShader, uniforms: WindUniforms): void {
   shader.vertexShader = shader.vertexShader
     .replace('#include <common>', `#include <common>\n${WIND_UNIFORMS_GLSL}`)
     .replace('#include <begin_vertex>', `#include <begin_vertex>\n${WIND_VERTEX_GLSL}`);
+  if (fade) injectOccluderFade(shader);
 }
 
 /** Per-material wind state. Kept off `userData`, which `Material.clone()` copies without the shader patch. */
@@ -329,10 +336,11 @@ export function applyWind(material: THREE.Material, options: WindOptions): THREE
   const uniforms = uniformsFor(options);
   states.set(material, uniforms);
 
+  const fade = !isShadowMaterial(material);
   const previous = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
     previous.call(material, shader, renderer);
-    injectWind(shader, uniforms);
+    injectWind(shader, uniforms, fade);
   };
   // Only a custom key the material set itself is kept: the default one is the text of
   // `onBeforeCompile`, which is the closure above, so it would add nothing.

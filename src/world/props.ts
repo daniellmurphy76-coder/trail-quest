@@ -6,6 +6,7 @@ import { getQuality, type QualityTier } from '../engine/quality';
 import { mulberry32 } from '../engine/seed';
 import type { Bounds } from './bounds';
 import { circlesAt, TREE_TRUNK_RADIUS, type CircleCollider } from './collide';
+import { applyOccluderFadeToMesh, occluderFadeFor } from './occluder';
 import { applyWindToMesh, windKindFor } from './wind';
 
 /** Seeded random source returning floats in [0, 1), for example `mulberry32(2026)`. */
@@ -66,6 +67,7 @@ export function tree(rng: Rng, spots: readonly Spot[]): THREE.Group {
   setShadowCasting(trunks, true, true);
   setShadowCasting(crowns, true, true);
   applyWindToMesh(crowns, 'tree', { inPlace: true }); // the crowns own their material
+  applyOccluderFadeToMesh(trunks, { inPlace: true }); // the crowns fade through the wind patch
   group.add(trunks, crowns);
   return group;
 }
@@ -88,6 +90,7 @@ export function rock(rng: Rng, spots: readonly Spot[]): THREE.InstancedMesh {
   });
   mesh.instanceMatrix.needsUpdate = true;
   setShadowCasting(mesh, true, true);
+  applyOccluderFadeToMesh(mesh, { inPlace: true }); // fades where it hides the Scout (see occluder.ts)
   return mesh;
 }
 
@@ -134,7 +137,8 @@ export interface ShadowOptions {
  * single-static-mesh model (trees, rocks, tents). Returns undefined if the model cannot be instanced.
  * Casts and receives sun shadows unless `shadows` says otherwise. Trees, bushes, grass and flowers
  * sway in the wind (`windKindFor(id)`; the mesh gets its own copy of the model's material, and its
- * shadow sways with it); rocks, stumps, logs, tents, buildings and the rest never do.
+ * shadow sways with it); rocks, stumps, logs, tents, buildings and the rest never do. Trees, plants,
+ * rocks, stumps, logs and tents also fade where they hide the Scout from the camera (occluder.ts).
  */
 export function instancedModel(
   id: string,
@@ -154,7 +158,8 @@ export function instancedModel(
   mesh.instanceMatrix.needsUpdate = true;
   setShadowCasting(mesh, shadows.cast ?? true, shadows.receive ?? true);
   const wind = windKindFor(id);
-  if (wind) applyWindToMesh(mesh, wind);
+  if (wind) applyWindToMesh(mesh, wind); // sways, and fades where it hides the Scout (see occluder.ts)
+  else if (occluderFadeFor(id)) applyOccluderFadeToMesh(mesh); // rocks, stumps, logs, tents: fade only
   return mesh;
 }
 
