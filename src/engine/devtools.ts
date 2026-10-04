@@ -169,6 +169,8 @@ export const LOOK_CONTROLS: readonly LookControl[] = [
   { kind: 'color', key: 'fogColor', folder: 'Sky and fog', label: 'fog and horizon' },
   { kind: 'number', key: 'fogNear', folder: 'Sky and fog', label: 'fog near', min: 0, max: 200, step: 1 },
   { kind: 'number', key: 'fogFar', folder: 'Sky and fog', label: 'fog far', min: 20, max: 400, step: 1 },
+  { kind: 'number', key: 'sunGlow', folder: 'Sky and fog', label: 'sun glow', min: 0, max: 2, step: 0.01 },
+  { kind: 'number', key: 'sunGlowSize', folder: 'Sky and fog', label: 'sun glow size', min: 0.5, max: 2, step: 0.01 },
 
   { kind: 'number', key: 'aoRadius', folder: 'Ambient occlusion', label: 'radius', min: 0.1, max: 4, step: 0.05 },
   { kind: 'number', key: 'aoIntensity', folder: 'Ambient occlusion', label: 'intensity', min: 0, max: 8, step: 0.1 },
