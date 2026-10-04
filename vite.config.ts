@@ -14,6 +14,8 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
+    // Agent worktrees live inside the project; their edits must not reload the dev page.
+    watch: { ignored: ['**/.claude/worktrees/**'] },
   },
   test: {
     environment: 'node',
