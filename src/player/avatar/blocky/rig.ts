@@ -19,7 +19,7 @@ import { setShadowCasting } from '../../../engine/environment';
 import type { RankId } from '../../../activities/types';
 import type { AvatarConfig } from '../../../save/types';
 import { fillAvatar, type Build, type FilledAvatar } from '../options';
-import { BLEND_RATE, BLOB_GEOMETRY, BLOB_MATERIAL, ONE_SHOT_SECONDS, REFERENCE_SPEED } from '../procedural';
+import { BLEND_RATE, BLOB_GEOMETRY, BLOB_LIFT, BLOB_MATERIAL, blobScale, ONE_SHOT_SECONDS, REFERENCE_SPEED } from '../procedural';
 import type { AvatarState, Emote } from '../rig-types';
 import { buildHeadAttachments, buildTorsoAttachments } from './attachments';
 import { ALL_ROLES, type ClipRole } from './clips';
@@ -89,12 +89,14 @@ export function createBlockyRig(model: BlockyAsset, initial: FilledAvatar, optio
   });
 
   let skinTexture = material.map;
+  let blob: THREE.Mesh | null = null;
   if (options.blobShadow) {
-    const blob = new THREE.Mesh(BLOB_GEOMETRY, BLOB_MATERIAL);
+    blob = new THREE.Mesh(BLOB_GEOMETRY, BLOB_MATERIAL);
     blob.name = 'avatar-blob';
-    blob.position.y = 0.03;
+    blob.position.y = BLOB_LIFT;
     group.add(blob);
   }
+  const hips = node('root'); // the clips hop the whole figure by moving this
 
   // ---- attachments ----------------------------------------------------------------------------
   const keyOf = {
@@ -236,6 +238,11 @@ export function createBlockyRig(model: BlockyAsset, initial: FilledAvatar, optio
         actions[role].setEffectiveWeight(weights[role]);
       }
       mixer.update(dt);
+      if (blob) {
+        // The blob stays on the ground and shrinks a little while the Scout is in the air.
+        const s = blobScale(hips.position.y * model.scale);
+        blob.scale.set(s, 1, s);
+      }
     },
     dispose() {
       mixer.stopAllAction();
