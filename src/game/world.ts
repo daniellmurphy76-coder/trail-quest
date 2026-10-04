@@ -292,7 +292,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       follow.update(frameDt, followTarget);
       compass.update(player.root.position, follow.viewYaw);
       labels.update(renderer.width, renderer.height);
-      environment.update(frameDt, player.root.position);
+      environment.update(frameDt, player.root.position, follow.camera);
       setOccluderTarget(player.root.position); // props between the camera and the Scout fade
       renderer.beginFrame();
       post.render(frameDt);

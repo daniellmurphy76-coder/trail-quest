@@ -5,12 +5,13 @@ import { mulberry32 } from './seed';
 
 /**
  * The look of the outdoors: a warm low sun with soft shadows that follows the player, a small
- * hemisphere fill, an environment map made from the sky itself (blue from above, green bounced
- * from the grass), a gradient sky dome, fog that matches the horizon, and a few slow clouds.
+ * hemisphere fill, a soft camera fill that keeps faces turned to the player lit, an environment
+ * map made from the sky itself (blue from above, green bounced from the grass), a gradient sky
+ * dome, fog that matches the horizon, and a few slow clouds.
  *
  * Every number comes from `LookSettings` (look.ts), so the panel and the defaults live in one
  * place. A world calls `createEnvironment(scene, ...)` once and `environment.update(dt,
- * player.position)` every frame. Zones add only props; they carry no lights of their own.
+ * player.position, camera)` every frame. Zones add only props; they carry no lights of their own.
  *
  * Cost: 1 draw call for the sky and one per cloud (8 by default), plus the sun's shadow pass. The
  * environment map is built once with a PMREMGenerator (and again, only when the sky or ground
@@ -41,6 +42,11 @@ export interface EnvironmentOptions {
 
 export interface Environment {
   readonly sun: THREE.DirectionalLight;
+  /**
+   * The camera fill: a soft cool light with no shadow that shines where the camera looks, from a
+   * little above it. Exactly one, in every zone and every tier, so the shaders' light count never changes.
+   */
+  readonly fill: THREE.DirectionalLight;
   readonly hemisphere: THREE.HemisphereLight;
   /** The gradient dome. Always drawn behind everything. */
   readonly sky: THREE.Mesh;
@@ -53,8 +59,11 @@ export interface Environment {
   setLook(partial: Partial<LookSettings>): void;
   /** Change the shadow map size and reach (an automatic downgrade, or the developer panel). */
   setQuality(tier: QualityTier): void;
-  /** Keep the sun's shadow box centered on `focus` (the player) and drift the clouds. Call every frame. */
-  update(dt: number, focus: THREE.Vector3): void;
+  /**
+   * Keep the sun's shadow box centered on `focus` (the player), turn the camera fill to match the
+   * `camera` and drift the clouds. Call every frame. Without a camera the fill keeps its last direction.
+   */
+  update(dt: number, focus: THREE.Vector3, camera?: THREE.Camera): void;
   /** Remove everything from the scene and free GPU resources. */
   dispose(): void;
 }
@@ -77,6 +86,12 @@ const ENV_GRADIENT_HEIGHT = 0.9;
  */
 const ENV_DESATURATION = 0.6;
 const ENV_MAP_SIZE = 256;
+
+/** Soft and cool, so faces turned to the player get light that is not the sun's orange. */
+const FILL_COLOR = 0xdfe9ff;
+/** How far above the camera's own line of sight the fill shines from, before it is normalized. */
+const FILL_RAISE = 0.5;
+const FILL_DISTANCE = 20;
 
 const DEFAULT_CLOUDS = 8;
 /** Clouds sit on a ring around the player: far away and low, so they peek over the tree line. */
@@ -266,6 +281,15 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
   sun.shadow.normalBias = 0.04;
   scene.add(sun, sun.target);
 
+  // Camera fill: shines the way the camera looks, from a little higher. It never casts a shadow,
+  // and it is never switched off (a light that comes and goes would recompile every material).
+  const fill = new THREE.DirectionalLight(FILL_COLOR, look.fillIntensity);
+  fill.name = 'camera-fill';
+  fill.castShadow = false;
+  scene.add(fill, fill.target);
+  /** Unit vector from the ground toward the fill. Starts as the default view: the camera on +z, high. */
+  const fillDir = new THREE.Vector3(0, FILL_RAISE, 1).normalize();
+
   /** Light-space axes of the sun and the size of one shadow-map texel, for snapping the box. */
   const sunDir = new THREE.Vector3();
   const lightRight = new THREE.Vector3();
@@ -317,9 +341,22 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
     sun.position.copy(snapped).addScaledVector(sunDir, SUN_DISTANCE);
   };
 
+  /** Aim the fill from behind and above `camera` toward what it sees, centered on `focus`. */
+  const moveFill = (focus: THREE.Vector3, camera?: THREE.Camera): void => {
+    if (camera) {
+      // The camera looks along its target, so the way back from the target is the camera's own backward.
+      camera.getWorldDirection(fillDir).negate();
+      fillDir.y += FILL_RAISE;
+      fillDir.normalize();
+    }
+    fill.target.position.copy(focus);
+    fill.position.copy(focus).addScaledVector(fillDir, FILL_DISTANCE);
+  };
+
   applyShadowQuality();
   applySunDirection();
   moveSun(new THREE.Vector3());
+  moveFill(new THREE.Vector3());
 
   const hemisphere = new THREE.HemisphereLight(look.hemiSkyColor, look.hemiGroundColor, look.hemiIntensity);
   hemisphere.name = 'hemisphere';
@@ -421,6 +458,7 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
     sun.intensity = look.sunIntensity;
     applySunDirection();
     moveSun(focusNow);
+    fill.intensity = look.fillIntensity;
 
     hemisphere.color.set(look.hemiSkyColor);
     hemisphere.groundColor.set(look.hemiGroundColor);
@@ -440,6 +478,7 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
 
   return {
     sun,
+    fill,
     hemisphere,
     sky,
     clouds: cloudGroup,
@@ -460,18 +499,20 @@ export function createEnvironment(scene: THREE.Scene, opts: EnvironmentOptions =
       applyShadowQuality();
       moveSun(focusNow);
     },
-    update(dt: number, focus: THREE.Vector3): void {
+    update(dt: number, focus: THREE.Vector3, camera?: THREE.Camera): void {
       if (envDirty) rebuildEnvironmentMap();
       moveSun(focus);
+      moveFill(focus, camera);
       for (const c of clouds) c.angle += c.speed * dt;
       placeClouds(focus);
     },
     dispose(): void {
-      scene.remove(sun, sun.target, hemisphere, sky, cloudGroup);
+      scene.remove(sun, sun.target, fill, fill.target, hemisphere, sky, cloudGroup);
       if (scene.fog === fog) scene.fog = null;
       if (scene.background === background) scene.background = null;
       if (envTarget && scene.environment === envTarget.texture) scene.environment = null;
       sun.dispose();
+      fill.dispose();
       hemisphere.dispose();
       sky.geometry.dispose();
       (sky.material as THREE.Material).dispose();

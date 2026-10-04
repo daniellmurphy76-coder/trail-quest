@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { cloudPixels, createEnvironment, desaturate, setShadowCasting } from '../../src/engine/environment';
+import { cloudPixels, createEnvironment, desaturate, setShadowCasting, type Environment } from '../../src/engine/environment';
 import { DEFAULT_LOOK, sunDirection } from '../../src/engine/look';
 
 function lightsIn(scene: THREE.Scene): THREE.Light[] {
@@ -20,14 +20,14 @@ function cloudSprites(scene: THREE.Scene): THREE.Sprite[] {
 }
 
 describe('createEnvironment', () => {
-  it('adds one sun, one hemisphere light, the sky dome, and 6 to 10 clouds', () => {
+  it('adds one sun, one camera fill, one hemisphere light, the sky dome, and 6 to 10 clouds', () => {
     const scene = new THREE.Scene();
     createEnvironment(scene, { quality: 'high' });
 
     const lights = lightsIn(scene);
-    expect(lights.filter((l) => (l as THREE.DirectionalLight).isDirectionalLight)).toHaveLength(1);
+    expect(lights.filter((l) => (l as THREE.DirectionalLight).isDirectionalLight)).toHaveLength(2);
     expect(lights.filter((l) => (l as THREE.HemisphereLight).isHemisphereLight)).toHaveLength(1);
-    expect(lights).toHaveLength(2);
+    expect(lights).toHaveLength(3);
 
     const sky = scene.getObjectByName('sky') as THREE.Mesh;
     expect(sky.isMesh).toBe(true);
@@ -202,6 +202,118 @@ describe('createEnvironment', () => {
     expect(scene.children).toHaveLength(0);
     expect(scene.fog).toBeNull();
     expect(scene.background).toBeNull();
+  });
+});
+
+describe('the camera fill', () => {
+  /** Unit vector from the ground toward the fill. */
+  const fillDirection = (env: Environment): THREE.Vector3 => env.fill.position.clone().sub(env.fill.target.position).normalize();
+
+  /** A camera at `position` looking at `target`, like the follow camera. */
+  const cameraAt = (position: THREE.Vector3, target: THREE.Vector3): THREE.PerspectiveCamera => {
+    const camera = new THREE.PerspectiveCamera(50, 1.6, 0.1, 300);
+    camera.position.copy(position);
+    camera.lookAt(target);
+    return camera;
+  };
+
+  it('is one soft cool light with no shadow, at the default intensity', () => {
+    const scene = new THREE.Scene();
+    const env = createEnvironment(scene, { quality: 'high' });
+    expect(env.fill.isDirectionalLight).toBe(true);
+    expect(env.fill).not.toBe(env.sun);
+    expect(env.fill.castShadow).toBe(false);
+    expect(env.fill.intensity).toBe(DEFAULT_LOOK.fillIntensity);
+    expect(env.fill.intensity).toBeLessThan(env.sun.intensity);
+    expect(env.fill.color.b).toBeGreaterThan(env.fill.color.r); // cool, against the warm sun
+    expect(env.fill.parent).toBe(scene);
+    expect(env.fill.target.parent).toBe(scene);
+  });
+
+  it('is the only light of its kind in every quality tier, so the shaders never change', () => {
+    for (const quality of ['high', 'medium', 'low'] as const) {
+      const scene = new THREE.Scene();
+      const env = createEnvironment(scene, { quality });
+      const unshadowed = lightsIn(scene).filter((l) => (l as THREE.DirectionalLight).isDirectionalLight && !l.castShadow);
+      expect(unshadowed, quality).toEqual([env.fill]);
+      env.setQuality(quality === 'low' ? 'high' : 'low');
+      expect(lightsIn(scene), quality).toHaveLength(3);
+      expect(lightsIn(scene).filter((l) => l.castShadow), quality).toEqual([env.sun]);
+    }
+  });
+
+  it('shines from behind and above the camera toward what it sees', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const player = new THREE.Vector3(12, 0, -30);
+    const target = player.clone().add(new THREE.Vector3(0, 1.8, 0));
+    const flat = (v: THREE.Vector3): THREE.Vector3 => new THREE.Vector3(v.x, 0, v.z).normalize();
+    // The follow camera: 7.5 units behind the player and 3 up, so it looks down a little. Try two sides.
+    for (const behind of [new THREE.Vector3(0, 3, 7.5), new THREE.Vector3(-5.3, 3, -5.3)]) {
+      const camera = cameraAt(player.clone().add(behind), target);
+      env.update(1 / 60, player, camera);
+      const dir = fillDirection(env);
+      const toCamera = camera.position.clone().sub(target).normalize();
+      expect(dir.length()).toBeCloseTo(1, 9);
+      expect(dir.y).toBeGreaterThan(toCamera.y); // a little higher than the camera's own line of sight
+      expect(dir.y).toBeGreaterThan(0.4);
+      // On the camera's side: a face turned to the camera is lit nearly head on.
+      expect(flat(dir).dot(flat(toCamera))).toBeGreaterThan(0.99);
+      expect(env.fill.target.position.distanceTo(player)).toBeLessThan(1e-9);
+    }
+  });
+
+  it('turns with the camera, and keeps its last direction when no camera is given', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const player = new THREE.Vector3();
+    const target = new THREE.Vector3(0, 1.8, 0);
+    env.update(0, player, cameraAt(new THREE.Vector3(0, 3, 7.5), target));
+    const front = fillDirection(env);
+    expect(front.z).toBeGreaterThan(0.6);
+    env.update(0, player, cameraAt(new THREE.Vector3(7.5, 3, 0), target));
+    const side = fillDirection(env);
+    expect(side.x).toBeGreaterThan(0.6);
+    expect(side.distanceTo(front)).toBeGreaterThan(0.5);
+    env.update(0, new THREE.Vector3(40, 0, 40)); // walking on with no camera passed
+    expect(fillDirection(env).distanceTo(side)).toBeLessThan(1e-9);
+    expect(env.fill.target.position.x).toBe(40);
+  });
+
+  it('lights a face turned to the camera far better than the sun does (about 0.83 against 0.27)', () => {
+    const env = createEnvironment(new THREE.Scene(), { quality: 'high' });
+    const target = new THREE.Vector3(0, 1.8, 0);
+    env.update(0, new THREE.Vector3(), cameraAt(new THREE.Vector3(0, 3, -7.5), target)); // the camera behind a player facing +z
+    const face = new THREE.Vector3(0, 0, -1); // a Scout turned to face the camera
+    const fill = Math.max(0, face.dot(fillDirection(env)));
+    const sun = Math.max(0, face.dot(env.sun.position.clone().sub(env.sun.target.position).normalize()));
+    expect(fill).toBeGreaterThan(0.75);
+    expect(fill).toBeGreaterThan(sun * 2);
+  });
+
+  it('follows the look: intensity from fillIntensity, and the light stays in the scene at zero', () => {
+    const scene = new THREE.Scene();
+    const env = createEnvironment(scene, { quality: 'high', look: { fillIntensity: 1.4 } });
+    expect(env.fill.intensity).toBe(1.4);
+    env.setLook({ fillIntensity: 0 });
+    expect(env.fill.intensity).toBe(0);
+    expect(env.fill.visible).toBe(true);
+    expect(lightsIn(scene)).toContain(env.fill);
+    env.setLook({ fillIntensity: Number.NaN });
+    expect(env.fill.intensity).toBe(0); // not a usable value: ignored
+    expect(env.look.fillIntensity).toBe(0);
+  });
+
+  it('leaves the tuned sun and sky defaults alone', () => {
+    expect(DEFAULT_LOOK).toMatchObject({
+      exposure: 1.05,
+      sunColor: '#ffdba6',
+      sunIntensity: 3.3,
+      sunAzimuth: 70,
+      sunElevation: 38,
+      hemiSkyColor: '#cfe0f2',
+      hemiGroundColor: '#6b8a3d',
+      hemiIntensity: 0.2,
+      envIntensity: 1.3,
+    });
   });
 });
 

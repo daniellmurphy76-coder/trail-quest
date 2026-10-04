@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WebGLRenderer } from 'three';
+import { WebGLRenderer, type DirectionalLight, type HemisphereLight, type Light, type Scene } from 'three';
 import { showAvatarEditor } from '../../src/game/screens/avatar-editor';
 import { mulberry32 } from '../../src/engine/seed';
 import {
@@ -29,6 +29,7 @@ vi.mock('three', async (importOriginal) => {
   class FakeRenderer {
     static instances: FakeRenderer[] = [];
     rendered = 0;
+    lastScene: unknown = null;
     disposed = 0;
     contextLost = 0;
     sizes: Array<[number, number]> = [];
@@ -44,8 +45,9 @@ vi.mock('three', async (importOriginal) => {
     setSize(w: number, h: number): void {
       this.sizes.push([w, h]);
     }
-    render(): void {
+    render(scene?: unknown): void {
       this.rendered++;
+      this.lastScene = scene;
     }
     dispose(): void {
       this.disposed++;
@@ -57,7 +59,9 @@ vi.mock('three', async (importOriginal) => {
   return { ...actual, WebGLRenderer: FakeRenderer };
 });
 
-type Fake = { instances: Array<{ rendered: number; disposed: number; contextLost: number; sizes: unknown[] }> };
+type Fake = {
+  instances: Array<{ rendered: number; lastScene: unknown; disposed: number; contextLost: number; sizes: unknown[] }>;
+};
 const fake = (): Fake['instances'] => (WebGLRenderer as unknown as Fake).instances;
 
 let host: HTMLElement;
@@ -375,6 +379,19 @@ describe('avatar editor: the 3D preview', () => {
     await result;
     expect(fake()).toHaveLength(2);
     expect(fake().map((r) => r.disposed)).toEqual([1, 1]);
+  });
+
+  it('lights the stage with a shadow-casting key, a fill without a shadow, and a sky light', async () => {
+    void open();
+    await new Promise((r) => setTimeout(r, 60));
+    const lights: Light[] = [];
+    (fake()[0]!.lastScene as Scene).traverse((o) => {
+      if ((o as Light).isLight) lights.push(o as Light);
+    });
+    const directional = lights.filter((l) => (l as DirectionalLight).isDirectionalLight);
+    expect(directional.map((l) => l.castShadow).sort()).toEqual([false, true]);
+    expect(lights.filter((l) => (l as HemisphereLight).isHemisphereLight)).toHaveLength(1);
+    expect(lights).toHaveLength(3);
   });
 
   it('has Turn left and Turn right buttons, with names for screen readers', () => {
