@@ -18,6 +18,15 @@ function makeDeps() {
 
 const OTHER_ZONES = ZONE_IDS.filter((id) => id !== 'base-camp');
 
+/** The place names each zone floats over the world (Zone.labels). */
+const PLACE_NAMES: Partial<Record<ZoneId, string[]>> = {
+  'fitness-field': ['Fitness Field'],
+  'nature-trail': ['Trailhead sign', 'Footbridge', 'Lookout rock', 'Campsite'],
+  'town-square': ['Library', 'School', 'Fire station', 'Grocery store'],
+  'safety-station': ['Safe meeting spot', 'First aid'],
+  'campfire-circle': ['Back to camp'],
+};
+
 /** Every navigate waypoint id the real content uses, by zone. */
 function contentWaypoints(): Map<ZoneId, Set<string>> {
   const byZone = new Map<ZoneId, Set<string>>();
@@ -125,6 +134,15 @@ describe.each(OTHER_ZONES)('placeholder zone %s', (id) => {
       expect(point, `${id} should have a landmark for "${waypoint}"`).toBeDefined();
       expect(inside(point!)).toBe(true);
       expect(zone.root.getObjectByName(`landmark:${waypoint}`), `signpost for ${waypoint}`).toBeDefined();
+    }
+  });
+
+  it('carries its place names as label data, up in the air inside the walls', () => {
+    const labels = zone.labels ?? [];
+    expect(labels.map((l) => l.text).sort()).toEqual([...(PLACE_NAMES[id] ?? [])].sort());
+    for (const label of labels) {
+      expect(inside(label.position), label.text).toBe(true);
+      expect(label.position.y, label.text).toBeGreaterThan(1.5);
     }
   });
 

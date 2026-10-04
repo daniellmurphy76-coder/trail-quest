@@ -105,6 +105,7 @@ describe('world host: pickups', () => {
     expect(Math.max(size.x, size.y, size.z)).toBeLessThan(0.7); // about half a unit
     expect(labels).toHaveLength(1);
     expect(labels[0]!.options.text).toBe('Bird');
+    expect(labels[0]!.options.priority).toBe(true); // never dropped for room, never faded by distance
     expect(labels[0]!.options.position.x).toBe(10);
   });
 
@@ -211,6 +212,7 @@ describe('world host: markers', () => {
     expect(material.blending).toBe(THREE.AdditiveBlending);
     expect(material.depthWrite).toBe(false);
     expect(labels[0]!.options.text).toBe('Footbridge');
+    expect(labels[0]!.options.priority).toBe(true);
   });
 
   it('is reached within 2 units by default, once, and then goes away', () => {

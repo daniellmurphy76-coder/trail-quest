@@ -47,7 +47,6 @@ import { cameraLane, canopyHitsLane, worstCrownReach } from './camera-lane';
 import { applyGroundTexture, createGround, createGroundApron, createGroundTexture } from './ground';
 import { createBirds, createButterflies, type AvoidDisc } from './critters';
 import { addHorizon } from './horizon';
-import { labelSprite } from './placeholder-zone';
 import {
   instancedModel,
   scatterModels,
@@ -101,7 +100,7 @@ const FENCE_X = [-14, -10, -6, -2, 2, 6, 10]; // simple segments; the gate takes
 const GATE_X = 14;
 const BENCH_Z = -14;
 const BENCH_X = [-10.5, -5.5, 5.5, 10.5];
-const SCOREBOARD = { x: 0, z: -14.4, scale: 1.6, labelY: 4.7, labelHeight: 1.4 } as const;
+const SCOREBOARD = { x: 0, z: -14.4, scale: 1.6, labelY: 4.7 } as const; // labelY: where "Fitness Field" hangs
 
 /** What each prop blocks, as half sizes (boxes) or radii (circles), a touch inside the models. */
 const FENCE_HALF_DEPTH = 0.15; // the fence is 4 long and 0.28 thin
@@ -424,11 +423,6 @@ export function createFitnessField(deps: ZoneDeps): Zone {
   setShadowCasting(scoreboardPrimitive, true, true);
   const scoreboard = swappable('scoreboard', scoreboardPrimitive);
   scoreboard.holder.position.set(SCOREBOARD.x, 0, SCOREBOARD.z);
-  const scoreboardLabel = labelSprite('Fitness Field', SCOREBOARD.labelHeight);
-  if (scoreboardLabel) {
-    scoreboardLabel.position.set(0, SCOREBOARD.labelY, 0);
-    scoreboard.holder.add(scoreboardLabel);
-  }
   root.add(scoreboard.holder);
 
   // ---- infield: the stretching circle and a ball -----------------------------------------------
@@ -650,6 +644,7 @@ export function createFitnessField(deps: ZoneDeps): Zone {
     interactables: [back],
     openSpots,
     landmarks: {},
+    labels: [{ text: 'Fitness Field', position: new THREE.Vector3(SCOREBOARD.x, SCOREBOARD.labelY, SCOREBOARD.z) }],
     colliders,
     update: (dt: number) => {
       // The ball hops gently on the spot, so the infield feels alive.

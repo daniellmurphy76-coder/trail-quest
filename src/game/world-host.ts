@@ -214,6 +214,7 @@ export function createWorldHost(target: WorldHostTarget, options: WorldHostOptio
       position: labelPosition,
       offsetY: kind === 'pickup' ? 0.6 : 0.2,
       className: 'tq-nametag',
+      priority: true, // the Scout must be able to find it: never faded or dropped for room
     });
     target.scene.add(group);
 

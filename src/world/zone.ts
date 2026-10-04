@@ -23,6 +23,13 @@ export interface Interactable {
   onInteract(): void;
 }
 
+/** A place name that floats over the world, for example "Library". Drawn by WorldLabels as a screen label. */
+export interface ZoneLabel {
+  text: string;
+  /** Where it hangs, in the zone's own space: the top of the sign or building. */
+  position: THREE.Vector3;
+}
+
 export interface Zone {
   id: ZoneId;
   root: THREE.Group;
@@ -40,6 +47,8 @@ export interface Zone {
    * "trailhead", "footbridge", "lookout", "campsite", "library", "school", "fire-station", "store").
    */
   landmarks?: Record<string, THREE.Vector3>;
+  /** Place names to float over the world (signs, buildings, landmarks). Optional. */
+  labels?: ZoneLabel[];
   /**
    * Solid footprints the player cannot walk through: trunks, rocks, tents, buildings, fences,
    * lamp posts, the fire ring. Never on a path, an open spot, a landmark or the spawn. Optional:
