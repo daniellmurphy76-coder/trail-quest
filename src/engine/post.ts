@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { N8AOPostPass } from 'n8ao';
+import { N8AOPostPass, type N8AOConfiguration } from 'n8ao';
 import {
   BlendFunction,
   BloomEffect,
@@ -24,7 +24,8 @@ import { qualitySettings, type AoQuality, type QualityTier } from './quality';
  *
  * - **Ambient occlusion** (N8AO) gives objects soft contact shadows where they meet the ground
  *   and each other. The radius is small, so only contacts darken; trees, tents and the Scout stop
- *   looking pasted on. It is applied to the whole frame, so keep the intensity moderate.
+ *   looking pasted on. It is applied to the whole frame, so keep the intensity moderate. The
+ *   occlusion is tinted a deep cool blue-green (`AO_COLOR`), not black, so creases read as shade.
  * - **Bloom** works on linear luminance before tone mapping, with a threshold of 1. Sunlit
  *   surfaces stay under 1 (white canvas reaches about 0.8), so only the things that are lit from
  *   inside glow: the campfire flame, embers, fireflies, lantern globes. Flames, embers and
@@ -78,6 +79,49 @@ export function postConfig(tier: QualityTier, look: Pick<LookSettings, 'aoHalfRe
 /** Per-channel gain for the warmth knob: -1 is cool, 0 neutral, 1 warm. Red and blue move, green barely. */
 export function warmthGain(warmth: number): [number, number, number] {
   return [1 + 0.08 * warmth, 1 + 0.01 * warmth, 1 - 0.12 * warmth];
+}
+
+// ---- ambient occlusion tint ---------------------------------------------------------------------
+
+/**
+ * The colour of the occlusion: a deep cool blue-green, so creases read as shade and not soot.
+ * Black pulls the colourful scene toward grey. Plain sRGB hex.
+ */
+export const AO_COLOR = 0x1d2a33;
+
+/**
+ * `AO_COLOR` as N8AO wants it: the raw sRGB numbers, which it converts to linear itself.
+ * `new THREE.Color(hex)` is already converted, so N8AO would convert it twice and the tint would
+ * come out near black again.
+ */
+export function aoColor(hex: number = AO_COLOR): THREE.Color {
+  return new THREE.Color().setRGB(((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255, THREE.LinearSRGBColorSpace);
+}
+
+/** The parts of the occlusion pass that `configureAo` sets. */
+interface AoPass {
+  configuration: Pick<N8AOConfiguration, 'distanceFalloff' | 'transparencyAware' | 'color' | 'colorMultiply'>;
+  autoDetectTransparency: boolean;
+  setQualityMode(mode: AoQuality): void;
+}
+
+/**
+ * The occlusion settings that do not follow the look, set once when the pass is built. Does
+ * nothing on a tier without ambient occlusion.
+ */
+export function configureAo(ao: AoPass, config: Pick<PostConfig, 'ao' | 'aoQuality'>): void {
+  if (!config.ao) return;
+  ao.setQualityMode(config.aoQuality);
+  ao.configuration.distanceFalloff = 1;
+  // N8AO scans the scene for transparent things every frame and, finding the clouds,
+  // flames and blob shadows, would draw the whole scene twice more. They do not write depth,
+  // so they should not occlude anything anyway: switch the scan off.
+  ao.configuration.transparencyAware = false;
+  ao.autoDetectTransparency = false;
+  // Paint the occlusion this colour outright. Multiplied into the scene (the default) a colour
+  // this dark would be 1 to 3 percent of the scene's own, which is black again.
+  ao.configuration.color = aoColor();
+  ao.configuration.colorMultiply = false;
 }
 
 // ---- glow ---------------------------------------------------------------------------------------
@@ -320,13 +364,7 @@ export function createPostPipeline(
       let ao: N8AOPostPass | null = null;
       if (config.ao) {
         ao = new N8AOPostPass(scene, camera, size.x, size.y);
-        ao.setQualityMode(config.aoQuality);
-        ao.configuration.distanceFalloff = 1;
-        // N8AO scans the scene for transparent things every frame and, finding the clouds,
-        // flames and blob shadows, would draw the whole scene twice more. They do not write depth,
-        // so they should not occlude anything anyway: switch the scan off.
-        ao.configuration.transparencyAware = false;
-        ao.autoDetectTransparency = false;
+        configureAo(ao, config);
         composer.addPass(ao);
       }
 
