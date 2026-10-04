@@ -17,7 +17,15 @@ import { WorldLabels, type WorldLabel } from '../engine/labels';
 import { createLookStore, type LookStore } from '../engine/look';
 import { GameLoop } from '../engine/loop';
 import { createPostPipeline, type PostPipeline } from '../engine/post';
-import { AutoDowngrade, getQuality, parseQualityOverride, setQuality, type QualityTier } from '../engine/quality';
+import {
+  AutoDowngrade,
+  getQuality,
+  parseQualityOverride,
+  parseScaleOverride,
+  setQuality,
+  type AutoChange,
+  type QualityTier,
+} from '../engine/quality';
 import { Renderer } from '../engine/renderer';
 import { defaultAvatar } from '../player/avatar/options';
 import { Player } from '../player/controller';
@@ -101,6 +109,9 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   const look = createLookStore();
   // The renderer comes first: the sky is baked into an environment map with it.
   const renderer = new Renderer(canvas, look.get());
+  // ?scale=1.25 caps the pixel ratio, to see the picture at that sharpness.
+  const scaleOverride = parseScaleOverride(window.location.search);
+  if (scaleOverride !== null) renderer.setPixelRatioLimit(scaleOverride);
   let tier: QualityTier = getQuality();
   // Sun, sky, fog and clouds belong to the scene, not to a zone, so they carry across travel.
   const environment = createEnvironment(scene, { quality: tier, look: look.get(), renderer: renderer.gl });
@@ -149,9 +160,22 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     post.setSettings(next);
   });
 
-  // Quality: a tier forced with ?quality= stays; otherwise a slow device steps down a tier and
-  // never back up (see AutoDowngrade).
-  const autoDowngrade = parseQualityOverride(window.location.search) === null ? new AutoDowngrade(tier) : null;
+  // Quality: a tier forced with ?quality= stays, and so does the resolution. Otherwise a slow device
+  // first lowers its pixel ratio a step at a time, then drops a tier, and never takes a tier back
+  // (see AutoDowngrade).
+  const autoDowngrade =
+    parseQualityOverride(window.location.search) === null ? new AutoDowngrade(tier, { pixelRatio: renderer.pixelRatio }) : null;
+  /** The pixel ratio changes through the renderer, which tells the post pipeline to refit its buffers. */
+  function applyAutoChange(change: AutoChange): void {
+    if (change.kind === 'resolution') {
+      const why = change.pixelRatio < renderer.pixelRatio ? 'frames are slow' : 'frames are steady';
+      console.info(`Pixel ratio ${renderer.pixelRatio} to ${change.pixelRatio} (${why}).`);
+      renderer.setPixelRatioLimit(change.pixelRatio);
+    } else {
+      console.info(`Quality tier ${tier} to ${change.tier} (frames are slow at the lowest pixel ratio).`);
+      applyTier(change.tier);
+    }
+  }
   function applyTier(next: QualityTier): void {
     if (next === tier) return;
     tier = next;
@@ -305,8 +329,8 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       renderer.beginFrame();
       post.render(frameDt);
       devtools.frame(frameDt);
-      const cheaper = autoDowngrade?.sample(frameDt);
-      if (cheaper) applyTier(cheaper);
+      const change = autoDowngrade?.sample(frameDt);
+      if (change) applyAutoChange(change);
     },
   });
   loop.start();

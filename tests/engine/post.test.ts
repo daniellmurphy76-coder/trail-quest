@@ -2,7 +2,19 @@ import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_LOOK } from '../../src/engine/look';
-import { applyGlow, createPostPipeline, GLOW_GAIN, postConfig, removeGlow, restoreGlow, warmthGain, type GlowMaterial } from '../../src/engine/post';
+import {
+  AO_COLOR,
+  aoColor,
+  applyGlow,
+  configureAo,
+  createPostPipeline,
+  GLOW_GAIN,
+  postConfig,
+  removeGlow,
+  restoreGlow,
+  warmthGain,
+  type GlowMaterial,
+} from '../../src/engine/post';
 import { QUALITY_TIERS } from '../../src/engine/quality';
 
 describe('postConfig: which effects each tier runs', () => {
@@ -87,6 +99,87 @@ describe('warmthGain', () => {
     expect(r - 1).toBeLessThan(0.05);
     expect(1 - b).toBeLessThan(0.08);
     for (const w of [-1, 1]) for (const gain of warmthGain(w)) expect(gain).toBeGreaterThan(0.5);
+  });
+});
+
+describe('ambient occlusion tint', () => {
+  /** The bits of the N8AO pass `configureAo` touches, plus the two look values it must leave alone. */
+  const fakeAo = () => ({
+    configuration: {
+      distanceFalloff: 0,
+      transparencyAware: true,
+      color: new THREE.Color(0, 0, 0),
+      colorMultiply: true,
+      aoRadius: 1.1,
+      intensity: 2.2,
+    },
+    autoDetectTransparency: true,
+    setQualityMode: vi.fn(),
+  });
+
+  it('is a deep cool blue-green: dark, and bluer than green, greener than red', () => {
+    expect(AO_COLOR).toBe(0x1d2a33);
+    const [r, g, b] = [(AO_COLOR >> 16) & 255, (AO_COLOR >> 8) & 255, AO_COLOR & 255];
+    expect(b).toBeGreaterThan(g);
+    expect(g).toBeGreaterThan(r);
+    expect(Math.max(r, g, b)).toBeLessThan(0x40);
+    expect(Math.min(r, g, b)).toBeGreaterThan(0); // not black
+  });
+
+  it('is handed to N8AO as plain sRGB numbers, which it converts to linear itself', () => {
+    const c = aoColor();
+    expect(c.getHex(THREE.LinearSRGBColorSpace)).toBe(AO_COLOR);
+    // What N8AO uploads (it calls convertSRGBToLinear) is the linear form of the colour we mean.
+    const uploaded = c.clone().convertSRGBToLinear();
+    const intended = new THREE.Color(AO_COLOR);
+    expect(uploaded.r).toBeCloseTo(intended.r, 6);
+    expect(uploaded.g).toBeCloseTo(intended.g, 6);
+    expect(uploaded.b).toBeCloseTo(intended.b, 6);
+    // The trap: new Color(hex) is already linear, so N8AO would convert it twice and get near black.
+    const twice = new THREE.Color(AO_COLOR).convertSRGBToLinear();
+    expect(twice.b).toBeLessThan(intended.b / 5);
+  });
+
+  it('is set on every tier that runs ambient occlusion, painted on rather than multiplied into the scene', () => {
+    for (const tier of QUALITY_TIERS) {
+      const config = postConfig(tier);
+      if (!config.ao) continue;
+      const ao = fakeAo();
+      configureAo(ao, config);
+      expect(ao.configuration.color.getHex(THREE.LinearSRGBColorSpace)).toBe(AO_COLOR);
+      expect(ao.configuration.colorMultiply).toBe(false);
+    }
+    expect(QUALITY_TIERS.filter((tier) => postConfig(tier).ao)).toEqual(['high', 'medium']);
+  });
+
+  it('still sets the sample count for the tier, the safe falloff, and no transparency scan', () => {
+    const high = fakeAo();
+    configureAo(high, postConfig('high'));
+    expect(high.setQualityMode).toHaveBeenCalledWith('Medium');
+    const medium = fakeAo();
+    configureAo(medium, postConfig('medium'));
+    expect(medium.setQualityMode).toHaveBeenCalledWith('Performance');
+    for (const ao of [high, medium]) {
+      expect(ao.configuration.distanceFalloff).toBe(1);
+      expect(ao.configuration.transparencyAware).toBe(false);
+      expect(ao.autoDetectTransparency).toBe(false);
+    }
+  });
+
+  it('leaves the radius and the intensity to the look', () => {
+    const ao = fakeAo();
+    configureAo(ao, postConfig('high'));
+    expect(ao.configuration.aoRadius).toBe(1.1);
+    expect(ao.configuration.intensity).toBe(2.2);
+  });
+
+  it('does nothing on a tier without ambient occlusion', () => {
+    const ao = fakeAo();
+    configureAo(ao, postConfig('low'));
+    expect(ao.setQualityMode).not.toHaveBeenCalled();
+    expect(ao.configuration.color.getHex(THREE.LinearSRGBColorSpace)).toBe(0);
+    expect(ao.configuration.colorMultiply).toBe(true);
+    expect(ao.autoDetectTransparency).toBe(true);
   });
 });
 
@@ -300,6 +393,11 @@ describe('post.ts decisions', () => {
     expect(source).toContain('multisampling: 0');
     expect(source).toContain('THREE.HalfFloatType');
     expect(source).toContain('new SMAAEffect');
+  });
+
+  it('sets up the occlusion pass through configureAo, and only when the tier has ambient occlusion', () => {
+    expect(source).toMatch(/if \(config\.ao\) \{\s*ao = new N8AOPostPass\([^)]*\);\s*configureAo\(ao, config\);/);
+    expect(source).not.toContain('new THREE.Color(AO_COLOR)'); // N8AO would convert it to linear twice
   });
 
   it('adds bloom rather than screen-blending it into the HDR buffer', () => {
