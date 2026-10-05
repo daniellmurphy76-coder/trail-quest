@@ -162,6 +162,15 @@ describe('avatar editor: layout and words', () => {
     expect(labels('Scarf')).toEqual(NECKERCHIEF_COLORS.map((c) => c.label));
   });
 
+  it('offers none of the gear the zone guides wear: no helmet, chef hat, apron, sash, whistle, tape or badge, and no Ranger', () => {
+    void open();
+    const words = Array.from(host.querySelectorAll('.tq-opt__label, .tq-opt__note, .tq-avatar__group-title, [role="tab"]'))
+      .map((el) => el.textContent!.toLowerCase())
+      .join(' | ');
+    for (const gear of ['helmet', 'chef', 'apron', 'sash', 'whistle', 'reflective', 'badge', 'ranger']) expect(words).not.toContain(gear);
+    expect(words).toContain('explorer');
+  });
+
   it('draws a swatch in the real color, or a little picture, in each 56px option', () => {
     void open();
     const skin = radio('Skin', 'Peach').querySelector<HTMLElement>('.tq-opt__face')!;
@@ -586,12 +595,12 @@ describe('avatar editor: heroes', () => {
     el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
   };
 
-  it('offers Trail Blazer, Camp Builder and Ranger, each with a picture and a short line, none picked at first', () => {
+  it('offers Trail Blazer, Camp Builder and Explorer, each with a picture and a short line, none picked at first', () => {
     void open();
     expect(Array.from(group('Heroes').querySelectorAll('.tq-opt__label')).map((l) => l.textContent)).toEqual([
       'Trail Blazer',
       'Camp Builder',
-      'Ranger',
+      'Explorer',
     ]);
     for (const hero of HEROES) {
       const option = tile(hero.name);
@@ -666,10 +675,10 @@ describe('avatar editor: heroes', () => {
   it('keeps the rank neckerchief for other ranks too, so a Bear hero is still a Bear', async () => {
     for (const other of ['lion', 'bear', 'arrow-of-light'] as const) {
       const result = showAvatarEditor(host, { initial: defaultAvatar(other), rank: other, unlocks: [] });
-      tile('Ranger').click();
+      tile('Explorer').click();
       buttonByText(host, 'Done').click();
       const look = (await result)!;
-      expect(look).toEqual(heroAvatar('ranger', other));
+      expect(look).toEqual(heroAvatar('explorer', other));
       expect(look.neckerchief).toBe(defaultAvatar(other).neckerchief);
     }
   });
@@ -714,7 +723,7 @@ describe('avatar editor: heroes', () => {
 
   it('lets one hero take over from another, even after a change', () => {
     void open();
-    tile('Ranger').click();
+    tile('Explorer').click();
     radio('Shoes', 'White').click();
     expect(selected('Heroes')).toEqual([]);
     tile('Trail Blazer').click();
@@ -725,14 +734,14 @@ describe('avatar editor: heroes', () => {
 
   it('opens with the hero checked when the Scout is already wearing that hero look', async () => {
     const result = showAvatarEditor(host, {
-      initial: heroAvatar('ranger', rank),
+      initial: heroAvatar('explorer', rank),
       rank,
       unlocks: ALL_COSMETIC_UNLOCKS,
     });
-    expect(selected('Heroes')).toEqual(['Ranger']);
+    expect(selected('Heroes')).toEqual(['Explorer']);
     expect(selected('Size')).toEqual(['Tall']);
     buttonByText(host, 'Done').click();
-    await expect(result).resolves.toEqual(heroAvatar('ranger', rank));
+    await expect(result).resolves.toEqual(heroAvatar('explorer', rank));
   });
 
   it('checks the hero for another rank too, using that rank neckerchief', () => {
@@ -741,7 +750,7 @@ describe('avatar editor: heroes', () => {
   });
 
   it('checks no hero when the hero look has a different neckerchief, but still shows the look', () => {
-    void showAvatarEditor(host, { initial: { ...heroAvatar('ranger', rank), neckerchief: '#f2f2f2' }, rank });
+    void showAvatarEditor(host, { initial: { ...heroAvatar('explorer', rank), neckerchief: '#f2f2f2' }, rank });
     expect(selected('Heroes')).toEqual([]);
     expect(selected('Size')).toEqual(['Tall']);
   });
@@ -781,25 +790,25 @@ describe('avatar editor: heroes', () => {
     press(builder, ' ');
     expect(selected('Heroes')).toEqual(['Camp Builder']);
     arrowRight(builder);
-    expect(document.activeElement).toBe(tile('Ranger'));
-    arrowRight(tile('Ranger'));
+    expect(document.activeElement).toBe(tile('Explorer'));
+    arrowRight(tile('Explorer'));
     expect(document.activeElement).toBe(tile('Trail Blazer')); // wraps
   });
 
   it('lets Random take over from a hero, and then no hero is checked', async () => {
     const result = open({ random: mulberry32(11) });
-    tile('Ranger').click();
+    tile('Explorer').click();
     buttonByText(host, 'Random').click();
     expect(selected('Heroes')).toEqual([]);
     buttonByText(host, 'Done').click();
     const look = (await result)!;
-    expect(look).not.toEqual(heroAvatar('ranger', rank));
+    expect(look).not.toEqual(heroAvatar('explorer', rank));
     expect(look.neckerchief).toBe(neckerchief);
   });
 
   it('Cancel after picking a hero resolves null', async () => {
     const result = open();
-    tile('Ranger').click();
+    tile('Explorer').click();
     buttonByText(host, 'Cancel').click();
     await expect(result).resolves.toBeNull();
   });

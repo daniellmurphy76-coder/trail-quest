@@ -9,7 +9,7 @@
 import type { RankId } from '../../activities/types';
 import { defaultAvatar, sameAvatar, type FilledAvatar } from './options';
 
-export type HeroId = 'trail-blazer' | 'camp-builder' | 'ranger';
+export type HeroId = 'trail-blazer' | 'camp-builder' | 'explorer';
 
 /** The parts of a look a hero sets: everything except the neckerchief, which follows the rank. */
 export type HeroLook = Omit<FilledAvatar, 'neckerchief' | 'bodyColor'>;
@@ -65,8 +65,8 @@ export const HEROES: readonly Hero[] = [
     },
   },
   {
-    id: 'ranger',
-    name: 'Ranger',
+    id: 'explorer',
+    name: 'Explorer',
     blurb: 'Tall and calm.',
     look: {
       build: 'tall',

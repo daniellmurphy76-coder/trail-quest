@@ -20,7 +20,7 @@ import type { RankId } from '../../../activities/types';
 import type { AvatarConfig } from '../../../save/types';
 import { fillAvatar, type Build, type FilledAvatar } from '../options';
 import { BLEND_RATE, BLOB_GEOMETRY, BLOB_LIFT, BLOB_MATERIAL, blobScale, ONE_SHOT_SECONDS, REFERENCE_SPEED } from '../procedural';
-import type { AvatarState, Emote } from '../rig-types';
+import type { AvatarState, Emote, NpcGear } from '../rig-types';
 import { buildHeadAttachments, buildTorsoAttachments } from './attachments';
 import { ALL_ROLES, type ClipRole } from './clips';
 import { instantiateBlocky, type BlockyAsset } from './model';
@@ -43,6 +43,8 @@ const ATTACHMENT_MATERIAL = new THREE.MeshLambertMaterial({ vertexColors: true, 
 export interface BlockyRigOptions {
   rank: RankId;
   denChiefCord: boolean;
+  /** A zone guide's gear, fixed for the life of the rig like the cord. */
+  npcGear?: NpcGear;
   blobShadow: boolean;
 }
 
@@ -63,7 +65,7 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 }
 
 export function createBlockyRig(model: BlockyAsset, initial: FilledAvatar, options: BlockyRigOptions): BlockyRig {
-  const { rank, denChiefCord } = options;
+  const { rank, denChiefCord, npcGear } = options;
   let current = initial;
 
   // ---- scene graph ----------------------------------------------------------------------------
@@ -136,12 +138,16 @@ export function createBlockyRig(model: BlockyAsset, initial: FilledAvatar, optio
       headKey = nextHead;
       // The head set (hair, hat, glasses) does not cast: a hat brim hangs just above the face, and its shadow
       // would darken most of the face while the sun is high. It still receives, and the head and body still cast.
-      headMesh = swap(headMesh, 'head-attachments', buildHeadAttachments(current), head, false);
+      headMesh = swap(headMesh, 'head-attachments', buildHeadAttachments(current, { npcGear }), head, false);
     }
     const nextTorso = keyOf.torso(current);
     if (nextTorso !== torsoKey) {
       torsoKey = nextTorso;
-      torsoMesh = swap(torsoMesh, 'torso-attachments', buildTorsoAttachments(current, { denChiefCord }), torso, true);
+      // A guide with no neckerchief and no torso gear has nothing here: no mesh, no draw call.
+      const torsoGeometry = buildTorsoAttachments(current, { denChiefCord, npcGear });
+      const empty = torsoGeometry.getAttribute('position').count === 0;
+      if (empty) torsoGeometry.dispose();
+      torsoMesh = swap(torsoMesh, 'torso-attachments', empty ? null : torsoGeometry, torso, true);
     }
   };
   setShadowCasting(group, true, true); // the body parts; the blob is transparent, so it is skipped

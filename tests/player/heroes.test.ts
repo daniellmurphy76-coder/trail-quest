@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
+import { GUIDES } from '../../src/npc/guide-types';
 import { HEROES, findHero, heroAvatar, heroOf, type HeroId } from '../../src/player/avatar/heroes';
 import { optionIcon } from '../../src/player/avatar/icons';
 import {
@@ -23,7 +24,7 @@ import {
   type FilledAvatar,
 } from '../../src/player/avatar/options';
 
-const HERO_IDS: readonly HeroId[] = ['trail-blazer', 'camp-builder', 'ranger'];
+const HERO_IDS: readonly HeroId[] = ['trail-blazer', 'camp-builder', 'explorer'];
 const HEX = /^#[0-9a-f]{6}$/;
 const words = (text: string): string[] => text.trim().split(/\s+/).filter(Boolean);
 
@@ -31,9 +32,19 @@ describe('HEROES', () => {
   it('has exactly three heroes, in the order the editor shows them, with unique ids and names', () => {
     expect(HEROES).toHaveLength(3);
     expect(HEROES.map((hero) => hero.id)).toEqual(HERO_IDS);
-    expect(HEROES.map((hero) => hero.name)).toEqual(['Trail Blazer', 'Camp Builder', 'Ranger']);
+    expect(HEROES.map((hero) => hero.name)).toEqual(['Trail Blazer', 'Camp Builder', 'Explorer']);
     expect(new Set(HEROES.map((hero) => hero.id)).size).toBe(3);
     expect(new Set(HEROES.map((hero) => hero.name)).size).toBe(3);
+  });
+
+  it('never shares a name with a zone guide, so a kid does not mix the two up (the Ranger guide, the Explorer hero)', () => {
+    const roles = GUIDES.map((guide) => guide.role.toLowerCase());
+    for (const hero of HEROES) {
+      expect(roles, hero.name).not.toContain(hero.name.toLowerCase());
+      expect(GUIDES.map((guide) => guide.id as string), hero.id).not.toContain(hero.id);
+    }
+    expect(findHero('ranger')).toBeUndefined();
+    expect(findHero('explorer')?.name).toBe('Explorer');
   });
 
   it.each(HEROES.map((hero) => [hero.id, hero] as const))('%s: a name of one or two words and a blurb a Wolf can read', (_id, hero) => {
@@ -125,7 +136,7 @@ describe('findHero', () => {
   it('is undefined for an id the game does not know', () => {
     expect(findHero('nope')).toBeUndefined();
     expect(findHero('')).toBeUndefined();
-    expect(findHero('Ranger')).toBeUndefined(); // ids, not names
+    expect(findHero('Explorer')).toBeUndefined(); // ids, not names
   });
 });
 
@@ -162,13 +173,13 @@ describe('heroAvatar', () => {
   });
 
   it('returns a fresh object each time, so a change to one look never leaks into the hero', () => {
-    const first = heroAvatar('ranger', 'wolf');
+    const first = heroAvatar('explorer', 'wolf');
     first.skin = '#000000';
     first.hat = 'cap';
-    const second = heroAvatar('ranger', 'wolf');
-    expect(second.skin).toBe(findHero('ranger')!.look.skin);
+    const second = heroAvatar('explorer', 'wolf');
+    expect(second.skin).toBe(findHero('explorer')!.look.skin);
     expect(second.hat).toBe('none');
-    expect(findHero('ranger')!.look.skin).not.toBe('#000000');
+    expect(findHero('explorer')!.look.skin).not.toBe('#000000');
   });
 });
 
@@ -218,8 +229,8 @@ describe('heroOf', () => {
   });
 
   it('is undefined for a hero look worn by a Scout of another rank, whose neckerchief is different', () => {
-    expect(heroOf(heroAvatar('ranger', 'wolf'), 'bear')).toBeUndefined();
-    expect(heroOf(heroAvatar('ranger', 'bear'), 'wolf')).toBeUndefined();
+    expect(heroOf(heroAvatar('explorer', 'wolf'), 'bear')).toBeUndefined();
+    expect(heroOf(heroAvatar('explorer', 'bear'), 'wolf')).toBeUndefined();
   });
 
   it('is undefined for the second hero look with the first hero hair, and the other way round', () => {
@@ -291,8 +302,8 @@ describe('optionIcon for a hero', () => {
   it('makes the three pictures different, and a fresh element each time', () => {
     const markups = HERO_IDS.map((id) => optionIcon('hero', id).outerHTML);
     expect(new Set(markups).size).toBe(3);
-    expect(optionIcon('hero', 'ranger')).not.toBe(optionIcon('hero', 'ranger'));
-    expect(optionIcon('hero', 'ranger').outerHTML).toBe(optionIcon('hero', 'ranger').outerHTML);
+    expect(optionIcon('hero', 'explorer')).not.toBe(optionIcon('hero', 'explorer'));
+    expect(optionIcon('hero', 'explorer').outerHTML).toBe(optionIcon('hero', 'explorer').outerHTML);
   });
 
   it('draws an empty picture for an id the game does not know, and does not throw', () => {

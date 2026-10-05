@@ -19,7 +19,7 @@ import { fillAvatar } from './options';
 import { buildProceduralAvatar } from './procedural';
 import type { AvatarRig, AvatarRigOptions, AvatarState, Emote } from './rig-types';
 
-export type { AvatarRig, AvatarRigOptions, AvatarState, Emote } from './rig-types';
+export type { AvatarRig, AvatarRigOptions, AvatarState, Emote, NpcGear, NpcHeadgear, NpcTorsoGear } from './rig-types';
 
 export function buildAvatar(config: AvatarConfig, options: AvatarRigOptions = {}): AvatarRig {
   const rank = options.rank ?? 'wolf';
@@ -40,7 +40,7 @@ export function buildAvatar(config: AvatarConfig, options: AvatarRigOptions = {}
     const model = getBlockyAsset();
     if (!model) return;
     try {
-      const next = createBlockyRig(model, current, { rank, denChiefCord: cord, blobShadow: blob });
+      const next = createBlockyRig(model, current, { rank, denChiefCord: cord, npcGear: options.npcGear, blobShadow: blob });
       if (fallback) next.play(fallback.emote);
       root.add(next.group);
       blocky = next;

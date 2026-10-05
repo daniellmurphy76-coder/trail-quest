@@ -40,7 +40,8 @@ export interface GuideSpot {
  *   nature-trail     the Ranger stands beside the trailhead sign, to the right of the dirt path.
  *   safety-station   the Firefighter stands by the paved path that leads toward the fire station.
  *   town-square      the Mayor stands on the plaza paving, left of the main street, by the planters.
- *   campfire-circle  the Camp Cook stands just inside the log gateway, on the way to the fire ring.
+ *   campfire-circle  the Camp Cook stands just inside the log gateway, a step right of the middle, so
+ *                    the gateway posts never hide them from the arrival camera.
  *   fitness-field    the Coach stands on the inside edge of the running track, where the infield starts
  *                    (the middle of the infield is more than 8 units from the spawn).
  */
@@ -48,7 +49,7 @@ export const GUIDE_SPOTS: Readonly<Record<GuideZoneId, GuideSpot>> = {
   'nature-trail': { x: 1.5, z: 8.6 },
   'safety-station': { x: 1.9, z: 7.6 },
   'town-square': { x: -3.8, z: 7.6 },
-  'campfire-circle': { x: 3, z: 9.8 },
+  'campfire-circle': { x: 1.5, z: 10 },
   'fitness-field': { x: 1.7, z: 5.8 },
 };
 

@@ -2,7 +2,7 @@ import { buildAvatar, type AvatarRig } from './rig';
 import type { FilledAvatar } from './options';
 
 /**
- * The Den Chief: an older Scout, tall, in a ranger hat and glasses, with a happy squint and a
+ * The Den Chief: an older Scout, tall, in a scout hat and glasses, with a happy squint and a
  * yellow cord across the chest. Friendly and a little goofy. Looks nothing like the default
  * Scout colors (blue or tan), so a kid can tell them apart at a glance.
  */
