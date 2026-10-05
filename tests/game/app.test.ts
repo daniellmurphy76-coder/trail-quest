@@ -2,11 +2,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RankId } from '../../src/activities/types';
 import { startApp, type App, type AppOptions } from '../../src/game/app';
+import { events, type GameEvent } from '../../src/game/events';
+import { GUIDE_LINES } from '../../src/npc/guide-lines';
+import type { GuideId } from '../../src/npc/guide-types';
 import { createDefaultSave, createProfile, loadSave, memoryStore, persistSave } from '../../src/save/store';
 import type { Profile } from '../../src/save/types';
 import { TRAVEL_SIGN_MS } from '../../src/game/session';
 import { card, doneReq } from '../fixtures/profile.fixture';
-import { ID } from '../fixtures/rank.fixture';
+import { fixtureRank, ID } from '../fixtures/rank.fixture';
 import { buttonByText, flush, makeHost } from '../ui/helpers';
 
 // The 3D world needs WebGL, which a DOM test does not have. The app only touches these members.
@@ -28,6 +31,7 @@ const world = vi.hoisted(() => {
     input,
     idleSeconds: 0,
     setDenChiefHandler: vi.fn(),
+    setGuideTalkHandler: vi.fn(),
     setGuideName: vi.fn(),
     setPlayerAvatar: vi.fn(),
     placeAtGuide: vi.fn(),
@@ -74,6 +78,7 @@ beforeEach(() => {
   world.input.enabled = true;
   world.player.celebrate.mockClear();
   world.setDenChiefHandler.mockClear();
+  world.setGuideTalkHandler.mockClear();
   world.setGuideName.mockClear();
   world.setPlayerAvatar.mockClear();
   world.placeAtGuide.mockClear();
@@ -150,6 +155,13 @@ const startButton = (): HTMLButtonElement | null => host.querySelector('.tq-dock
 const hintCard = (): HTMLElement | null => host.querySelector('.tq-hint-card');
 const shown = (el: HTMLElement | null): boolean => el !== null && !el.hidden;
 const lastObjective = (): unknown => world.setObjectiveVisible.mock.calls.at(-1)?.[0];
+
+/** The Scout walks up to a zone guide and talks: what the world's Talk spot does through the handler the app gave it. */
+async function talkToZoneGuide(id: GuideId): Promise<void> {
+  const handler = world.setGuideTalkHandler.mock.calls.at(-1)![0] as (guide: GuideId) => void;
+  handler(id);
+  await flush();
+}
 
 describe('app: first run', () => {
   it('shows profile setup when there are no profiles, then the HUD once a Scout is made', async () => {
@@ -730,6 +742,10 @@ describe('app: zones', () => {
     expect(host.textContent).toContain('Test step 1 of wolf.test-trek.');
     expect(host.textContent).not.toContain('Walking to the Nature Trail');
     await click('Next'); // the lesson page
+    // The Den Chief says who will help out there, then the trail sign walks to the Nature Trail.
+    expect(host.textContent).toContain('The Ranger will help you there. Say hi!');
+    expect(host.textContent).not.toContain('Walking to the Nature Trail');
+    await click('Next');
     expect(host.textContent).toContain('Walking to the Nature Trail');
     return { app: started.app, click };
   }
@@ -740,6 +756,12 @@ describe('app: zones', () => {
     await wait(TRAVEL_SIGN_MS + 200);
     expect(world.travelTo).toHaveBeenCalledWith('nature-trail');
     expect(world.state.zone).toBe('nature-trail');
+
+    // The Ranger says hello before the activity opens (one page, spoken by the Ranger).
+    expect(host.querySelector('.tq-nameplate')!.textContent).toBe('Ranger');
+    expect(host.textContent).toContain('Welcome to the trail, Rowan!');
+    expect(host.querySelector('[data-tq-nonmodal="true"]')).toBeNull(); // the activity has not opened yet
+    await click('Next');
 
     // The panel is up and does not take input away; two tokens stand in the world.
     const panel = host.querySelector('[data-tq-nonmodal="true"]')!;
@@ -770,6 +792,9 @@ describe('app: zones', () => {
     // Stop 3: a mission card, still in the Nature Trail (no second trip), then the summary.
     await click('Next'); // intro
     await wait(TRAVEL_SIGN_MS + 200);
+    // The Den Chief has already named the Ranger today and the Ranger has already said hello on this visit.
+    expect(host.textContent).not.toContain('will help you there');
+    expect(host.textContent).not.toContain('Welcome to the trail');
     await click('Got it!'); // the mission card (the controls hint's button has no exclamation mark)
     await click('Next'); // cheer
     expect(world.travelTo).toHaveBeenCalledTimes(1);
@@ -786,6 +811,45 @@ describe('app: zones', () => {
     await click('Explore camp');
     expect(world.travelTo).toHaveBeenLastCalledWith('base-camp');
     expect(world.state.zone).toBe('base-camp');
+
+    // The Ranger already welcomed the Scout in today, so a free-roam talk is a plain "hi again".
+    await talkToZoneGuide('ranger');
+    expect(host.querySelector('.tq-dialog__text .tq-sr')!.textContent).toBe('Hi again, Rowan! Nice day for a hike.');
+  }, 15000);
+
+  it('does not repeat the Den Chief\'s guide introduction, or the guide\'s hello, for a second stop in the same zone', async () => {
+    const { click } = await playToCollectSign();
+    await wait(TRAVEL_SIGN_MS + 200);
+    expect(host.querySelector('.tq-nameplate')!.textContent).toBe('Ranger'); // the arrival page, once
+    await click('Next');
+    expect(host.querySelector('[data-tq-nonmodal="true"]')).not.toBeNull(); // then the activity
+  });
+
+  it('has the guide greet again, with the next line, when the Scout has been away and walks back in', async () => {
+    const { click } = await playToCollectSign();
+    await wait(TRAVEL_SIGN_MS + 200);
+    expect(host.querySelector('.tq-dialog__text .tq-sr')!.textContent).toBe('Welcome to the trail, Rowan!');
+    await click('Next'); // the Ranger's hello; the collect panel opens
+
+    const placed = world.scene.add.mock.calls.map((c) => c[0] as { name: string; position: { x: number; z: number } });
+    const step = world.onUpdate.mock.calls.at(-1)![0] as (dt: number) => void;
+    for (const token of placed.filter((o) => o.name === 'pickup:token')) {
+      world.player.position.x = token.position.x;
+      world.player.position.z = token.position.z;
+      step(1 / 60);
+    }
+    await flush();
+    await click('Finish');
+    await click('Next'); // cheer
+
+    // The Scout goes back to camp (a trip that tells the zone listeners), then the next stop walks out again.
+    await world.travelTo('base-camp');
+    await click('Next'); // the intro of the mission card
+    await wait(TRAVEL_SIGN_MS + 200);
+    expect(world.state.zone).toBe('nature-trail');
+    expect(host.querySelector('.tq-nameplate')!.textContent).toBe('Ranger');
+    expect(host.querySelector('.tq-dialog__text .tq-sr')!.textContent).toBe('Hi Rowan! Watch for frogs and birds.'); // the second line
+    expect(host.textContent).not.toContain('will help you there'); // the Den Chief named the Ranger once today
   }, 15000);
 
   it('dispose stops the idle-hint timer and every listener the app added', async () => {
@@ -873,5 +937,206 @@ describe('app: zones', () => {
     await flush();
     expect(world.travelTo).not.toHaveBeenCalled();
     expect(host.textContent).toContain('Tap Back to leave this stop.');
+  });
+});
+
+describe('app: zone guides', () => {
+  const doneToday = { current: 5, best: 5, lastTrailDate: '2026-10-03', embers: 0 };
+
+  async function play(store = storeWithScout()) {
+    const booted = boot(store);
+    buttonByText(host, 'Play').click();
+    await booted.app.ready;
+    await flush();
+    world.placeAtGuide.mockClear(); // arriving put the Scout by the Den Chief; only what the guides do counts here
+    return booted;
+  }
+
+  let seen: GameEvent[];
+  let off: () => void;
+  beforeEach(() => {
+    seen = [];
+    off = events.on((event) => seen.push(event));
+  });
+  afterEach(() => off());
+
+  const speaker = (): string | null => host.querySelector('.tq-nameplate')?.textContent ?? null;
+  /** What the dialog on screen says (the clean copy, not the typewriter span). */
+  const pageText = (): string => host.querySelector('.tq-dialog__text .tq-sr')?.textContent ?? '';
+  const choices = (): string[] => Array.from(host.querySelectorAll('.tq-dialog__choices button')).map((b) => b.textContent ?? '');
+  const next = async (): Promise<void> => {
+    buttonByText(host, 'Next').click();
+    await flush();
+  };
+
+  it('gives the world a handler for talking to a guide, once', async () => {
+    await play();
+    expect(world.setGuideTalkHandler).toHaveBeenCalledTimes(1);
+    expect(typeof world.setGuideTalkHandler.mock.calls[0]![0]).toBe('function');
+  });
+
+  it('goes greeting, what the place is for, one tip, then points back to the Den Chief while the trail waits', async () => {
+    await play();
+    await talkToZoneGuide('ranger');
+
+    // The first time today: the greeting says the Den Chief sent the Scout. The nameplate is the role.
+    expect(speaker()).toBe('Ranger');
+    expect(pageText()).toBe('Hi Rowan! Den Chief said you were coming! I am the Ranger.');
+    expect(choices()).toEqual([]);
+    await next();
+    expect(speaker()).toBe('Ranger');
+    expect(pageText()).toBe('This is the Nature Trail. Come here to learn about the outdoors.');
+    await next();
+    expect(pageText()).toBe('Stay on the trail. It keeps plants safe.');
+    await next();
+    expect(pageText()).toBe('Den Chief is waiting with your trail. Want to head back to camp?');
+    expect(choices()).toEqual(['Take me to camp', 'Look around']);
+
+    // The Den Chief starts the trail, not the Ranger: nothing has begun and the Scout has not moved yet.
+    expect(world.placeAtGuide).not.toHaveBeenCalled();
+    buttonByText(host, 'Take me to camp').click();
+    await flush();
+    expect(world.placeAtGuide).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('.tq-overlay')).toBeNull();
+    expect(speaker()).toBeNull();
+  });
+
+  it('"Look around" closes the talk and leaves the Scout where they are', async () => {
+    await play();
+    await talkToZoneGuide('coach');
+    await next();
+    await next();
+    await next();
+    expect(speaker()).toBe('Coach');
+    buttonByText(host, 'Look around').click();
+    await flush();
+    expect(world.placeAtGuide).not.toHaveBeenCalled();
+    expect(host.querySelector('.tq-overlay')).toBeNull();
+  });
+
+  it('ends on a goodbye, with no way back to camp to offer, once today\'s trail is done', async () => {
+    await play(storeWithScout(doneToday));
+    await talkToZoneGuide('mayor');
+    await next();
+    await next();
+    await next();
+    expect(speaker()).toBe('Mayor');
+    expect(pageText()).toBe('Goodbye, Rowan! Come see us again.');
+    expect(choices()).toEqual([]);
+    expect(host.textContent).not.toContain('Take me to camp');
+    await next();
+    expect(host.querySelector('.tq-overlay')).toBeNull();
+    expect(world.placeAtGuide).not.toHaveBeenCalled();
+  });
+
+  it('is plain "again" the second time, and the tips take turns', async () => {
+    await play();
+    const talkThrough = async (): Promise<string[]> => {
+      await talkToZoneGuide('ranger');
+      const pages = [pageText()];
+      for (let i = 0; i < 3; i += 1) {
+        await next();
+        pages.push(pageText());
+      }
+      buttonByText(host, 'Look around').click();
+      await flush();
+      return pages;
+    };
+    const first = await talkThrough();
+    const second = await talkThrough();
+    const third = await talkThrough();
+    const fourth = await talkThrough();
+
+    expect(first[0]).toContain('Den Chief said you were coming');
+    expect(second[0]).toBe('Hi again, Rowan! Nice day for a hike.');
+    expect(new Set([first[2], second[2], third[2]]).size).toBe(3); // three tips, three talks
+    expect(fourth[2]).toBe(first[2]); // and round again
+    expect(first[2]).toBe(GUIDE_LINES.ranger.tips[0]!.grade2);
+  });
+
+  it('is a new first meeting on another day', async () => {
+    const { app } = await play();
+    await talkToZoneGuide('camp-cook');
+    expect(pageText()).toContain('Den Chief said you were coming');
+    for (let i = 0; i < 3; i += 1) await next();
+    buttonByText(host, 'Look around').click();
+    await flush();
+
+    app.setToday('2026-10-04');
+    await talkToZoneGuide('camp-cook');
+    expect(pageText()).toContain('Den Chief said you were coming');
+  });
+
+  it('uses the Arrow of Light wording for an older Scout', async () => {
+    const original = fixtureRank.readingLevel;
+    fixtureRank.readingLevel = 'grade5';
+    try {
+      await play();
+      await talkToZoneGuide('ranger');
+      expect(pageText()).toBe('Hi Rowan! Den Chief said you were coming. I am the Ranger, and this is my trail.');
+      await next();
+      expect(pageText()).toBe('This is the Nature Trail. Here you learn to enjoy the outdoors and take care of it.');
+      await next();
+      await next();
+      expect(pageText()).toBe("Den Chief is waiting with today's trail. Want to head back to camp?");
+    } finally {
+      fixtureRank.readingLevel = original;
+    }
+  });
+
+  it('uses the Den Chief\'s name for this Scout when a profile renames them', async () => {
+    const store = storeWithScout(undefined, (p) => {
+      p.guideName = 'Chief Sam';
+    });
+    await play(store);
+    await talkToZoneGuide('ranger');
+    expect(pageText()).toContain('Chief Sam said you were coming');
+  });
+
+  it('tells the event bus about the talk and every page, for the sound layer', async () => {
+    await play();
+    await talkToZoneGuide('firefighter');
+    for (let i = 0; i < 3; i += 1) await next();
+    buttonByText(host, 'Look around').click();
+    await flush();
+
+    expect(seen.filter((e) => e.type === 'guide-talk')).toEqual([{ type: 'guide-talk', guide: 'firefighter' }]);
+    expect(seen.filter((e) => e.type === 'dialog-open')).toHaveLength(4);
+    expect(seen.filter((e) => e.type === 'dialog-advance')).toHaveLength(4);
+    // The talk is announced before its first page opens.
+    expect(seen.findIndex((e) => e.type === 'guide-talk')).toBeLessThan(seen.findIndex((e) => e.type === 'dialog-open'));
+  });
+
+  it('does not open while the Den Chief is talking or a stop is running, and says why', async () => {
+    await play();
+    const talk = world.setDenChiefHandler.mock.calls.at(-1)![0] as () => void;
+    talk();
+    await flush();
+    expect(speaker()).toBe('Den Chief');
+    const before = host.querySelectorAll('.tq-overlay').length;
+
+    await talkToZoneGuide('ranger');
+    expect(speaker()).toBe('Den Chief'); // still the Den Chief's page
+    expect(host.querySelectorAll('.tq-overlay')).toHaveLength(before);
+    expect(Array.from(host.querySelectorAll('.tq-toast')).map((t) => t.textContent)).toContain('Finish this stop first!');
+    expect(seen.some((e) => e.type === 'guide-talk')).toBe(false);
+  });
+
+  it('never opens a second talk on top of the first', async () => {
+    await play();
+    await talkToZoneGuide('ranger');
+    await talkToZoneGuide('coach');
+    expect(host.querySelectorAll('.tq-overlay')).toHaveLength(1);
+    expect(speaker()).toBe('Ranger');
+    expect(seen.filter((e) => e.type === 'guide-talk')).toHaveLength(1);
+  });
+
+  it('does nothing when nobody is playing', async () => {
+    boot(storeWithScout()); // the picker is up
+    await flush();
+    const before = host.querySelectorAll('.tq-overlay').length;
+    await talkToZoneGuide('ranger');
+    expect(host.querySelectorAll('.tq-overlay')).toHaveLength(before);
+    expect(seen.some((e) => e.type === 'guide-talk')).toBe(false);
   });
 });

@@ -501,6 +501,133 @@ describe('session: other zones', () => {
   });
 });
 
+describe('session: zone guides', () => {
+  /** Bobcat is done, so the trail's new step and its mission card are both at the Nature Trail. */
+  const atTheTrek = (): Partial<Profile> => ({
+    requirements: {
+      [ID.campQuiz]: doneReq(),
+      [ID.campChore]: doneReq(),
+      [ID.campSort]: doneReq(),
+      [ID.campErrand]: doneReq(),
+    },
+  });
+  const rangerOnly = (zone: string): string | undefined => (zone === 'nature-trail' ? 'Ranger' : undefined);
+  const INTRO = 'The Ranger will help you there. Say hi!';
+  const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('has the Den Chief name the guide just before the trail sign, once per zone per day', async () => {
+    const h = harness({ profile: atTheTrek() });
+    h.deps.guideRoleAt = vi.fn(rangerOnly);
+    await createSession(h.deps).talk();
+
+    expect(said(h).filter((text) => text === INTRO)).toHaveLength(1);
+    // Two stops walk to the Nature Trail (the new step and the mission card), so the sign shows twice.
+    expect(h.deps.showTrailSign).toHaveBeenCalledTimes(2);
+    const intro = h.order.indexOf(`dialog:${INTRO}`);
+    expect(intro).toBeGreaterThan(-1);
+    expect(intro).toBeLessThan(h.order.indexOf('sign'));
+    expect(h.deps.guideRoleAt).toHaveBeenCalledWith('nature-trail');
+  });
+
+  it('says it again on a new day, and uses the Arrow of Light wording with the zone for the older Scouts', async () => {
+    const h = harness({ profile: atTheTrek() });
+    h.deps.guideRoleAt = rangerOnly;
+    const session = createSession(h.deps);
+    await session.talk();
+    expect(said(h).filter((text) => text === INTRO)).toHaveLength(1);
+
+    h.deps.today = () => '2026-10-04';
+    await session.talk();
+    expect(said(h).filter((text) => text === INTRO)).toHaveLength(2);
+
+    const older = harness({ profile: atTheTrek(), content: { ...fixtureRank, readingLevel: 'grade5' } });
+    older.deps.guideRoleAt = rangerOnly;
+    await createSession(older.deps).talk();
+    expect(said(older)).toContain('The Ranger at the Nature Trail will help with this one. Say hi!');
+  });
+
+  it('introduces nobody for a stop at Base Camp, or when the app has no guide to name', async () => {
+    const atCamp = harness({ profile: threeStops() });
+    atCamp.deps.guideRoleAt = vi.fn(() => 'Ranger');
+    atCamp.deps.greetAtZone = vi.fn(async () => {});
+    await createSession(atCamp.deps).talk();
+    expect(atCamp.deps.guideRoleAt).not.toHaveBeenCalled();
+    expect(atCamp.deps.greetAtZone).not.toHaveBeenCalled();
+    expect(said(atCamp).some((text) => text.includes('will help'))).toBe(false);
+
+    const noGuide = harness({ profile: atTheTrek() });
+    noGuide.deps.guideRoleAt = () => undefined;
+    await createSession(noGuide.deps).talk();
+    expect(said(noGuide).some((text) => text.includes('will help'))).toBe(false);
+  });
+
+  it('awaits the guide greeting after the walk and before the activity opens', async () => {
+    const h = harness({ profile: atTheTrek() });
+    h.deps.travelToZone = vi.fn(async () => {
+      h.order.push('travel');
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    h.deps.greetAtZone = vi.fn(async (zone) => {
+      h.order.push(`greet:${zone}`);
+      await gate;
+      h.order.push('greet-done');
+    });
+    const talking = createSession(h.deps).talk();
+    await tick();
+    await tick();
+
+    // The Scout is at the Nature Trail and the guide is still talking: no activity yet.
+    expect(h.order).toContain('greet:nature-trail');
+    expect(h.order).not.toContain('greet-done');
+    expect(h.order).not.toContain('run:new-step');
+
+    release();
+    await talking;
+    const walk = h.order.indexOf('travel');
+    const greet = h.order.indexOf('greet:nature-trail');
+    const done = h.order.indexOf('greet-done');
+    const run = h.order.indexOf('run:new-step');
+    expect(walk).toBeGreaterThan(-1);
+    expect(greet).toBeGreaterThan(walk);
+    expect(done).toBeGreaterThan(greet);
+    expect(run).toBeGreaterThan(done);
+  });
+
+  it('asks the app to greet at every stop in a zone with a guide, and the app decides whether anyone speaks', async () => {
+    const h = harness({ profile: atTheTrek() });
+    h.deps.greetAtZone = vi.fn(async () => {});
+    await createSession(h.deps).talk();
+    expect(h.deps.greetAtZone).toHaveBeenCalledTimes(2);
+    expect(h.deps.greetAtZone).toHaveBeenCalledWith('nature-trail');
+  });
+
+  it('plays on when the greeting fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const h = harness({ profile: atTheTrek() });
+      h.deps.greetAtZone = vi.fn(async () => {
+        throw new Error('no dialog');
+      });
+      await createSession(h.deps).talk();
+      expect(h.stages.length).toBeGreaterThan(0);
+      expect(kindsLogged(h.profile()).length).toBeGreaterThan(0);
+      expect(warn).toHaveBeenCalledWith('guide greeting failed', expect.any(Error));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('plays exactly as before when the app supplies neither hook', async () => {
+    const h = harness({ profile: atTheTrek() });
+    await createSession(h.deps).talk();
+    expect(said(h).some((text) => text.includes('will help'))).toBe(false);
+    expect(h.stages.length).toBeGreaterThan(0);
+  });
+});
+
 describe('session: greetings', () => {
   const lit = (): Partial<Profile> => ({
     ...threeStops(),

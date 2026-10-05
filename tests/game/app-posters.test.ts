@@ -15,6 +15,7 @@ const world = vi.hoisted(() => {
     input: { setEnabled: vi.fn(), lastDevice: 'keyboard' as 'keyboard' | 'gamepad' | 'touch' },
     idleSeconds: 0,
     setDenChiefHandler: vi.fn(),
+    setGuideTalkHandler: vi.fn(),
     setGuideName: vi.fn(),
     setPlayerAvatar: vi.fn(),
     placeAtGuide: vi.fn(),

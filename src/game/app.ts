@@ -16,6 +16,8 @@ import { assets } from '../engine/assets';
 import type { ActivityContext, RankId, ZoneId } from '../activities/types';
 import { getRequirement, lessonPosters, listRankContent, loadRankContent } from '../content/load';
 import type { RankContent } from '../content/types';
+import { guideArrivalLine, guideTalkPages } from '../npc/guide-lines';
+import { guideById, guideForZone, type GuideId } from '../npc/guide-types';
 import { todayLocal } from '../quests/dates';
 import {
   createProfile,
@@ -132,6 +134,18 @@ export function startApp(options: AppOptions = {}): App {
   /** The Den Chief's wording for the Scout who is playing. */
   let activeLevel: LineLevel = 'grade2';
 
+  // What the zone guides remember. All of it lives in memory only: a new page load starts fresh.
+  /** `date:guideId` of every guide the Scout has met today, so "The Den Chief said you were coming!" is said once. */
+  const metGuides = new Set<string>();
+  /** How many times each guide has given a tip, so the tips take turns. */
+  const guideTips = new Map<GuideId, number>();
+  /** How many times each guide has welcomed the Scout in, so the arrival lines take turns. */
+  const guideArrivals = new Map<GuideId, number>();
+  /** The zone whose guide has already greeted the Scout on this visit (cleared when the Scout changes zone). */
+  let greetedZone: ZoneId | null = null;
+  /** A talk with a zone guide is open. */
+  let guideTalking = false;
+
   const getProfile = (): Profile | undefined => save.profiles.find((p) => p.id === activeId);
   /** The game has no voice: activities still get a `speak`, and it does nothing. */
   const noSpeak = (): void => {};
@@ -234,7 +248,7 @@ export function startApp(options: AppOptions = {}): App {
   /** Talk to the Den Chief: the Start button, pressing E, the Talk button and the auto greeting all come here. */
   function talkToGuide(): void {
     const current = session;
-    if (disposed || !current || current.busy) return;
+    if (disposed || !current || current.busy || guideTalking) return;
     cancelGreeting();
     const talking = current.talk();
     refreshBaseCamp(); // the Start button and the objective step aside at once
@@ -295,7 +309,11 @@ export function startApp(options: AppOptions = {}): App {
 
   // Input and Base Camp's own buttons follow the overlays: nothing here shows while a screen is open.
   const stopOverlayWatch = watchOverlays(ui, world.input, () => refreshBaseCamp());
-  const stopZoneWatch = world.onZoneChange(() => refreshBaseCamp()); // the Start button and the hint belong to Base Camp
+  // The Start button and the hint belong to Base Camp. A new zone is a new visit, so its guide may greet the Scout again.
+  const stopZoneWatch = world.onZoneChange(() => {
+    greetedZone = null;
+    refreshBaseCamp();
+  });
   const hintTimer = setInterval(syncHint, 250);
 
   function lineVars(): LineVars {
@@ -353,6 +371,74 @@ export function startApp(options: AppOptions = {}): App {
     void goHome();
   });
 
+  // ---- speech and the zone guides -------------------------------------------------------------
+
+  /** One page of dialog from `speaker` (the Den Chief, or a zone guide's role). Tells the event bus it opened and moved on, for the sound layer. */
+  async function showSpeech(speaker: string, { text, choices }: { text: string; choices?: string[] }): Promise<number> {
+    events.emit({ type: 'dialog-open' });
+    const picked = await showDialog(ui, { speaker, text, choices });
+    events.emit({ type: 'dialog-advance' });
+    return picked;
+  }
+
+  /**
+   * Talk to a zone guide in free roam: hello, what the place is for and one tip. If today's trail
+   * is still waiting, the last page points back to the Den Chief and offers a ride to camp; if not,
+   * it is a goodbye. The Den Chief stays the only one who starts the trail. Not while a trail is running.
+   */
+  async function talkToZoneGuide(id: GuideId): Promise<void> {
+    const current = session;
+    if (disposed || !current || !getProfile() || guideTalking) return;
+    if (current.busy) {
+      toast(line('guideBusy', activeLevel), 3000); // a stop is running: say so, never go quiet
+      return;
+    }
+    guideTalking = true;
+    try {
+      const guide = guideById(id);
+      events.emit({ type: 'guide-talk', guide: id });
+      const met = `${today()}:${id}`;
+      const firstToday = !metGuides.has(met);
+      metGuides.add(met);
+      greetedZone = guide.zone; // no second hello when a stop walks the Scout in here later
+      const tipIndex = guideTips.get(id) ?? 0;
+      guideTips.set(id, tipIndex + 1);
+      const pages = guideTalkPages(id, {
+        level: activeLevel,
+        vars: lineVars(),
+        firstToday,
+        tipIndex,
+        trailWaiting: current.view().state === 'ready',
+      });
+      let picked = 0;
+      for (const page of pages) picked = await showSpeech(guide.role, page);
+      // The last page offers "Take me to camp" first, only while the trail is waiting.
+      if (picked === 0 && pages.at(-1)?.choices && !disposed && session === current) {
+        world.placeAtGuide();
+        scheduleGreeting(); // the Den Chief says hello a moment after the Scout lands, like on arrival
+      }
+    } finally {
+      guideTalking = false;
+      refreshBaseCamp();
+    }
+  }
+
+  /** After a walk to a zone, its guide says one short hello before the activity opens. Once per visit, and only when the Scout really is there. */
+  async function greetAtZone(zone: ZoneId): Promise<void> {
+    const guide = guideForZone(zone);
+    if (disposed || !guide || !getProfile()) return;
+    if (world.currentZoneId() !== zone || greetedZone === zone) return;
+    greetedZone = zone;
+    metGuides.add(`${today()}:${guide.id}`);
+    const turn = guideArrivals.get(guide.id) ?? 0;
+    guideArrivals.set(guide.id, turn + 1);
+    await showSpeech(guide.role, { text: guideArrivalLine(guide.id, activeLevel, lineVars(), turn) });
+  }
+
+  world.setGuideTalkHandler((id) => {
+    talkToZoneGuide(id).catch(reportProblem);
+  });
+
   // ---- the session --------------------------------------------------------------------------
 
   /** Timers behind the session's `wait` (the trail sign while walking), cleared by dispose(). */
@@ -388,12 +474,7 @@ export function startApp(options: AppOptions = {}): App {
         }),
 
       // Every Den Chief page tells the event bus it opened and moved on (for the sound layer).
-      async showDialog({ text, choices }) {
-        events.emit({ type: 'dialog-open' });
-        const picked = await showDialog(ui, { speaker: need().guideName, text, choices });
-        events.emit({ type: 'dialog-advance' });
-        return picked;
-      },
+      showDialog: (dialog) => showSpeech(need().guideName, dialog),
       showPoster: ({ title, lines, hint }) => showPoster(ui, { title, lines, hint }),
       async runActivity(stop, stage) {
         const profile = need();
@@ -435,6 +516,9 @@ export function startApp(options: AppOptions = {}): App {
       celebrate: () => world.player.celebrate(),
       // The ZONE-TRAVEL HOOK (see session.ts): the trail sign has been shown, now really walk there.
       travelToZone: (zone) => travel(zone),
+      // The Den Chief names the zone's guide before the walk, and the guide greets the Scout after it.
+      guideRoleAt: (zone) => guideForZone(zone)?.role,
+      greetAtZone,
     });
   }
 

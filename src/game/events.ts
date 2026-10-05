@@ -3,6 +3,7 @@
  * Keeps those features out of each other's files. Payloads are small and serializable.
  */
 import type { ZoneId } from '../activities/types';
+import type { GuideId } from '../npc/guide-types';
 import type { StopKind } from '../save/types';
 
 export type GameEvent =
@@ -19,6 +20,7 @@ export type GameEvent =
   | { type: 'title-earned'; title: string }
   | { type: 'mission-approved'; requirementId: string }
   | { type: 'travel'; zone: ZoneId }
+  | { type: 'guide-talk'; guide: GuideId }
   | { type: 'pickup' }
   | { type: 'waypoint' }
   | { type: 'profile-active'; profileId: string }
