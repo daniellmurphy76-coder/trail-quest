@@ -1,8 +1,9 @@
 /**
  * The 3D world that runs underneath every screen: renderer, loop, input, the zones, the player,
  * the follow camera and the floating name tags. Nothing here knows about profiles or quests;
- * the app sets what happens when the player talks to the Den Chief with `setDenChiefHandler`
- * and what the "Back to camp" trail sign does with `setReturnHandler`.
+ * the app sets what happens when the player talks to the Den Chief with `setDenChiefHandler`,
+ * to a zone guide with `setGuideTalkHandler`, and what the "Back to camp" trail sign does with
+ * `setReturnHandler`.
  *
  * Zones are swapped by `travelTo` (see travel.ts): one zone is in the scene at a time, and the
  * update loop always works on the current one (bounds, animation, interactables).
@@ -27,6 +28,8 @@ import {
   type QualityTier,
 } from '../engine/quality';
 import { Renderer } from '../engine/renderer';
+import type { GuideId } from '../npc/guide-types';
+import { installGuides, type GuideActor } from '../npc/guides';
 import { defaultAvatar } from '../player/avatar/options';
 import { Player } from '../player/controller';
 import type { AvatarConfig } from '../save/types';
@@ -65,6 +68,11 @@ export interface World {
   follow: FollowCamera;
   /** What happens when the player talks to the Den Chief. Replaces any earlier handler. */
   setDenChiefHandler(handler: () => void): void;
+  /**
+   * What happens when the player talks to a zone guide (the Ranger, the Coach...), with the guide's
+   * id. Replaces any earlier handler. The Den Chief keeps a separate handler (above).
+   */
+  setGuideTalkHandler(handler: (guide: GuideId) => void): void;
   /** The name floating above the guide (a profile can rename the Den Chief). */
   setGuideName(name: string): void;
   /** The HUD compass. Point it at a waypoint with `compass.setTarget(point, 'Label')`. */
@@ -121,6 +129,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   let returnHandler: () => void = () => {
     traveler.travelTo('base-camp').catch((err: unknown) => console.error(err));
   };
+  let guideTalkHandler: (guide: GuideId) => void = () => {};
   const zoneDeps: ZoneDeps = {
     onTalkToDenChief: () => denChiefHandler(),
     onReturnToBaseCamp: () => returnHandler(),
@@ -130,6 +139,8 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
   // Every zone built so far, the same set the traveler keeps (it builds each zone once and caches it).
   // A tier drop reaches all of them, including the ones that are not in the scene right now.
   const builtZones = new Map<ZoneId, Zone>([[baseCamp.id, baseCamp]]);
+  // The guide of each zone built so far (Base Camp has the Den Chief instead). Only the current zone's guide is animated.
+  const guideActors = new Map<ZoneId, GuideActor>();
 
   // The look is replaced by the profile's avatar once the app knows who is playing (setPlayerAvatar).
   const player = new Player({ avatar: defaultAvatar('wolf'), rank: 'wolf' });
@@ -288,6 +299,9 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     createZone: (id) => {
       const zone = createZone(id, zoneDeps);
       builtZones.set(id, zone);
+      // The guide joins the zone here, after the builder is done, so the builder's own interactables stay as it made them.
+      const actor = installGuides(zone, (guide) => guideTalkHandler(guide));
+      if (actor) guideActors.set(id, actor);
       return zone;
     },
     player,
@@ -301,6 +315,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       input.setActionLabel('');
       idleSeconds = 0;
       applyObjective();
+      guideActors.get(zone.id)?.welcome(); // the zone's guide waves soon after the Scout arrives
       for (const listener of [...zoneListeners]) listener(zone);
     },
   });
@@ -314,6 +329,7 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
       // Time spent in a dialog or screen is not "standing still": input is off, so restart the count.
       idleSeconds = player.isMoving || !input.isEnabled ? 0 : idleSeconds + dt;
       zone.update(dt);
+      guideActors.get(zone.id)?.update(dt, player.position.x, player.position.z); // idle, wave, turn to the Scout
       tickWind(dt); // one wind clock for every swaying plant and tree, whichever zone is showing
       for (const fn of [...updaters]) fn(dt);
       const near = findInteractableInRange(player.position.x, player.position.z, zone.interactables);
@@ -353,6 +369,9 @@ export function createWorld(canvas: HTMLCanvasElement, ui: HTMLElement): World {
     follow,
     setDenChiefHandler(handler) {
       denChiefHandler = handler;
+    },
+    setGuideTalkHandler(handler) {
+      guideTalkHandler = handler;
     },
     setGuideName(name) {
       guideName = name;

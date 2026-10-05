@@ -1,11 +1,13 @@
 /**
- * Dev-only character gallery, for screenshots. Open /trail-quest/dev/gallery.html?set=blocky|mini|scouts on the dev
+ * Dev-only character gallery, for screenshots. Open /trail-quest/dev/gallery.html?set=blocky|mini|scouts|guides on the dev
  * server (it is not in vite.config.ts, so it never ships).
  *
  *   ?set=blocky   the 18 Kenney Blocky skins on the kit model (dev/assets/blocky)
  *   ?set=mini     the 12 Kenney Mini characters (dev/assets/mini; a file that is not on disk shows "(failed to load)")
  *   ?set=scouts   18 Trail Quest Scouts built with `buildAvatar`: the six rank defaults, the Den Chief and 11 seeded
  *                 `randomAvatar` looks with every cosmetic unlocked
+ *   ?set=guides   the five zone guides (src/npc/looks.ts) with their gear, in their real builds, so the tall ones stand
+ *                 taller than the Coach and the Camp Cook
  *
  * One WebGLRenderer draws a grid of viewports (setViewport + setScissor), six columns wide. Each cell shows one character
  * on a small grass disc in a three-quarter view, in its idle pose, scaled to 1.8 units tall, under a warm key light and a
@@ -15,8 +17,10 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneWithSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { GUIDES } from '../npc/guide-types';
+import { GUIDE_GEAR, GUIDE_LOOKS } from '../npc/looks';
 import { buildAvatar, defaultAvatar, DEN_CHIEF_AVATAR, preloadScoutModel, randomAvatar, scoutModelStatus } from '../player/avatar';
-import type { AvatarRig } from '../player/avatar';
+import type { AvatarRig, AvatarRigOptions } from '../player/avatar';
 import { BLOCKY_BUILD_SCALE } from '../player/avatar/blocky/rig';
 import { ALL_COSMETIC_UNLOCKS, RANK_IDS, type FilledAvatar } from '../player/avatar/options';
 import type { RankId } from '../activities/types';
@@ -29,7 +33,7 @@ const FAILED = ' (failed to load)';
 
 // ---- the sets --------------------------------------------------------------------------------------
 
-const SETS = ['blocky', 'mini', 'scouts'] as const;
+const SETS = ['blocky', 'mini', 'scouts', 'guides'] as const;
 type SetName = (typeof SETS)[number];
 
 const BLOCKY_SKINS = 'abcdefghijklmnopqr'.split('');
@@ -134,18 +138,21 @@ scene.add(disc);
 const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 40);
 const TAN_HALF_FOV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
 const PITCH = THREE.MathUtils.degToRad(11);
-const TARGET_Y = 0.96;
-/** Half of the height and width every cell has to show: a hat above the 1.8 head, the disc below the feet. */
-const HALF_HEIGHT = 1.2;
-const HALF_WIDTH = 0.95;
+const WIDTH_FRAME = 0.95;
+/**
+ * What every cell has to show, as the height it looks at and half the height around it: a hat above the 1.8 head, the
+ * disc below the feet. The guides keep their real builds and the chef hat, so they get a taller frame.
+ */
+const FRAME = { scouts: { targetY: 0.96, halfHeight: 1.2 }, guides: { targetY: 1.15, halfHeight: 1.45 } } as const;
 
 /** Aim the shared camera at the disc so the whole figure fits a cell of this aspect ratio. */
 function frameCell(aspect: number): void {
-  const distance = Math.max(HALF_HEIGHT / TAN_HALF_FOV, HALF_WIDTH / (TAN_HALF_FOV * aspect));
+  const { targetY, halfHeight } = set === 'guides' ? FRAME.guides : FRAME.scouts;
+  const distance = Math.max(halfHeight / TAN_HALF_FOV, WIDTH_FRAME / (TAN_HALF_FOV * aspect));
   camera.aspect = aspect;
   camera.updateProjectionMatrix();
-  camera.position.set(0, TARGET_Y + distance * Math.sin(PITCH), distance * Math.cos(PITCH));
-  camera.lookAt(0, TARGET_Y, 0);
+  camera.position.set(0, targetY + distance * Math.sin(PITCH), distance * Math.cos(PITCH));
+  camera.lookAt(0, targetY, 0);
 }
 
 // ---- helpers ---------------------------------------------------------------------------------------
@@ -267,13 +274,20 @@ function scoutModelSettled(): Promise<void> {
   return new Promise((resolve) => preloadScoutModel(resolve));
 }
 
-async function loadScout(entry: Entry, config: Readonly<FilledAvatar>, rank: RankId, denChiefCord: boolean): Promise<void> {
+async function loadScout(
+  entry: Entry,
+  config: Readonly<FilledAvatar>,
+  rank: RankId,
+  options: Pick<AvatarRigOptions, 'denChiefCord' | 'npcGear'> = {},
+  keepBuild = false,
+): Promise<void> {
   await scoutModelSettled();
   const modelReady = scoutModelStatus() === 'ready';
-  const rig: AvatarRig = buildAvatar(config, { rank, denChiefCord, blobShadow: false });
+  const rig: AvatarRig = buildAvatar(config, { rank, ...options, blobShadow: false });
   // Build scales the whole figure (small, regular, tall); undo that so every Scout stands 1.8 units to the shoulders.
-  if (modelReady) rig.root.scale.setScalar(1 / BLOCKY_BUILD_SCALE[config.build]);
-  else entry.note = FAILED;
+  if (modelReady) {
+    if (!keepBuild) rig.root.scale.setScalar(1 / BLOCKY_BUILD_SCALE[config.build]);
+  } else entry.note = FAILED;
   // No `shadows(rig.root)` here: the rig sets its own shadow flags (the hat and hair set does not cast), and
   // forcing every mesh to cast would bring the hat-brim shadow on the face back.
   entry.holder.add(rig.root);
@@ -288,15 +302,19 @@ function createEntries(set: SetName): Entry[] {
       return MINI_NAMES.map((name) => newEntry(name, (entry) => loadMini(entry, name)));
     case 'scouts': {
       const entries: Entry[] = RANK_IDS.map((rank) =>
-        newEntry(`${RANK_NAME[rank]} default`, (entry) => loadScout(entry, defaultAvatar(rank), rank, false)),
+        newEntry(`${RANK_NAME[rank]} default`, (entry) => loadScout(entry, defaultAvatar(rank), rank)),
       );
-      entries.push(newEntry('Den Chief', (entry) => loadScout(entry, DEN_CHIEF_AVATAR, 'wolf', true)));
+      entries.push(newEntry('Den Chief', (entry) => loadScout(entry, DEN_CHIEF_AVATAR, 'wolf', { denChiefCord: true })));
       for (const look of VARIED_SCOUTS) {
         const config = randomAvatar(look.rank, seeded(look.seed), ALL_COSMETIC_UNLOCKS);
-        entries.push(newEntry(look.label, (entry) => loadScout(entry, config, look.rank, false)));
+        entries.push(newEntry(look.label, (entry) => loadScout(entry, config, look.rank)));
       }
       return entries;
     }
+    case 'guides':
+      return GUIDES.map((guide) =>
+        newEntry(guide.role, (entry) => loadScout(entry, GUIDE_LOOKS[guide.id], 'wolf', { npcGear: GUIDE_GEAR[guide.id] }, true)),
+      );
   }
 }
 

@@ -12,6 +12,10 @@
  * the updated profile (leaving out what today already used) and plays it the same way, as many
  * times as the Scout likes. Each trail is its own session log; the streak moves once per day.
  *
+ * A stop in another zone: the Den Chief names that zone's guide before the walk (once per zone
+ * per day, `guideRoleAt`), and the guide says hello after it (`greetAtZone`), before the activity.
+ * The app supplies both, so this file never imports the npc modules.
+ *
  * What counts as a completed stop on the trail:
  *   - a finished activity (completed: true), including a check-in the kid confirmed;
  *   - a field mission handout (the card was shown, which is all a handout does).
@@ -149,6 +153,17 @@ export interface SessionDeps {
    * zones exist, implement the walk here (load the zone, move the player, then resolve).
    */
   travelToZone?(zone: ZoneId): Promise<void>;
+  /**
+   * The role of the guide who works in a zone ("Ranger"), or undefined when it has none. The Den
+   * Chief names them before the walk. Left out, the Den Chief introduces nobody.
+   */
+  guideRoleAt?(zone: ZoneId): string | undefined;
+  /**
+   * The guide's welcome after the walk, before the activity opens: one short page of dialog.
+   * Resolves when the Scout taps through it. Left out, the Scout goes straight to the activity.
+   * The app decides whether there is a guide to hear from; a failure here never stops the trail.
+   */
+  greetAtZone?(zone: ZoneId): Promise<void>;
 }
 
 export type TrailItemStatus = 'done' | 'next' | 'later';
@@ -258,6 +273,8 @@ export function createSession(deps: SessionDeps): Session {
   let busy = false;
   /** `date:requirementId` of every review already offered "Remind me" today. */
   const reminded = new Set<string>();
+  /** `date:zone` of every zone guide the Den Chief has already introduced today. */
+  const introduced = new Set<string>();
 
   const vars = (extra: LineVars = {}): LineVars => {
     const profile = deps.getProfile();
@@ -350,6 +367,16 @@ export function createSession(deps: SessionDeps): Session {
     );
   }
 
+  /** The Den Chief says who will help in a zone: the first time that zone comes up each day. */
+  async function introduceGuide(zone: ZoneId, date: string): Promise<void> {
+    const role = deps.guideRoleAt?.(zone);
+    if (role === undefined) return;
+    const key = `${date}:${zone}`;
+    if (introduced.has(key)) return;
+    introduced.add(key);
+    await deps.showDialog({ text: say('introGuide', { role, zone: ZONE_LABELS[zone] }) });
+  }
+
   /** Play one stop from intro to cheer, record it and save. */
   async function playStop(stop: TrailStop, date: string): Promise<StopOutcome> {
     const stage = stageForStop(deps.getProfile(), stop);
@@ -358,6 +385,7 @@ export function createSession(deps: SessionDeps): Session {
     await teach(stop, stage, date);
 
     if (stop.zone !== 'base-camp') {
+      await introduceGuide(stop.zone, date);
       const closeSign = deps.showTrailSign(say('travel', { zone: ZONE_LABELS[stop.zone] }));
       bus.emit({ type: 'travel', zone: stop.zone });
       try {
@@ -366,6 +394,12 @@ export function createSession(deps: SessionDeps): Session {
         await deps.travelToZone?.(stop.zone);
       } finally {
         closeSign();
+      }
+      // The zone's guide says hello now that the Scout has walked in, before the activity opens.
+      try {
+        await deps.greetAtZone?.(stop.zone);
+      } catch (error) {
+        console.warn('guide greeting failed', error);
       }
     }
 

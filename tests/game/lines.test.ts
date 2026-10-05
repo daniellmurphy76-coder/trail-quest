@@ -86,6 +86,7 @@ describe('Den Chief lines', () => {
       steps: 12,
       trailTitle: 'Trail Walker',
       unlock: 'Scout hat',
+      role: 'Ranger',
     };
     for (const key of KEYS) {
       for (const level of ['grade2', 'grade5'] as const) {
@@ -203,6 +204,17 @@ describe('Den Chief lines', () => {
       }
     }
     expect(flagged).toEqual([]);
+  });
+
+  it('has the Den Chief name the zone guide before the walk, and the way back to camp for a guide to offer', () => {
+    expect(line('introGuide', 'grade2', { role: 'Ranger', zone: 'Nature Trail' })).toBe('The Ranger will help you there. Say hi!');
+    expect(line('introGuide', 'grade5', { role: 'Camp Cook', zone: 'Campfire Circle' })).toBe(
+      'The Camp Cook at the Campfire Circle will help with this one. Say hi!',
+    );
+    expect(LINES.introGuide.grade2).toContain('{role}');
+    expect(LINES.introGuide.grade5).toContain('{role}');
+    expect(LINE_VARS).toContain('role');
+    for (const level of ['grade2', 'grade5'] as const) expect(line('choiceToCamp', level)).toBe('Take me to camp');
   });
 
   it('words the field-check approval line in kid words, not "approval"', () => {

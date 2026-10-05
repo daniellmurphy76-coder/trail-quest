@@ -17,11 +17,32 @@ export interface AvatarState {
   speed: number;
 }
 
+/** Headgear only a grown-up guide wears. It is drawn instead of the look's hat, in the look's hat color. */
+export type NpcHeadgear = 'fire-helmet' | 'chef-hat';
+
+/** Things a grown-up guide wears on the torso. */
+export type NpcTorsoGear = 'apron' | 'sash' | 'whistle' | 'reflective-stripes' | 'badge';
+
+/**
+ * What the zone guides wear on top of a look. It is NOT part of `AvatarConfig`: it is never saved, never offered in
+ * the avatar editor, and `fillAvatar` knows nothing about it. Like the cord, it is fixed when the rig is built.
+ */
+export interface NpcGear {
+  headgear?: NpcHeadgear;
+  torso?: readonly NpcTorsoGear[];
+  /** Wear the Scout neckerchief. Default true; grown-ups leave it off. */
+  neckerchief?: boolean;
+  /** Color of the sash, the apron and the whistle cord. Default: the look's neckerchief color. */
+  accent?: string;
+}
+
 export interface AvatarRigOptions {
   /** Decides defaults for fields the config leaves out (the neckerchief color). Default 'wolf'. */
   rank?: RankId;
   /** Draw the Den Chief cord across the chest. */
   denChiefCord?: boolean;
+  /** Gear for a zone guide (see `NpcGear`). Default: none, the plain Scout. */
+  npcGear?: NpcGear;
   /** Draw the soft blob shadow under the feet. Default true. */
   blobShadow?: boolean;
 }

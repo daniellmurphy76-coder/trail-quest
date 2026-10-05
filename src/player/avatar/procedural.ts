@@ -15,11 +15,11 @@ import { damp } from '../../engine/damp';
 import { setShadowCasting } from '../../engine/environment';
 import type { AvatarConfig } from '../../save/types';
 import { fillAvatar, type Build, type FilledAvatar } from './options';
-import type { AvatarRig, AvatarRigOptions, Emote } from './rig-types';
+import type { AvatarRig, AvatarRigOptions, Emote, NpcGear } from './rig-types';
 import { buildArmGeometry, buildHeadGeometry, buildLegGeometry, buildTorsoGeometry, JOINTS } from './parts';
 
 /** Overall size, head size and width for each build. */
-const BUILD_SCALE: Readonly<Record<Build, { height: number; head: number; width: number }>> = {
+export const BUILD_SCALE: Readonly<Record<Build, { height: number; head: number; width: number }>> = {
   small: { height: 0.86, head: 1.12, width: 1 },
   regular: { height: 1, head: 1, width: 1 },
   tall: { height: 1.1, head: 0.96, width: 0.94 },
@@ -96,12 +96,12 @@ function partKey(part: Part, c: FilledAvatar, cord: boolean): string {
   }
 }
 
-function buildPart(part: Part, c: FilledAvatar, cord: boolean): THREE.BufferGeometry {
+function buildPart(part: Part, c: FilledAvatar, cord: boolean, gear: NpcGear | undefined): THREE.BufferGeometry {
   switch (part) {
     case 'head':
-      return buildHeadGeometry(c);
+      return buildHeadGeometry(c, gear);
     case 'torso':
-      return buildTorsoGeometry(c, { denChiefCord: cord });
+      return buildTorsoGeometry(c, { denChiefCord: cord, npcGear: gear });
     case 'arm':
       return buildArmGeometry(c);
     case 'leg':
@@ -113,6 +113,7 @@ function buildPart(part: Part, c: FilledAvatar, cord: boolean): THREE.BufferGeom
 export function buildProceduralAvatar(config: AvatarConfig, options: AvatarRigOptions = {}): AvatarRig {
   const rank = options.rank ?? 'wolf';
   const cord = options.denChiefCord ?? false;
+  const gear = options.npcGear; // fixed for the life of the rig, so it is not part of any part's key
   let current = fillAvatar(config, rank);
 
   // ---- scene graph --------------------------------------------------------------------------
@@ -139,10 +140,10 @@ export function buildProceduralAvatar(config: AvatarConfig, options: AvatarRigOp
   const armR = joint('arm-r', -JOINTS.armX, JOINTS.shoulderY, upper);
 
   const geometries: Record<Part, THREE.BufferGeometry> = {
-    head: buildPart('head', current, cord),
-    torso: buildPart('torso', current, cord),
-    arm: buildPart('arm', current, cord),
-    leg: buildPart('leg', current, cord),
+    head: buildPart('head', current, cord, gear),
+    torso: buildPart('torso', current, cord, gear),
+    arm: buildPart('arm', current, cord, gear),
+    leg: buildPart('leg', current, cord, gear),
   };
   const keys: Record<Part, string> = {
     head: partKey('head', current, cord),
@@ -247,7 +248,7 @@ export function buildProceduralAvatar(config: AvatarConfig, options: AvatarRigOp
         if (key === keys[part]) continue;
         keys[part] = key;
         geometries[part].dispose();
-        geometries[part] = buildPart(part, current, cord);
+        geometries[part] = buildPart(part, current, cord, gear);
         changed.add(part);
       }
       if (changed.has('head')) headMesh.geometry = geometries.head;

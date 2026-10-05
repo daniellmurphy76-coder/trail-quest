@@ -1,7 +1,8 @@
 /**
  * The things that stick out of a Blocky Scout: hair shapes, hats, glasses, the neckerchief, the backpack,
- * the skort's flared skirt and the Den Chief cord. Each group is merged into ONE vertex-colored geometry, so
- * the whole set costs two draw calls: one parented to the `head` node, one to the `torso` node.
+ * the skort's flared skirt and the Den Chief cord, plus a guide's gear (npc-gear.ts). Each group is merged
+ * into ONE vertex-colored geometry, so the whole set costs two draw calls: one parented to the `head` node,
+ * one to the `torso` node.
  *
  * Space and units are the kit's own (the model is 2.7 tall before the rig scales it to 1.8):
  *  - head space: origin at the middle of the head's base, the head is 0.8 wide, tall and deep (y 0 to 0.8),
@@ -12,9 +13,17 @@
  */
 import * as THREE from 'three';
 import type { FilledAvatar } from '../options';
+import { addHeadgear, addTorsoGear } from '../npc-gear';
 import { Mesher, shade } from '../parts';
+import type { NpcGear } from '../rig-types';
 
 const H = 0.8;
+
+/**
+ * The model's own numbers, in its units (it is 2.7 tall before the rig scales it to SCOUT_HEIGHT): where the head's
+ * base sits above the feet and how tall the head is. `avatarTopHeight` (../height.ts) works from these.
+ */
+export const KIT = { height: 2.7, headBase: 1.9, headHeight: H } as const;
 const GLASSES = '#2b2b30';
 const SLIDE = '#c9a46a';
 const PACK = '#7b5a3a';
@@ -138,15 +147,22 @@ function glasses(m: Mesher): void {
   m.box(0.08, 0.035, 0.035, 0, GLASSES, { y: y + 0.1, z });
 }
 
+export interface HeadAttachmentOptions {
+  /** A guide's gear: its headgear is drawn instead of the look's hat. */
+  npcGear?: NpcGear;
+}
+
 /**
  * Hair, hat and glasses, as one geometry for the `head` node. Returns null when there is nothing to draw
  * (a bald or buzz-cut head with no hat and no glasses).
  */
-export function buildHeadAttachments(cfg: FilledAvatar): THREE.BufferGeometry | null {
+export function buildHeadAttachments(cfg: FilledAvatar, options: HeadAttachmentOptions = {}): THREE.BufferGeometry | null {
   const m = new Mesher();
-  const hatted = cfg.hat !== 'none';
+  const headgear = options.npcGear?.headgear;
+  const hatted = cfg.hat !== 'none' || headgear !== undefined;
   hair(m, cfg, hatted);
-  if (hatted) hat(m, cfg.hat, cfg.hatColor);
+  if (headgear) addHeadgear(m, headgear, cfg.hatColor);
+  else if (hatted) hat(m, cfg.hat, cfg.hatColor);
   if (cfg.glasses) glasses(m);
   return m.vertexCount > 0 ? m.build() : null;
 }
@@ -154,31 +170,38 @@ export function buildHeadAttachments(cfg: FilledAvatar): THREE.BufferGeometry | 
 export interface TorsoAttachmentOptions {
   /** Draw the Den Chief cord across the chest and back. */
   denChiefCord?: boolean;
+  /** A guide's gear: torso pieces, and whether to leave the neckerchief off. */
+  npcGear?: NpcGear;
 }
 
 /**
- * Neckerchief (a collar, a triangle down the chest and a slide), the backpack, the skort's flared skirt and
- * the Den Chief cord, as one geometry for the `torso` node. Never empty: every Scout wears a neckerchief.
+ * Neckerchief (a collar, a triangle down the chest and a slide), the backpack, the skort's flared skirt, the
+ * Den Chief cord and a guide's torso gear, as one geometry for the `torso` node. A Scout always wears a
+ * neckerchief, so for a Scout it is never empty; a guide's gear leaves it off, and a guide with no torso gear
+ * gets an empty geometry.
  */
 export function buildTorsoAttachments(cfg: FilledAvatar, options: TorsoAttachmentOptions = {}): THREE.BufferGeometry {
   const m = new Mesher();
+  const gear = options.npcGear;
 
-  // Neckerchief, worn the Scout way: rolled into a collar under the head, the point hanging down the back,
-  // and the two ends running down the front through a slide at the throat.
-  m.box(0.84, 0.12, 0.64, 0, cfg.neckerchief, { y: 1.13 });
-  const point = new THREE.Shape();
-  point.moveTo(-0.28, 0);
-  point.lineTo(0.28, 0);
-  point.lineTo(0, -0.48);
-  point.closePath();
-  // Its outer face at z = -0.34, just off the back (-0.3) and under the Den Chief cord (-0.35).
-  m.add(new THREE.ExtrudeGeometry(point, { depth: 0.03, bevelEnabled: false }), cfg.neckerchief, { y: 1.09, z: -0.34 });
-  for (const side of [1, -1]) {
-    // An end from the side of the collar in to the slide, then a short tail below it.
-    m.box(0.09, 0.2, 0.03, 0, cfg.neckerchief, { x: side * 0.1, y: 1.03, z: 0.325, rz: -side * 0.82 });
-    m.box(0.08, 0.16, 0.03, 0, cfg.neckerchief, { x: side * 0.04, y: 0.86, z: 0.325, rz: side * 0.15 });
+  if (gear?.neckerchief !== false) {
+    // Neckerchief, worn the Scout way: rolled into a collar under the head, the point hanging down the back,
+    // and the two ends running down the front through a slide at the throat.
+    m.box(0.84, 0.12, 0.64, 0, cfg.neckerchief, { y: 1.13 });
+    const point = new THREE.Shape();
+    point.moveTo(-0.28, 0);
+    point.lineTo(0.28, 0);
+    point.lineTo(0, -0.48);
+    point.closePath();
+    // Its outer face at z = -0.34, just off the back (-0.3) and under the Den Chief cord (-0.35).
+    m.add(new THREE.ExtrudeGeometry(point, { depth: 0.03, bevelEnabled: false }), cfg.neckerchief, { y: 1.09, z: -0.34 });
+    for (const side of [1, -1]) {
+      // An end from the side of the collar in to the slide, then a short tail below it.
+      m.box(0.09, 0.2, 0.03, 0, cfg.neckerchief, { x: side * 0.1, y: 1.03, z: 0.325, rz: -side * 0.82 });
+      m.box(0.08, 0.16, 0.03, 0, cfg.neckerchief, { x: side * 0.04, y: 0.86, z: 0.325, rz: side * 0.15 });
+    }
+    m.add(new THREE.TorusGeometry(0.045, 0.016, 5, 8), SLIDE, { y: 0.96, z: 0.35 });
   }
-  m.add(new THREE.TorusGeometry(0.045, 0.016, 5, 8), SLIDE, { y: 0.96, z: 0.35 });
 
   if (cfg.legs === 'skort') {
     // A flared, four-sided skirt over the tops of the legs.
@@ -204,5 +227,7 @@ export function buildTorsoAttachments(cfg: FilledAvatar, options: TorsoAttachmen
     m.box(0.05, 0.16, 0.04, 0, CORD, { x: 0.26, y: 0.24, z: 0.35 });
     m.box(0.05, 0.16, 0.04, 0, CORD, { x: 0.34, y: 0.24, z: 0.35 });
   }
+
+  if (gear?.torso?.length) addTorsoGear(m, gear.torso, gear.accent ?? cfg.neckerchief);
   return m.build();
 }

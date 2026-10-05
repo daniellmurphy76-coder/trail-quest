@@ -55,6 +55,8 @@ export interface LineVars {
   trailTitle?: string;
   /** The name of a cosmetic the Scout earned ("Scout hat"). */
   unlock?: string;
+  /** A zone guide's role from src/npc/guide-types.ts ("Ranger"). */
+  role?: string;
 }
 
 export const LINE_VARS = [
@@ -70,13 +72,14 @@ export const LINE_VARS = [
   'steps',
   'trailTitle',
   'unlock',
+  'role',
 ] as const;
 
-interface Pair {
+export interface LinePair {
   grade2: string;
   grade5: string;
 }
-const same = (text: string): Pair => ({ grade2: text, grade5: text });
+const same = (text: string): LinePair => ({ grade2: text, grade5: text });
 
 export const LINES = {
   // ---- greetings at Base Camp ----
@@ -189,10 +192,20 @@ export const LINES = {
   /** Shown in the Scout Book when a page has nothing in it yet. */
   bookEmpty: same('Nothing here yet.'),
 
+  // ---- the Den Chief introduces the zone guide, just before the walk (once per zone per day) ----
+  introGuide: {
+    grade2: 'The {role} will help you there. Say hi!',
+    grade5: 'The {role} at the {zone} will help with this one. Say hi!',
+  },
+  // The end of a talk with a zone guide while today's trail is still waiting: the way back to camp.
+  choiceToCamp: same('Take me to camp'),
+
   // ---- travel sign shown when a stop belongs to another zone ----
   travel: same('Walking to the {zone}…'),
   /** The "Back to camp" sign was used in the middle of a stop. */
   travelBusy: same('Tap Back to leave this stop.'),
+  /** A zone guide was tapped in the middle of a stop. */
+  guideBusy: same('Finish this stop first!'),
 
   // ---- after a stop ----
   cheerXp: {
@@ -274,7 +287,7 @@ export const LINES = {
     grade2: 'Thanks for the help. See you soon!',
     grade5: 'Thanks for your help today, {name}. See you next time!',
   },
-} as const satisfies Record<string, Pair>;
+} as const satisfies Record<string, LinePair>;
 
 export type LineKey = keyof typeof LINES;
 

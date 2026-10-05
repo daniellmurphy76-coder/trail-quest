@@ -9,7 +9,9 @@
  */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { addHeadgear, addTorsoGear } from './npc-gear';
 import type { FilledAvatar } from './options';
+import type { NpcGear } from './rig-types';
 
 // ---- layout -------------------------------------------------------------------------------------
 
@@ -75,6 +77,12 @@ export class Mesher {
   private readonly normals: number[] = [];
   private readonly colors: number[] = [];
 
+  /**
+   * Applied after every placement, when set. Lets shapes drawn in the Kenney model's units (npc-gear.ts) sit on
+   * the smaller procedural Scout.
+   */
+  frame: THREE.Matrix4 | null = null;
+
   /** Add a copy of `geometry` placed by `at` and painted `color`. Takes ownership: disposes it. */
   add(geometry: THREE.BufferGeometry, color: string, at: Placement = {}): this {
     euler.set(at.rx ?? 0, at.ry ?? 0, at.rz ?? 0);
@@ -82,6 +90,7 @@ export class Mesher {
     position.set(at.x ?? 0, at.y ?? 0, at.z ?? 0);
     scale.set(at.sx ?? 1, at.sy ?? 1, at.sz ?? 1);
     matrix.compose(position, quaternion, scale);
+    if (this.frame) matrix.premultiply(this.frame);
     normalMatrix.getNormalMatrix(matrix);
     tint.set(color);
 
@@ -288,8 +297,14 @@ function hat(m: Mesher, style: FilledAvatar['hat'], color: string): void {
   }
 }
 
-/** The head, with ears, face, glasses, hair and hat. Origin at the base of the neck. */
-export function buildHeadGeometry(cfg: FilledAvatar): THREE.BufferGeometry {
+/**
+ * Where a guide's headgear goes: npc-gear.ts draws in the Kenney model's head space (0.8 wide, tall and deep, from
+ * y = 0), and this Scout's head is 0.52 wide, 0.52 tall and 0.48 deep, from y = 0.02.
+ */
+const HEAD_FRAME = new THREE.Matrix4().makeScale(HEAD.w / 0.8, HEAD.h / 0.8, HEAD.d / 0.8).setPosition(0, 0.02, 0);
+
+/** The head, with ears, face, glasses, hair and hat (or a guide's headgear). Origin at the base of the neck. */
+export function buildHeadGeometry(cfg: FilledAvatar, gear?: NpcGear): THREE.BufferGeometry {
   const m = new Mesher();
   m.box(HEAD.w, HEAD.h, HEAD.d, 0.09, cfg.skin, { y: 0.02 + HEAD.h / 2 });
   for (const side of [1, -1]) m.box(0.05, 0.12, 0.09, 0, cfg.skin, { x: side * 0.285, y: 0.26 });
@@ -301,9 +316,14 @@ export function buildHeadGeometry(cfg: FilledAvatar): THREE.BufferGeometry {
     sz: 0.5,
   });
   if (cfg.glasses) glasses(m);
-  const hatted = cfg.hat !== 'none';
+  const headgear = gear?.headgear;
+  const hatted = cfg.hat !== 'none' || headgear !== undefined;
   hair(m, cfg, hatted);
-  if (hatted) hat(m, cfg.hat, cfg.hatColor);
+  if (headgear) {
+    m.frame = HEAD_FRAME;
+    addHeadgear(m, headgear, cfg.hatColor);
+    m.frame = null;
+  } else if (hatted) hat(m, cfg.hat, cfg.hatColor);
   return m.build();
 }
 
@@ -312,12 +332,26 @@ export function buildHeadGeometry(cfg: FilledAvatar): THREE.BufferGeometry {
 export interface TorsoOptions {
   /** Draw the Den Chief cord across the chest and back. */
   denChiefCord?: boolean;
+  /** A guide's gear: torso pieces, and whether to leave the neckerchief off. */
+  npcGear?: NpcGear;
 }
 
-/** The torso with neck, waist band, neckerchief, slide, and optional skirt, backpack and cord. Origin at the hip. */
+/**
+ * Where a guide's torso gear goes: npc-gear.ts draws in the Kenney model's torso space (0.8 wide and 0.6 deep, from
+ * the hips at y = 0.3 to the shoulders at y = 1.2), and this torso is 0.52 wide and 0.3 deep, from y = 0 to 0.62.
+ */
+const TORSO_FRAME = new THREE.Matrix4()
+  .makeScale(TORSO.w / 0.8, TORSO.h / 0.9, TORSO.d / 0.6)
+  .setPosition(0, (-0.3 * TORSO.h) / 0.9, 0);
+
+/**
+ * The torso with neck, waist band, neckerchief, slide, and optional skirt, backpack, cord and a guide's gear.
+ * Origin at the hip.
+ */
 export function buildTorsoGeometry(cfg: FilledAvatar, options: TorsoOptions = {}): THREE.BufferGeometry {
   const m = new Mesher();
   const frontZ = TORSO.d / 2;
+  const gear = options.npcGear;
 
   // Waist band and shirt. The seam between the two boxes reads as a belt line.
   m.box(TORSO.w, 0.13, TORSO.d, 0.04, cfg.legColor, { y: 0.065 });
@@ -329,23 +363,25 @@ export function buildTorsoGeometry(cfg: FilledAvatar, options: TorsoOptions = {}
     m.add(new THREE.CylinderGeometry(0.37, 0.5, 0.26, 4, 1).rotateY(Math.PI / 4), cfg.legColor, { sz: 0.62 });
   }
 
-  // Neckerchief, worn the Scout way: a collar around the neck, the point hanging down the back, and the
-  // two ends running down the front through a slide at the throat.
-  m.box(0.24, 0.09, 0.22, 0.03, cfg.neckerchief, { y: 0.625 });
-  const point = new THREE.Shape();
-  point.moveTo(-0.18, 0);
-  point.lineTo(0.18, 0);
-  point.lineTo(0, -0.3);
-  point.closePath();
-  m.add(new THREE.ExtrudeGeometry(point, { depth: 0.024, bevelEnabled: false }), cfg.neckerchief, {
-    y: 0.585,
-    z: -frontZ - 0.026,
-  });
-  for (const side of [1, -1]) {
-    m.box(0.05, 0.12, 0.02, 0, cfg.neckerchief, { x: side * 0.057, y: 0.57, z: frontZ + 0.012, rz: -side * 0.82 });
-    m.box(0.045, 0.1, 0.02, 0, cfg.neckerchief, { x: side * 0.022, y: 0.47, z: frontZ + 0.012, rz: side * 0.15 });
+  if (gear?.neckerchief !== false) {
+    // Neckerchief, worn the Scout way: a collar around the neck, the point hanging down the back, and the
+    // two ends running down the front through a slide at the throat.
+    m.box(0.24, 0.09, 0.22, 0.03, cfg.neckerchief, { y: 0.625 });
+    const point = new THREE.Shape();
+    point.moveTo(-0.18, 0);
+    point.lineTo(0.18, 0);
+    point.lineTo(0, -0.3);
+    point.closePath();
+    m.add(new THREE.ExtrudeGeometry(point, { depth: 0.024, bevelEnabled: false }), cfg.neckerchief, {
+      y: 0.585,
+      z: -frontZ - 0.026,
+    });
+    for (const side of [1, -1]) {
+      m.box(0.05, 0.12, 0.02, 0, cfg.neckerchief, { x: side * 0.057, y: 0.57, z: frontZ + 0.012, rz: -side * 0.82 });
+      m.box(0.045, 0.1, 0.02, 0, cfg.neckerchief, { x: side * 0.022, y: 0.47, z: frontZ + 0.012, rz: side * 0.15 });
+    }
+    m.add(new THREE.TorusGeometry(0.032, 0.011, 5, 8), SLIDE, { y: 0.53, z: frontZ + 0.03 });
   }
-  m.add(new THREE.TorusGeometry(0.032, 0.011, 5, 8), SLIDE, { y: 0.53, z: frontZ + 0.03 });
 
   if (cfg.backpack) {
     m.box(0.4, 0.44, 0.17, 0.04, PACK, { y: 0.32, z: -frontZ - 0.085 });
@@ -363,6 +399,12 @@ export function buildTorsoGeometry(cfg: FilledAvatar, options: TorsoOptions = {}
     m.add(new THREE.TorusGeometry(0.06, 0.018, 5, 10), CORD, { x: 0.2, y: 0.12, z: frontZ + 0.045 });
     m.box(0.03, 0.12, 0.03, 0.01, CORD, { x: 0.18, y: 0.02, z: frontZ + 0.045 });
     m.box(0.03, 0.12, 0.03, 0.01, CORD, { x: 0.23, y: 0.02, z: frontZ + 0.045 });
+  }
+
+  if (gear?.torso?.length) {
+    m.frame = TORSO_FRAME;
+    addTorsoGear(m, gear.torso, gear.accent ?? cfg.neckerchief);
+    m.frame = null;
   }
   return m.build();
 }
